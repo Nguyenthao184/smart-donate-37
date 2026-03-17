@@ -35,7 +35,13 @@ class RegisterRequest extends FormRequest
                 'regex:/^[a-z0-9]+$/',
                 'unique:nguoi_dung,ten_tai_khoan'
             ],
-            'email' => 'required|email|unique:nguoi_dung,email',
+            'email' => [
+                'required',
+                'string',
+                'max:255',
+                'regex:/^[^\s@]+@[^\s@]+\.[^\s@]+$/',
+                'unique:nguoi_dung,email'
+            ],
             'password' => 'required|min:6'
         ];
     }
@@ -55,11 +61,20 @@ class RegisterRequest extends FormRequest
             'ten_tai_khoan.unique' => 'Tên tài khoản đã tồn tại trong hệ thống.',
 
             'email.required' => 'Email không được để trống.',
-            'email.email' => 'Email không đúng định dạng.',
+            'email.regex' => 'Email không đúng định dạng.',
             'email.unique' => 'Email đã tồn tại trong hệ thống.',
 
             'password.required' => 'Mật khẩu không được để trống.',
             'password.min' => 'Mật khẩu phải có ít nhất 6 ký tự.',
         ];
+    }
+
+    protected function prepareForValidation()
+    {
+        $this->merge([
+            'email' => strtolower(trim($this->email)),
+            'ten_tai_khoan' => trim($this->ten_tai_khoan),
+            'ho_ten' => trim($this->ho_ten),
+        ]);
     }
 }
