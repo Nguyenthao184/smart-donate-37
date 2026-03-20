@@ -1,68 +1,140 @@
+/* Header chính */
 .app-header {
   width: 100%;
-  background: var(--bg);
+  background: #fff;
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   position: sticky;
   top: 0;
   z-index: 50;
+
+  /* Dropdown menu Ant Design */
+  .ant-dropdown-menu {
+    border-radius: 8px;
+    min-width: 160px;
+
+    .ant-dropdown-menu-item {
+      padding: 8px 16px;
+      font-size: 14px;
+      transition: background 0.2s, color 0.2s;
+
+      &:hover {
+        background-color: #f5f5f5;
+        color: #1890ff;
+      }
+    }
+  }
 }
 
+/* Container chính */
 .app-header__inner {
   width: 100%;
-  max-width: 1400px;
+  max-width: 100%;
   margin: 0 auto;
-  padding: 10px 74px;
+  padding: 10px 100px;
   box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: 18px;
+
+  @media (max-width: 1200px) {
+    padding: 10px 50px;
+  }
+
+  @media (max-width: 768px) {
+    padding: 10px 20px;
+  }
 }
 
+/* Logo */
 .app-header__logo {
-  font-weight: 900;
-  letter-spacing: 0.4px;
-  font-size: 32px;
-  color: var(--text-h);
-  text-decoration: none;
-  line-height: 1;
-  display: inline-flex;
-  align-items: center;
-}
-
-.app-header__search {
-  flex: 1;
-  max-width: 420px;
-}
-
-.app-header__nav {
   display: flex;
   align-items: center;
-  gap: 22px;
-  margin-left: 18px;
-  white-space: nowrap;
+}
+.app-header__logoImg {
+  height: 50px;
+  width: auto;
+  object-fit: contain;
 }
 
-.app-header__navLink {
-  text-decoration: none;
-  color: rgba(0, 0, 0, 0.72);
-  font-size: 16px;
-  padding: 8px 14px;
-  border-radius: 12px;
-  transition:
-    background 0.2s ease,
-    color 0.2s ease;
+/* Search */
+.app-header__search {
+  flex: 1;
+  max-width: 350px;
+  margin-left: 60px;
+
+  @media (max-width: 1024px) {
+    margin-left: 20px;
+  }
+
+  .ant-input {
+    border-radius: 20px;
+    background: #f5f5f5;
+    border: none;
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+  .ant-input-suffix {
+    color: #8c8c8c;
+  }
 }
 
-.app-header__navLink:hover {
-  background: rgba(0, 0, 0, 0.04);
-  color: var(--text-h);
+/* Navbar ngang */
+.ant-menu-horizontal {
+  border-bottom: none;
+  display: flex;
+  gap: 5px;
+
+  > .ant-menu-item::after,
+  > .ant-menu-submenu::after {
+    display: none !important;
+  }
+
+  /* item + submenu */
+  .ant-menu-item,
+  .ant-menu-submenu-title {
+    border-radius: 10px;
+    padding: 4px 15px;
+    height: 32px;
+    line-height: 32px;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s;
+  }
+
+  /* hover */
+  .ant-menu-item:hover,
+  .ant-menu-submenu-title:hover {
+    background: rgba(24, 144, 255, 0.1);
+    color: #1890ff;
+  }
+
+  /* ✅ menu con active */
+  .ant-menu-item-selected {
+    background: #1890ff;
+    color: #fff !important;
+    font-weight: 600;
+    border-radius: 10px;
+  }
+
+  .ant-menu-item-selected:hover {
+    background: #1890ff !important;
+    color: #fff !important;
+  }
+
+  /* ✅ menu cha active */
+  .ant-menu-submenu-selected > .ant-menu-submenu-title {
+    background: rgba(24, 144, 255, 0.15);
+    border-radius: 14px;
+    color: #1890ff;
+    font-weight: 600;
+  }
+  .ant-menu-submenu-selected > .ant-menu-submenu-title:hover {
+    background: rgba(24, 144, 255, 0.15) !important;
+    color: #1890ff;
+  }
 }
 
-.app-header__navLink--active {
-  background: rgba(0, 0, 0, 0.06);
-  color: var(--text-h);
-}
-
+/* Actions */
 .app-header__actions {
   display: flex;
   align-items: center;
@@ -81,23 +153,21 @@
   background: transparent;
   color: var(--text-h);
   cursor: pointer;
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease,
-    background 0.2s ease;
+  transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+
+  &:hover {
+    transform: translateY(-1px);
+    background: rgba(0, 0, 0, 0.04);
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.14);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
 }
 
-.app-header__iconBtn:hover {
-  transform: translateY(-1px);
-  background: rgba(0, 0, 0, 0.04);
-  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.14);
-}
-
-.app-header__iconBtn:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
+/* User info */
 .app-header__user {
   display: flex;
   align-items: center;
@@ -124,18 +194,61 @@
   margin-top: 2px;
 }
 
+/* Auth buttons */
+.app-header__auth {
+  display: flex;
+  gap: 10px;
+}
+.app-header__btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 0.9;
+  }
+
+  &--orange {
+    background: #ff4d4f;
+    color: white;
+  }
+
+  &--green {
+    background: #52c41a;
+    color: white;
+  }
+}
+
+/* Dark mode */
 @media (prefers-color-scheme: dark) {
   .app-header {
     border-bottom-color: rgba(255, 255, 255, 0.1);
+
+    .ant-dropdown-menu {
+      background: rgba(30, 30, 30, 0.95);
+
+      .ant-dropdown-menu-item {
+        color: #fff;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.08);
+          color: #1890ff;
+        }
+      }
+    }
   }
 
   .app-header__navLink {
     color: rgba(255, 255, 255, 0.78);
-  }
 
-  .app-header__navLink:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.95);
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.95);
+    }
   }
 
   .app-header__navLink--active {
@@ -144,7 +257,6 @@
   }
 
   .app-header__iconBtn {
-    border-color: rgba(255, 255, 255, 0.12);
     background: rgba(255, 255, 255, 0.06);
   }
 
@@ -153,13 +265,14 @@
   }
 }
 
+/* Responsive */
 @media (max-width: 1024px) {
   .app-header__inner {
     padding: 10px 24px;
   }
 
   .app-header__nav {
-    display: none;
+    display: none; /* chuyển sang hamburger nếu muốn */
   }
 
   .app-header__search {

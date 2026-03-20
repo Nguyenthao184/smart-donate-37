@@ -1,16 +1,24 @@
 .app-footer {
   width: 100%;
-  padding: 48px 0 22px;
-  background: var(--bg);
+  padding: 22px 0 22px;
+  background: #fff;
   border-top: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .app-footer__inner {
   width: 100%;
-  max-width: 1400px;
+  max-width: 100%;
   margin: 0 auto;
-  padding: 0 74px;
+  padding: 0 100px;
   box-sizing: border-box;
+
+  @media (max-width: 1200px) {
+    padding: 0 50px;
+  }
+
+  @media (max-width: 768px) {
+    padding: 0 20px;
+  }
 }
 
 .app-footer__grid {
@@ -26,11 +34,10 @@
   text-align: left;
 }
 
-.app-footer__logo {
-  font-size: 40px;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-  color: var(--text-h);
+.app-footer__logoImg {
+  height: 70px;
+  width: auto;
+  object-fit: contain;
 }
 
 .app-footer__heading {

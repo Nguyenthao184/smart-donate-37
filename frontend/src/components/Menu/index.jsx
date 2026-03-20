@@ -2,23 +2,25 @@ import { useMemo, useState } from "react";
 import { FiAward, FiMonitor } from "react-icons/fi";
 import "./styles.scss";
 
-export default function Menu({ items, value, defaultValue, onChange }) {
+export default function Menu({
+  items,
+  value,
+  defaultValue,
+  onChange,
+}) {
   const resolvedItems = useMemo(
     () =>
       items?.length
         ? items
         : [
-            {
-              key: "campaigns",
-              label: "Chiến Dịch",
-              icon: <FiAward size={22} />,
-            },
+            { key: "campaigns", label: "Chiến Dịch", icon: <FiAward size={22} /> },
             { key: "feed", label: "Bảng Tin", icon: <FiMonitor size={22} /> },
           ],
-    [items],
+    [items]
   );
 
-  const initialValue = defaultValue ?? resolvedItems[0]?.key ?? "campaigns";
+  const initialValue =
+    defaultValue ?? resolvedItems[0]?.key ?? "campaigns";
   const [internalValue, setInternalValue] = useState(initialValue);
   const currentValue = value ?? internalValue;
 
@@ -52,3 +54,4 @@ export default function Menu({ items, value, defaultValue, onChange }) {
     </div>
   );
 }
+

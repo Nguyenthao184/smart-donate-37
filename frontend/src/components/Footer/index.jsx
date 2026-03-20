@@ -1,4 +1,5 @@
 import { FiFacebook, FiInstagram } from "react-icons/fi";
+import logo from "../../assets/logo.png";
 import "./styles.scss";
 
 export default function Footer() {
@@ -7,16 +8,16 @@ export default function Footer() {
       <div className="app-footer__inner">
         <div className="app-footer__grid">
           <div className="app-footer__brand">
-            <div className="app-footer__logo">LOGO</div>
+            <img src={logo} alt="logo" className="app-footer__logoImg" />
           </div>
 
           <div className="app-footer__col">
             <div className="app-footer__heading">Tổng Quan</div>
             <a className="app-footer__link" href="#">
-              Dự án nổi bật
+              Chiến dịch
             </a>
             <a className="app-footer__link" href="#">
-              Tổ chức từ thiện
+              Bảng tin
             </a>
           </div>
 
