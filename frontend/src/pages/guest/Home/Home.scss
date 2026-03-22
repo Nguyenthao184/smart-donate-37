@@ -29,12 +29,14 @@
     gap: 4px;
     color: #ff4d4f;
     font-weight: 500;
-    font-size: 14px;
+    font-size: 15px;
     transition: transform 0.2s;
+    text-decoration: none;
 
     &:hover {
       transform: translateX(4px);
     }
+
   }
 
   /* ═══════════════════════════════
@@ -307,81 +309,90 @@
   /* ═══════════════════════════════
      3 & 5. Section header + Carousel chung
   ═══════════════════════════════ */
-  .home-section__header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-  }
 
-  .home-section__title {
-    margin: 0;
-    font-size: 27px;
-    font-weight: 800;
-    color: #262626;
-    letter-spacing: 0.3px;
-  }
+  .home-campaigns-orgs {
+    background: #fff;
+    padding: 30px 20px;
+    margin: 0px 150px 30px;
+    border-radius: 20px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e8e8e8;
 
-  .home-carousel-wrap {
-    position: relative;
-
-    .slick-prev,
-    .slick-next {
-      display: none !important;
+    .home-section__header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
     }
 
-    .slick-list {
-      margin: 0 -12px;
+    .home-section__title {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 800;
+      color: #fc2626;
+      letter-spacing: 0.3px;
+    }
+
+    .home-carousel-wrap {
+      position: relative;
+
+      .slick-prev,
+      .slick-next {
+        display: none !important;
+      }
+
+      .slick-list {
+        margin: 0 -12px;
+      }
+    }
+
+    .home-carousel__slide {
+      padding: 0 12px 0 20px;
+    }
+
+    .home-carousel__nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 50px;
+      height: 50px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      background: rgba(0, 0, 0, 0.28);
+      backdrop-filter: blur(6px);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      cursor: pointer;
+      z-index: 2;
+      transition:
+        transform 0.2s ease,
+        background 0.2s ease;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+
+      &:hover {
+        background: rgba(0, 0, 0, 0.45);
+        transform: translateY(-50%) scale(1.06);
+      }
+
+      &:active {
+        transform: translateY(-50%) scale(0.97);
+      }
+
+      &--prev {
+        left: -18px;
+      }
+      &--next {
+        right: -18px;
+      }
+    }
+
+    .home-orgs .home-carousel__nav {
+      top: calc(50% + 32px);
     }
   }
-
-  .home-carousel__slide {
-    padding: 0 12px 0 20px;
-  }
-
-  .home-carousel__nav {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 50px;
-    height: 50px;
-    border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, 0.28);
-    background: rgba(0, 0, 0, 0.28);
-    backdrop-filter: blur(6px);
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    cursor: pointer;
-    z-index: 2;
-    transition:
-      transform 0.2s ease,
-      background 0.2s ease;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
-
-    &:hover {
-      background: rgba(0, 0, 0, 0.45);
-      transform: translateY(-50%) scale(1.06);
-    }
-
-    &:active {
-      transform: translateY(-50%) scale(0.97);
-    }
-
-    &--prev {
-      left: -18px;
-    }
-    &--next {
-      right: -18px;
-    }
-  }
-
-  .home-orgs .home-carousel__nav {
-    top: calc(50% + 32px);
-  }
-
   /* ═══════════════════════════════
      4. CTA
   ═══════════════════════════════ */
@@ -561,71 +572,71 @@
      6. Bottom Banner
   ═══════════════════════════════ */
   .home-bottom-banner {
-  padding-bottom: 40px;
+    padding-bottom: 40px;
 
-  .bottom-banner-item {
-    height: 350px;
-    border-radius: 20px;
-    margin-right: 10px;
-    overflow: visible !important;  // ← đổi từ hidden → visible
-    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
-    border: 1px solid #e8e8e8;
-    position: relative;
+    .bottom-banner-item {
+      height: 350px;
+      border-radius: 20px;
+      margin-right: 10px;
+      overflow: visible !important; // ← đổi từ hidden → visible
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
+      border: 1px solid #e8e8e8;
+      position: relative;
 
-    // Dùng clip-path thay overflow hidden để bo góc mà không cắt dots
-    clip-path: inset(0 round 20px);  // ← thay thế overflow hidden
-
-    &:hover {
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
-    }
-
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-      filter: saturate(1.2) brightness(1.05);
-      transition: transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
+      // Dùng clip-path thay overflow hidden để bo góc mà không cắt dots
+      clip-path: inset(0 round 20px); // ← thay thế overflow hidden
 
       &:hover {
-        transform: scale(1.08);
-        filter: saturate(1.35) brightness(1.1);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+      }
+
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        filter: saturate(1.2) brightness(1.05);
+        transition: transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
+
+        &:hover {
+          transform: scale(1.08);
+          filter: saturate(1.35) brightness(1.1);
+        }
+      }
+
+      @media (max-width: 768px) {
+        height: 200px;
       }
     }
 
-    @media (max-width: 768px) {
-      height: 200px;
+    .ant-carousel .slick-dots {
+      bottom: -28px !important;
+
+      li {
+        width: auto;
+        margin: 0 4px;
+
+        button,
+        button::before {
+          width: 32px !important;
+          height: 8px !important;
+          border-radius: 999px !important;
+          background: rgba(255, 77, 79, 0.3) !important;
+          opacity: 1 !important;
+        }
+      }
+
+      li.slick-active {
+        button,
+        button::before {
+          width: 52px !important;
+          height: 8px !important;
+          border-radius: 999px !important;
+          background: #ff4d4f !important;
+          opacity: 1 !important;
+          box-shadow: 0 2px 8px rgba(255, 77, 79, 0.4) !important;
+        }
+      }
     }
   }
-
-  .ant-carousel .slick-dots {
-    bottom: -28px !important;
-
-   li {
-      width: auto;
-      margin: 0 4px;
-
-      button,
-      button::before {
-        width: 32px !important;
-        height: 8px !important;
-        border-radius: 999px !important;
-        background: rgba(255, 77, 79, 0.3) !important;
-        opacity: 1 !important;
-      }
-    }
-
-    li.slick-active {
-      button,
-      button::before {
-        width: 52px !important;
-        height: 8px !important;
-        border-radius: 999px !important;
-        background: #ff4d4f !important;
-        opacity: 1 !important;
-        box-shadow: 0 2px 8px rgba(255, 77, 79, 0.4) !important;
-      }
-    }
-  }
-}
 }

@@ -1,5 +1,6 @@
 .campaign-card {
-  width: 370px;
+  max-width: 370px;
+  width: 100%;
   flex-shrink: 0;
   border-radius: 20px;
   overflow: hidden;
