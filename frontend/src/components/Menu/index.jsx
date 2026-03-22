@@ -1,31 +1,30 @@
 import { useMemo, useState } from "react";
 import { FiAward, FiMonitor } from "react-icons/fi";
+import { useLocation, useNavigate } from "react-router-dom";
 import "./styles.scss";
 
-export default function Menu({
-  items,
-  value,
-  defaultValue,
-  onChange,
-}) {
+export default function Menu({ items, onChange }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+
   const resolvedItems = useMemo(
     () =>
       items?.length
         ? items
         : [
-            { key: "campaigns", label: "Chiến Dịch", icon: <FiAward size={22} /> },
-            { key: "feed", label: "Bảng Tin", icon: <FiMonitor size={22} /> },
+            { key: "/chien-dich", label: "Chiến Dịch", icon: <FiAward size={22} /> },
+            { key: "/bang-tin",   label: "Bảng Tin",   icon: <FiMonitor size={22} /> },
           ],
     [items]
   );
 
-  const initialValue =
-    defaultValue ?? resolvedItems[0]?.key ?? "campaigns";
-  const [internalValue, setInternalValue] = useState(initialValue);
-  const currentValue = value ?? internalValue;
+  // Active nếu URL bắt đầu bằng key — vd: /chien-dich/123 vẫn active /chien-dich
+  const currentValue = resolvedItems.find((item) =>
+    location.pathname.startsWith(item.key)
+  )?.key;
 
   function handleSelect(nextKey) {
-    if (value === undefined) setInternalValue(nextKey);
+    navigate(nextKey);
     onChange?.(nextKey);
   }
 
@@ -54,4 +53,3 @@ export default function Menu({
     </div>
   );
 }
-

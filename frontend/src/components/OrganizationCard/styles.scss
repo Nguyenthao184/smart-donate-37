@@ -1,5 +1,6 @@
 .org-card {
-  width: 370px;          // ← kích thước cố định 1 item
+  max-width: 370px;
+  width: 100%;
   flex-shrink: 0;
   border-radius: 20px;
   overflow: visible;
@@ -9,8 +10,10 @@
   position: relative;
   isolation: isolate;
   background: #fff;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  margin-top: 65px;      // ← chừa chỗ cho avatar nhô lên
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+  margin-top: 65px; // ← chừa chỗ cho avatar nhô lên
 
   &:hover {
     transform: translateY(-8px);
@@ -66,7 +69,9 @@
     );
     opacity: 0;
     transform: translateX(-100%);
-    transition: opacity 0.1s, transform 0.55s ease;
+    transition:
+      opacity 0.1s,
+      transform 0.55s ease;
     pointer-events: none;
     z-index: 1;
   }
@@ -81,8 +86,9 @@
     border-radius: 999px;
     background: #fff;
     border: 3px solid #fff;
-    box-shadow: 0 8px 28px rgba(250, 84, 28, 0.18),
-                0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow:
+      0 8px 28px rgba(250, 84, 28, 0.18),
+      0 2px 8px rgba(0, 0, 0, 0.1);
     display: grid;
     place-items: center;
     z-index: 2;
@@ -94,8 +100,13 @@
       inset: -3px;
       border-radius: 999px;
       background: conic-gradient(
-        #ff4d4f, #fa541c, #ffa940,
-        #52c41a, #1890ff, #722ed1, #ff4d4f
+        #ff4d4f,
+        #fa541c,
+        #ffa940,
+        #52c41a,
+        #1890ff,
+        #722ed1,
+        #ff4d4f
       );
       z-index: -1;
       animation: org-spin 6s linear infinite;
@@ -128,6 +139,8 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
+    background: #FFF0EA;
+    border-radius: 0 0 20px 20px;
   }
 
   &__name {
@@ -171,7 +184,9 @@
     font-weight: 700;
     color: rgba(0, 0, 0, 0.85);
 
-    &--green { color: #389e0d; }
+    &--green {
+      color: #389e0d;
+    }
   }
 
   &__progress {
@@ -219,5 +234,7 @@
 }
 
 @keyframes org-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }

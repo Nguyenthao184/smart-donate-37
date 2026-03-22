@@ -9,12 +9,11 @@ function clampPercent(value) {
   return Math.max(0, Math.min(100, n));
 }
 
-export default function CampaignCard({ campaign, index = 0 }) {
+export default function CampaignCard({ campaign}) {
   const goal   = Number(campaign.goal   ?? 0);
   const raised = Number(campaign.raised ?? 0);
   const percent = clampPercent(goal > 0 ? (raised / goal) * 100 : 0);
 
-  const isHot  = index < 2;
   const isNear = campaign.daysLeft <= 3;
 
   return (

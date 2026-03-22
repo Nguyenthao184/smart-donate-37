@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import ProtectedRoute from "./protectedRoutes";
 import PublicRoute from "./publicRoutes";
+import ScrollToTop from "../utils/ScrollToTop.jsx";
 
 import MainLayout from "../layouts/MainLayout";
 
@@ -19,16 +20,6 @@ const publicRoutes = [
       </PublicRoute>
     ),
   },
-  {
-    path: "/chien-dich",
-    element: (
-      <PublicRoute>
-        <MainLayout>
-          <CampaignPage />
-        </MainLayout>
-      </PublicRoute>
-    ),
-  },
 ];
 
 // ================== PRIVATE ROUTES ==================
@@ -36,11 +27,11 @@ const privateRoutes = [
   {
     path: "/chien-dich",
     element: (
-      <PublicRoute>
+      <ProtectedRoute>
         <MainLayout>
           <CampaignPage />
         </MainLayout>
-      </PublicRoute>
+      </ProtectedRoute>
     ),
   },
 ];
@@ -49,6 +40,7 @@ const privateRoutes = [
 export default function AppRoutes() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <Routes>
         {publicRoutes.map((route, index) => (
           <Route key={index} path={route.path} element={route.element} />

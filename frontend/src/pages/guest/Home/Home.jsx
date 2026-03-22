@@ -228,7 +228,7 @@ export default function HomePage() {
       </section>
 
       {/* 3. Chiến dịch nổi bật */}
-      <section className="home-campaigns">
+      <section className="home-campaigns-orgs">
         <div className="home-section__header">
           <h2 className="home-section__title">CHIẾN DỊCH NỔI BẬT</h2>
           <a href="#" className="view-all">
@@ -385,7 +385,7 @@ export default function HomePage() {
       </section>
 
       {/* 5. Tổ chức từ thiện */}
-      <section className="home-orgs">
+      <section className="home-campaigns-orgs">
         <div className="home-section__header">
           <h2 className="home-section__title">TỔ CHỨC TỪ THIỆN</h2>
           <a href="#" className="view-all">

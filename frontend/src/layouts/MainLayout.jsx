@@ -8,7 +8,7 @@ const { Content } = Layout;
 function MainLayout({ children }) {
   return (
     <Layout style={{ minHeight: "100vh" }}>
-      <Header />
+      <Header style={{ position: "sticky", top: 0, zIndex: 100 }}/>
       <Menu />
       <Content style={{ padding: "16px" }}>
         {children}
