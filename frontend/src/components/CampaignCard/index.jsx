@@ -17,7 +17,7 @@ export default function CampaignCard({ campaign}) {
   const isNear = campaign.daysLeft <= 3;
 
   return (
-    <Card className="campaign-card" bordered={false}>
+    <Card className="campaign-card" variant="borderless">
       {/* ── Cover ── */}
       <div className="campaign-card__cover">
         {campaign.image ? (
@@ -70,7 +70,7 @@ export default function CampaignCard({ campaign}) {
               "0%":   "#ff4d4f",
               "100%": "#fa8c16",
             }}
-            trailColor="rgba(0,0,0,0.07)"
+            railColor="rgba(0,0,0,0.07)"
             strokeLinecap="round"
           />
         </div>

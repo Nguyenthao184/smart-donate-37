@@ -290,7 +290,7 @@ export default function HomePage() {
       {/* 4. CTA */}
       <section className="home-cta">
         <div className="home-cta__inner">
-          <Card className="cta-card cta-card--create" bordered={false}>
+          <Card className="cta-card cta-card--create" variant="borderless">
             <Title level={3}>Muốn tạo quỹ chiến dịch? Hãy bắt đầu ngay!</Title>
             <Row gutter={[12, 24]} className="cta-steps">
               <Col span={12}>
@@ -359,7 +359,7 @@ export default function HomePage() {
           <div className="cta-overlay">
             <Card
               className="cta-card cta-card--give"
-              bordered={false}
+              variant="borderless"
               style={{ position: "relative", overflow: "hidden" }}
             >
               <Title level={3}>Cho/Nhận Đồ Dùng Miễn Phí Quanh Bạn</Title>

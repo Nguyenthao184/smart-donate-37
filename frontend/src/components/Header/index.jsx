@@ -5,10 +5,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../store/AuthContext";
 import "./styles.scss";
 
-export default function Header({
-  notificationsCount = 2,
-  messagesCount = 3,
-}) {
+export default function Header({ notificationsCount = 2, messagesCount = 3 }) {
   const { user, isLoggedIn } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -19,23 +16,31 @@ export default function Header({
       key: "/",
       children: [
         { label: "Chiến dịch", key: "/chien-dich", to: "/chien-dich" },
-        { label: "Bảng tin",   key: "/bang-tin",   to: "/bang-tin"   },
+        { label: "Bảng tin", key: "/bang-tin", to: "/bang-tin" },
       ],
     },
     {
       label: "Bản đồ chiến dịch",
       key: "/ban-do",
       children: [
-        { label: "Chiến dịch địa phương", key: "/ban-do", to: "/ban-do" },
+        { label: "Chiến dịch địa phương", key: "/ban-do-cd", to: "/ban-do-cd" },
       ],
     },
     {
       label: "Hỗ trợ",
       key: "ho-tro",
       children: [
-        { label: "Hỏi đáp",            key: "ho-tro/hoi-dap",    to: "/ho-tro/hoi-dap"    },
-        { label: "Điều khoản",         key: "ho-tro/dieu-khoan", to: "/ho-tro/dieu-khoan" },
-        { label: "Chính sách bảo mật", key: "ho-tro/chinh-sach", to: "/ho-tro/chinh-sach" },
+        { label: "Hỏi đáp", key: "ho-tro/hoi-dap", to: "/ho-tro/hoi-dap" },
+        {
+          label: "Điều khoản",
+          key: "ho-tro/dieu-khoan",
+          to: "/ho-tro/dieu-khoan",
+        },
+        {
+          label: "Chính sách bảo mật",
+          key: "ho-tro/chinh-sach",
+          to: "/ho-tro/chinh-sach",
+        },
       ],
     },
   ];
@@ -51,11 +56,20 @@ export default function Header({
 
   const getActiveKey = () => {
     const path = location.pathname;
+
     for (const item of navbar) {
-      const foundChild = item.children?.find((c) => c.to === path);
-      if (foundChild) return [foundChild.key];
-      if (item.key === path) return [item.key];
+      if (item.children) {
+        const foundChild = item.children.find(
+          (c) => path === c.to || path.startsWith(c.to + "/"),
+        );
+        if (foundChild) return [foundChild.key];
+      }
+
+      if (path === item.key || path.startsWith(item.key + "/")) {
+        return [item.key];
+      }
     }
+
     return [];
   };
 
@@ -94,12 +108,20 @@ export default function Header({
         <div className="app-header__actions">
           {isLoggedIn ? (
             <>
-              <button type="button" className="app-header__iconBtn" aria-label="Thông báo">
+              <button
+                type="button"
+                className="app-header__iconBtn"
+                aria-label="Thông báo"
+              >
                 <Badge count={notificationsCount} size="small" offset={[0, 4]}>
                   <FiBell size={22} />
                 </Badge>
               </button>
-              <button type="button" className="app-header__iconBtn" aria-label="Tin nhắn">
+              <button
+                type="button"
+                className="app-header__iconBtn"
+                aria-label="Tin nhắn"
+              >
                 <Badge count={messagesCount} size="small" offset={[0, 4]}>
                   <FiMessageCircle size={22} />
                 </Badge>
