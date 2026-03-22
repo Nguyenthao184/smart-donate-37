@@ -1,4 +1,5 @@
-import { useRef, useState } from "react";
+import { useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button, Progress, Carousel } from "antd";
 import {
   FiChevronRight,
@@ -184,14 +185,17 @@ function formatVnd(n) {
 
 // ── Page ──────────────────────────────────────────────────────────────
 export default function Campaign() {
-  const [activeCategory, setActiveCategory] = useState(0);
   const carouselRef = useRef(null);
   const orgCarouselRef = useRef(null);
+  const navigate = useNavigate();
 
-  const filtered =
-    activeCategory === 0
-      ? MOCK_CAMPAIGNS
-      : MOCK_CAMPAIGNS.filter((c) => c.categoryId === activeCategory);
+  function handleCategoryClick(cat) {
+    if (cat.id === 0) {
+      navigate("/chien-dich/danh-sach");
+    } else {
+      navigate(`/chien-dich/danh-sach?category=${cat.id}`);
+    }
+  }
 
   return (
     <div className="campaign-page">
@@ -207,8 +211,8 @@ export default function Campaign() {
             {CATEGORIES.map((cat) => (
               <li
                 key={cat.id}
-                className={`sidebar__category-item${activeCategory === cat.id ? " active" : ""}`}
-                onClick={() => setActiveCategory(cat.id)}
+                className="sidebar__category-item"
+                onClick={() => handleCategoryClick(cat)}
               >
                 <span
                   className="sidebar__category-icon"
@@ -277,7 +281,7 @@ export default function Campaign() {
         <section className="camp-section">
           <div className="camp-section__header">
             <h2 className="camp-section__title">CHIẾN DỊCH NỔI BẬT</h2>
-            <a href="#" className="camp-section__view-all">
+            <a href="/chien-dich/danh-sach" className="camp-section__view-all">
               Xem tất cả <FiChevronRight size={14} />
             </a>
           </div>
@@ -295,7 +299,7 @@ export default function Campaign() {
                 { breakpoint: 780, settings: { slidesToShow: 1 } },
               ]}
             >
-              {filtered.map((c, i) => (
+              {MOCK_CAMPAIGNS.map((c, i) => (
                 <div key={c.id} className="camp-section__slide">
                   <CampaignCard campaign={c} index={i} />
                 </div>
@@ -432,7 +436,7 @@ export default function Campaign() {
                         percent={pct}
                         showInfo={false}
                         strokeColor={{ "0%": "#ff4d4f", "100%": "#fa8c16" }}
-                        trailColor="rgba(0,0,0,0.07)"
+                        railColor="rgba(0,0,0,0.07)"
                         strokeLinecap="round"
                       />
                       <span className="ending-item__pct">{pct}%</span>

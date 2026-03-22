@@ -11,7 +11,7 @@ export default function OrganizationCard({ organization, index = 0 }) {
   const rankLabels = ["TOP 1", "TOP 2", "TOP 3"];
 
   return (
-    <Card className="org-card" bordered={false}>
+    <Card className="org-card" variant="borderless">
       {index < 3 && (
         <div
           className="org-card__rank"
