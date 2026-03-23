@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Hash;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Requests\Auth\LoginRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -16,9 +17,17 @@ class AuthController extends Controller
     {
         $data = $request->validated();
 
+        $baseUsername = Str::before($data['email'], '@');
+        $username = $baseUsername;
+        $count = 1;
+        while (User::where('ten_tai_khoan', $username)->exists()) {
+            $username = $baseUsername . $count;
+            $count++;
+        }
+
         $user = User::create([
             'ho_ten' => $data['ho_ten'],
-            'ten_tai_khoan' => $data['ten_tai_khoan'],
+            'ten_tai_khoan' => $username,
             'email' => $data['email'],
             'mat_khau' => Hash::make($data['password'])
         ]);
