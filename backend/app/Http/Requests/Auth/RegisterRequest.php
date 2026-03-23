@@ -28,15 +28,15 @@ class RegisterRequest extends FormRequest
                 'max:255',
                 'regex:/^[A-Za-zÀ-ỹ]+( [A-Za-zÀ-ỹ]+)*$/'
             ],
-            'ten_tai_khoan' => [
+            'email' => [
                 'required',
                 'string',
-                'max:50',
-                'regex:/^[a-z0-9]+$/',
-                'unique:nguoi_dung,ten_tai_khoan'
+                'max:255',
+                'regex:/^[^\s@]+@[^\s@]+\.[^\s@]+$/',
+                'unique:nguoi_dung,email'
             ],
-            'email' => 'required|email|unique:nguoi_dung,email',
-            'password' => 'required|min:6'
+            'password' => 'required|min:6',
+            'confirm_password' => 'required|same:password'
         ];
     }
 
@@ -48,18 +48,15 @@ class RegisterRequest extends FormRequest
             'ho_ten.max' => 'Họ tên không được vượt quá 255 ký tự.',
             'ho_ten.regex' => 'Họ tên chỉ được chứa chữ cái và mỗi từ cách nhau đúng 1 dấu cách.',
 
-            'ten_tai_khoan.required' => 'Tên tài khoản không được để trống.',
-            'ten_tai_khoan.string' => 'Tên tài khoản phải là chuỗi ký tự.',
-            'ten_tai_khoan.max' => 'Tên tài khoản không được vượt quá 50 ký tự.',
-            'ten_tai_khoan.regex' => 'Tên tài khoản chỉ được chứa chữ cái và số, không được chứa ký tự đặc biệt.',
-            'ten_tai_khoan.unique' => 'Tên tài khoản đã tồn tại trong hệ thống.',
-
             'email.required' => 'Email không được để trống.',
             'email.email' => 'Email không đúng định dạng.',
             'email.unique' => 'Email đã tồn tại trong hệ thống.',
 
             'password.required' => 'Mật khẩu không được để trống.',
             'password.min' => 'Mật khẩu phải có ít nhất 6 ký tự.',
+
+            'confirm_password.required' => 'Vui lòng xác nhận mật khẩu.',
+            'confirm_password.same' => 'Mật khẩu xác nhận không khớp.',
         ];
     }
 }
