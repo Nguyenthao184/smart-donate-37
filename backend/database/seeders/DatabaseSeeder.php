@@ -8,6 +8,8 @@ use Illuminate\Database\Seeder;
 use Database\Seeders\VaiTroSeeder; 
 use Database\Seeders\NguoiDungSeeder; 
 use Database\Seeders\NguoiDungVaiTroSeeder;
+use Database\Seeders\DanhMucSeeder;
+use Database\Seeders\BaiDangSeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -19,7 +21,9 @@ class DatabaseSeeder extends Seeder
         $this->call([
             VaiTroSeeder::class,
             NguoiDungSeeder::class,
-            NguoiDungVaiTroSeeder::class
+            NguoiDungVaiTroSeeder::class,
+            DanhMucSeeder::class,
+            BaiDangSeeder::class,
         ]);
     }
 }

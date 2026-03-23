@@ -1,0 +1,42 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('bai_dang', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('nguoi_dung_id')
+                ->constrained('nguoi_dung')
+                ->cascadeOnDelete();
+
+            // CHO: đăng bài tặng vật phẩm, NHAN: đăng bài nhận vật phẩm
+            $table->enum('loai_bai', ['CHO', 'NHAN']);
+
+            $table->foreignId('danh_muc_id')->nullable()
+                ->constrained('danh_muc')
+                ->nullOnDelete();
+
+            $table->string('tieu_de', 255);
+            $table->string('mo_ta', 255);
+            $table->string('hinh_anh', 255)->nullable();
+            $table->string('dia_diem', 255);
+            $table->integer('so_luong');
+
+            // trạng thái bài đăng
+            $table->enum('trang_thai', ['CON_NHAN', 'CON_TANG', 'DA_NHAN', 'DA_TANG']);
+
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('bai_dang');
+    }
+};
+
