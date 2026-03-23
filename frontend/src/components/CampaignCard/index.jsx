@@ -1,5 +1,11 @@
-import { Card, Progress, Tag } from "antd";
-import { FiImage, FiClock, FiTarget, FiTrendingUp } from "react-icons/fi";
+import { Card, Progress } from "antd";
+import {
+  FiImage,
+  FiClock,
+  FiTarget,
+  FiTrendingUp,
+} from "react-icons/fi";
+import { LiaHeartbeatSolid } from "react-icons/lia";
 import { formatVnd } from "../../utils/format";
 import "./styles.scss";
 
@@ -9,8 +15,8 @@ function clampPercent(value) {
   return Math.max(0, Math.min(100, n));
 }
 
-export default function CampaignCard({ campaign}) {
-  const goal   = Number(campaign.goal   ?? 0);
+export default function CampaignCard({ campaign }) {
+  const goal = Number(campaign.goal ?? 0);
   const raised = Number(campaign.raised ?? 0);
   const percent = clampPercent(goal > 0 ? (raised / goal) * 100 : 0);
 
@@ -67,7 +73,7 @@ export default function CampaignCard({ campaign}) {
             percent={percent}
             showInfo={false}
             strokeColor={{
-              "0%":   "#ff4d4f",
+              "0%": "#ff4d4f",
               "100%": "#fa8c16",
             }}
             railColor="rgba(0,0,0,0.07)"
@@ -90,6 +96,9 @@ export default function CampaignCard({ campaign}) {
               Mục tiêu:{" "}
               <span className="campaign-card__goal">{formatVnd(goal)}</span>
             </span>
+          </div>
+          <div className="campaign-card__float-icon">
+            <LiaHeartbeatSolid size={34} />
           </div>
         </div>
       </div>

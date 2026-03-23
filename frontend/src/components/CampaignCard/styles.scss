@@ -9,7 +9,9 @@
   background: #fff;
   position: relative;
   isolation: isolate;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
   cursor: pointer;
 
   &:hover {
@@ -116,8 +118,13 @@
   }
 
   @keyframes pulse-badge {
-    0%, 100% { opacity: 1; }
-    50%       { opacity: 0.6; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.6;
+    }
   }
 
   // ── Percent pill ────────────────────────────────
@@ -181,6 +188,43 @@
     gap: 5px;
     font-size: 16px;
     color: rgba(0, 0, 0, 0.6);
+    position: relative;
+  }
+
+  &__float-icon {
+    position: absolute; // ← đổi sang absolute
+    right: 0;
+    bottom: 0;
+    width: 60px;
+    height: 60px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #fff0f0, #ffe8e8);
+    border: 1.5px solid rgba(255, 77, 79, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ff4d4f;
+    box-shadow: 0 4px 12px rgba(255, 77, 79, 0.15);
+    animation: float-pulse 2s ease-in-out infinite; // ← đổi animation
+
+    .campaign-card:hover & {
+      background: linear-gradient(135deg, #ff4d4f, #fa8c16);
+      color: #fff;
+      box-shadow: 0 6px 18px rgba(255, 77, 79, 0.35);
+    }
+  }
+
+  @keyframes float-pulse {
+    0%,
+    100% {
+      transform: scale(1);
+      box-shadow: 0 4px 12px rgba(255, 77, 79, 0.15);
+    }
+    50% {
+      transform: scale(1.15);
+      box-shadow: 0 6px 20px rgba(255, 77, 79, 0.3);
+    }
   }
 
   &__meta-item {

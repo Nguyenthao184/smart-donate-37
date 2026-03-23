@@ -9,7 +9,8 @@ import MainLayout from "../layouts/MainLayout";
 // Pages
 import HomePage from "../pages/guest/Home/Home.jsx";
 import CampaignPage from "../pages/user/Campaign/Campaign.jsx";
-import CampaignList from "../pages/user/CampaignList/CampaignList.jsx";
+import CampaignList from "../pages/guest/CampaignList/CampaignList.jsx";
+import CampaignDetail from "../pages/guest/CampaignDetail/CampaignDetail.jsx";
 
 // ================== PUBLIC ROUTES ==================
 const publicRoutes = [
@@ -18,6 +19,26 @@ const publicRoutes = [
     element: (
       <PublicRoute>
         <HomePage />
+      </PublicRoute>
+    ),
+  },
+  {
+    path: "/chien-dich/danh-sach",
+    element: (
+      <PublicRoute>
+        <MainLayout>
+          <CampaignList />
+        </MainLayout>
+      </PublicRoute>
+    ),
+  },
+  {
+    path: "/chien-dich/chi-tiet",
+    element: (
+      <PublicRoute>
+        <MainLayout>
+          <CampaignDetail />
+        </MainLayout>
       </PublicRoute>
     ),
   },
@@ -31,16 +52,6 @@ const privateRoutes = [
       <ProtectedRoute>
         <MainLayout>
           <CampaignPage />
-        </MainLayout>
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: "/chien-dich/danh-sach",
-    element: (
-      <ProtectedRoute>
-        <MainLayout>
-          <CampaignList />
         </MainLayout>
       </ProtectedRoute>
     ),
