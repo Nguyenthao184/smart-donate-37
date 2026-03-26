@@ -14,7 +14,7 @@ import OrganizationDetail from "../pages/user/OrganizationDetail/OrganizationDet
 import CampaignList from "../pages/guest/CampaignList/CampaignList.jsx";
 import CampaignDetail from "../pages/guest/CampaignDetail/CampaignDetail.jsx";
 import CreateCampaign  from "../pages/organization/CreateCampaign/CreateCampaign.jsx";
-
+import NewsFeed  from "../pages/user/NewsFeed/NewsFeed.jsx";
 // ================== PUBLIC ROUTES ==================
 const publicRoutes = [
   {
@@ -85,6 +85,16 @@ const privateRoutes = [
       <ProtectedRoute>
         <MainLayout>
           <CreateCampaign />
+        </MainLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/bang-tin",
+    element: (
+      <ProtectedRoute>
+        <MainLayout>
+          <NewsFeed />
         </MainLayout>
       </ProtectedRoute>
     ),
