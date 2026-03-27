@@ -1,3 +1,14 @@
+@keyframes privacy-fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @keyframes scroll-top-in {
   from {
     opacity: 0;
@@ -362,9 +373,4 @@
   }
 }
 
-body {
-  font-family: 'Be Vietnam Pro', sans-serif;
-  background: #f4f6f8;
-  color: #1a1a1a;
-}
 
