@@ -9,6 +9,7 @@ import MainLayout from "../layouts/MainLayout";
 // Pages
 import HomePage from "../pages/guest/Home/Home.jsx";
 import FAQ from "../pages/guest/FAQ/FAQ.jsx";
+import Terms from "../pages/guest/Terms/Terms.jsx";
 import CampaignPage from "../pages/user/Campaign/Campaign.jsx";
 import OrganizationList from "../pages/user/OrganizationList/OrganizationList.jsx";
 import OrganizationDetail from "../pages/user/OrganizationDetail/OrganizationDetail.jsx";
@@ -32,6 +33,14 @@ const publicRoutes = [
     element: (
       <PublicRoute>
         <FAQ />
+      </PublicRoute>
+    ),
+  },
+  {
+    path: "/ho-tro/dieu-khoan",
+    element: (
+      <PublicRoute>
+        <Terms />
       </PublicRoute>
     ),
   },
