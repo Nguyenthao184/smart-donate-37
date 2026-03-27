@@ -161,8 +161,8 @@ function CardCarousel({ children, className = "" }) {
 export default function HomePage() {
   const categories = [
     { id: 1, label: "Thiên tai", icon: <FaPooStorm />, color: "#FD4848" },
-    { id: 2, label: "Giảm đói", icon: <GiKnifeFork />, color: "#FDBE48" },
-    { id: 3, label: "Xóa nghèo", icon: <RiHandCoinLine />, color: "#D9FD48" },
+    { id: 2, label: "Xóa đói", icon: <GiKnifeFork />, color: "#FDBE48" },
+    { id: 3, label: "An sinh", icon: <RiHandCoinLine />, color: "#D9FD48" },
     { id: 4, label: "Trẻ em", icon: <FaChildren />, color: "#48FDE8" },
     { id: 5, label: "Môi trường", icon: <FaEarthEurope />, color: "#5AFD48" },
     {

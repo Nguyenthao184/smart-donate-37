@@ -29,14 +29,14 @@ const CATEGORIES = [
     color: "#FD4848",
   },
   {
-    value: "giam-doi",
-    label: "Giảm đói",
+    value: "xoa-doi",
+    label: "Xóa đói",
     icon: <GiKnifeFork />,
     color: "#FDBE48",
   },
   {
-    value: "xoa-ngheo",
-    label: "Xóa nghèo",
+    value: "an-sinh",
+    label: "An sinh",
     icon: <RiHandCoinLine />,
     color: "#D9FD48",
   },

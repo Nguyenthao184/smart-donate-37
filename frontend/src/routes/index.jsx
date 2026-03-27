@@ -8,6 +8,7 @@ import MainLayout from "../layouts/MainLayout";
 
 // Pages
 import HomePage from "../pages/guest/Home/Home.jsx";
+import FAQ from "../pages/guest/FAQ/FAQ.jsx";
 import CampaignPage from "../pages/user/Campaign/Campaign.jsx";
 import OrganizationList from "../pages/user/OrganizationList/OrganizationList.jsx";
 import OrganizationDetail from "../pages/user/OrganizationDetail/OrganizationDetail.jsx";
@@ -23,6 +24,14 @@ const publicRoutes = [
     element: (
       <PublicRoute>
         <HomePage />
+      </PublicRoute>
+    ),
+  },
+  {
+    path: "/ho-tro/hoi-dap",
+    element: (
+      <PublicRoute>
+        <FAQ />
       </PublicRoute>
     ),
   },
