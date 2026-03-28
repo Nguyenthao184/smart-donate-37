@@ -8,6 +8,7 @@ import MainLayout from "../layouts/MainLayout";
 
 // Pages
 import HomePage from "../pages/guest/Home/Home.jsx";
+import Search from "../pages/guest/Search/Search.jsx";
 import FAQ from "../pages/guest/FAQ/FAQ.jsx";
 import Privacy from "../pages/guest/Privacy/Privacy.jsx";
 import Terms from "../pages/guest/Terms/Terms.jsx";
@@ -26,6 +27,14 @@ const publicRoutes = [
     element: (
       <PublicRoute>
         <HomePage />
+      </PublicRoute>
+    ),
+  },
+  {
+    path: "/tim-kiem",
+    element: (
+      <PublicRoute>
+        <Search />
       </PublicRoute>
     ),
   },
