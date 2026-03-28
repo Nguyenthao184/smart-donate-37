@@ -13,7 +13,7 @@ class NguoiDungVaiTroSeeder extends Seeder
      */
     public function run(): void
     {
-        DB::table('nguoi_dung_vai_tro')->insert([
+        DB::table('nguoi_dung_vai_tro')->upsert([
 
             // admin
             [
@@ -37,6 +37,6 @@ class NguoiDungVaiTroSeeder extends Seeder
                 'vai_tro_id' => 3
             ]
 
-        ]);
+        ], ['nguoi_dung_id', 'vai_tro_id'], ['vai_tro_id']);
     }
 }

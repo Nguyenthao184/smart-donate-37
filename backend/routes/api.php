@@ -8,6 +8,7 @@ use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\FundAccountController;
 use App\Http\Controllers\PostController;
+use App\Http\Controllers\FraudController;
 
 Route::post('/register', [AuthController::class,'register']);
 Route::post('/login', [AuthController::class,'login']);
@@ -29,6 +30,11 @@ Route::middleware('auth:sanctum')->group(function(){
         // ADMIN duyệt tài khoản gây quỹ
         Route::post('/fund-accounts/{id}/approve', [FundAccountController::class, 'approve']);
         Route::post('/fund-accounts/{id}/lock', [FundAccountController::class, 'lock']);
+
+        // ADMIN auto fraud check (tu tinh feature roi goi AI)
+        Route::post('/admin/fraud-check/auto', [FraudController::class, 'autoCheck']);
+        Route::get('/admin/fraud-alerts', [FraudController::class, 'getAlerts']);
+        Route::post('/admin/fraud-alerts/{canhBao}', [FraudController::class, 'updateAlert']);
     });
 
     Route::middleware('role:NGUOI_DUNG')->group(function(){

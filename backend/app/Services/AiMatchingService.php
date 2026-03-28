@@ -17,7 +17,9 @@ class AiMatchingService
             $url = rtrim(env('AI_MATCHING_URL', 'http://127.0.0.1:8001'), '/');
         }
 
-        $response = Http::timeout(10)->post($url . '/matches', $payload);
+        $response = Http::connectTimeout(3)
+            ->timeout(30)
+            ->post($url . '/matches', $payload);
 
         if (!$response->successful()) {
             throw new \RuntimeException('AI service error: ' . $response->status() . ' ' . $response->body());

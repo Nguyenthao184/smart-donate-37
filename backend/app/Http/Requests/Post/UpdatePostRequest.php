@@ -24,11 +24,18 @@ class UpdatePostRequest extends FormRequest
     {
         return [
             'loai_bai' => 'nullable|in:CHO,NHAN',
-            'danh_muc_id' => 'nullable|exists:danh_muc,id',
             'tieu_de' => 'nullable|string|max:255',
             'mo_ta' => 'nullable|string|max:255',
             'hinh_anh' => 'nullable|file|mimes:jpg,jpeg,png,webp|max:5120',
-            'dia_diem' => 'nullable|string|max:255',
+            // Nếu user chỉ update lat/lng (từ map) mà không update dia_diem thì ok.
+            // Nếu update dia_diem mà bỏ lat/lng thì sẽ auto geocode.
+            'dia_diem' => [
+                'nullable',
+                'string',
+                'max:255',
+                'not_regex:/^\s*\d+/',
+                'regex:/,/',
+            ],
             'lat' => 'nullable|numeric|between:-90,90',
             'lng' => 'nullable|numeric|between:-180,180',
             'so_luong' => 'nullable|integer|min:1',
@@ -41,6 +48,8 @@ class UpdatePostRequest extends FormRequest
         return [
             'loai_bai.in' => 'loai_bai chỉ được nhận CHO hoặc NHAN.',
             'so_luong.min' => 'Số lượng phải >= 1.',
+            'dia_diem.not_regex' => 'Vui lòng không nhập số nhà. Chỉ nhập Phường/Xã, Quận/Huyện, Tỉnh/Thành.',
+            'dia_diem.regex' => 'Địa điểm cần theo dạng: Phường/Xã, Quận/Huyện, Tỉnh/Thành.',
         ];
     }
 }

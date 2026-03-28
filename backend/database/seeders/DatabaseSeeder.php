@@ -8,8 +8,9 @@ use Illuminate\Database\Seeder;
 use Database\Seeders\VaiTroSeeder; 
 use Database\Seeders\NguoiDungSeeder; 
 use Database\Seeders\NguoiDungVaiTroSeeder;
-use Database\Seeders\DanhMucSeeder;
 use Database\Seeders\BaiDangSeeder;
+use Database\Seeders\FraudDemoSeeder;
+use Database\Seeders\DanhMucBaiDangSeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -22,8 +23,9 @@ class DatabaseSeeder extends Seeder
             VaiTroSeeder::class,
             NguoiDungSeeder::class,
             NguoiDungVaiTroSeeder::class,
-            DanhMucSeeder::class,
             BaiDangSeeder::class,
+            DanhMucBaiDangSeeder::class,
+            FraudDemoSeeder::class,
         ]);
     }
 }

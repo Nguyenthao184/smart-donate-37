@@ -6,24 +6,20 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('danh_muc', function (Blueprint $table) {
+        Schema::create('geocode_cache', function (Blueprint $table) {
             $table->id();
-            $table->string('ten_danh_muc', 255);
-            $table->timestamps();
+            $table->string('address', 255)->unique();
+            $table->double('lat');
+            $table->double('lng');
+            $table->timestamp('created_at')->useCurrent();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('danh_muc');
+        Schema::dropIfExists('geocode_cache');
     }
 };
 
