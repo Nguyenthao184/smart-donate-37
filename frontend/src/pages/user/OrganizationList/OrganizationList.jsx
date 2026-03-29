@@ -151,7 +151,7 @@ const MOCK_ORGS = [
   },
 ];
 
-const PAGE_SIZE = 6;
+const PAGE_SIZE = 8;
 
 export default function OrganizationList() {
   const [activeType, setActiveType] = useState(0);

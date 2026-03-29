@@ -16,9 +16,14 @@ import { GiKnifeFork } from "react-icons/gi";
 import { FaChildren, FaEarthEurope } from "react-icons/fa6";
 import { RiHandCoinLine } from "react-icons/ri";
 import { FaPooStorm } from "react-icons/fa6";
+import { SiWorldhealthorganization } from "react-icons/si";
+import { FaFirefoxBrowser } from "react-icons/fa";
 import { MdCastForEducation } from "react-icons/md";
 import CampaignCard from "../../../components/CampaignCard/index.jsx";
 import OrganizationCard from "../../../components/OrganizationCard/index.jsx";
+import banner4 from "../../../assets/user/banner4.jpg";
+import banner5 from "../../../assets/user/banner5.jpg";
+import banner6 from "../../../assets/user/banner6.jpg";
 import "./Campaign.scss";
 
 // ── Mock data ─────────────────────────────────────────────────────────
@@ -277,10 +282,22 @@ export default function Campaign() {
 
       {/* ── Main ── */}
       <main className="campaign-page__main">
+        <section className="camp-section">
+          <div className="camp-section__banner">
+            <div className="camp-section__banner-left">
+              <img src={banner5} alt="campaign hero" />
+            </div>
+            <div className="camp-section__banner-right">
+              <img src={banner4} alt="campaign hero" />
+              <img src={banner6} alt="campaign hero" />
+            </div>
+          </div>
+        </section>
+
         {/* Chiến dịch nổi bật */}
         <section className="camp-section">
           <div className="camp-section__header">
-            <h2 className="camp-section__title">CHIẾN DỊCH NỔI BẬT</h2>
+            <h2 className="camp-section__title">CHIẾN DỊCH NỔI BẬT <FaFirefoxBrowser color="red" size={26}/></h2>
             <a href="/chien-dich/danh-sach" className="camp-section__view-all">
               Xem tất cả <FiChevronRight size={14} />
             </a>
@@ -292,11 +309,11 @@ export default function Campaign() {
               dots={false}
               infinite={false}
               draggable
-              slidesToShow={3}
+              slidesToShow={4}
               slidesToScroll={1}
               responsive={[
-                { breakpoint: 1200, settings: { slidesToShow: 2 } },
-                { breakpoint: 780, settings: { slidesToShow: 1 } },
+                { breakpoint: 1200, settings: { slidesToShow: 3 } },
+                { breakpoint: 780, settings: { slidesToShow: 2 } },
               ]}
             >
               {MOCK_CAMPAIGNS.map((c, i) => (
@@ -323,7 +340,7 @@ export default function Campaign() {
         {/* Tổ chức từ thiện */}
         <section className="camp-section">
           <div className="camp-section__header">
-            <h2 className="camp-section__title">TỔ CHỨC TỪ THIỆN</h2>
+            <h2 className="camp-section__title">TỔ CHỨC TỪ THIỆN <SiWorldhealthorganization color="red" size={26}/></h2>
             <a href="chien-dich/to-chuc" className="camp-section__view-all">
               Xem tất cả <FiChevronRight size={14} />
             </a>
@@ -335,7 +352,7 @@ export default function Campaign() {
               dots={false}
               infinite={false}
               draggable
-              slidesToShow={3}
+              slidesToShow={4}
               slidesToScroll={1}
               responsive={[
                 { breakpoint: 1200, settings: { slidesToShow: 2 } },

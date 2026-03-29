@@ -1,3 +1,5 @@
+
+
 .home-page {
   background-color: var(--bg);
 
@@ -78,12 +80,12 @@
 
       @media (max-width: 992px) {
         height: 400px;
-        border-radius: 20px;
+        border-radius: 10px;
       }
 
       @media (max-width: 768px) {
         height: 300px;
-        border-radius: 16px;
+        border-radius: 10px;
       }
     }
 
@@ -314,7 +316,7 @@
     background: #fff;
     padding: 30px 20px;
     margin: 0px 150px 30px;
-    border-radius: 20px;
+    border-radius: 10px;
     box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
     border: 1px solid #e8e8e8;
 
@@ -347,7 +349,7 @@
     }
 
     .home-carousel__slide {
-      padding: 0 12px 0 20px;
+      padding: 0 10px;
     }
 
     .home-carousel__nav {
@@ -407,7 +409,7 @@
 
     .cta-card {
       padding: 14px;
-      border-radius: 24px;
+      border-radius: 10px;
       border: none;
       transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
       position: relative;
@@ -513,6 +515,10 @@
           flex: 1;
           align-items: stretch !important;
 
+          .ant-col{
+            padding-inline: 25px !important;
+          }
+
           .ant-col:first-child {
             display: flex;
             flex-direction: column;
@@ -547,8 +553,8 @@
           border-color: #52c41a;
           font-weight: 600;
           font-size: 18px;
-          padding: 4px 12px;
-          margin-top: auto;
+          padding: 8px 12px;
+          margin: 20px;
           align-self: flex-start;
         }
       }
@@ -576,7 +582,7 @@
 
     .bottom-banner-item {
       height: 350px;
-      border-radius: 20px;
+      border-radius: 10px;
       margin-right: 10px;
       overflow: visible !important; // ← đổi từ hidden → visible
       box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);

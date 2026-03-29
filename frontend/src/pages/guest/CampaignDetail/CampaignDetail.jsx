@@ -116,6 +116,14 @@ const OTHER_CAMPAIGNS = [
     goal: 1000000000,
     image: null,
   },
+  {
+    id: 5,
+    title: "Hội người khuyết tật Đà Nẵng",
+    daysLeft: 3,
+    raised: 750000000,
+    goal: 1000000000,
+    image: null,
+  },
 ];
 
 const percent = Math.round((CAMPAIGN.raised / CAMPAIGN.goal) * 100);
@@ -449,11 +457,11 @@ export default function CampaignDetail() {
             dots={false}
             infinite={false}
             draggable
-            slidesToShow={3}
+            slidesToShow={4}
             slidesToScroll={1}
             responsive={[
-              { breakpoint: 1100, settings: { slidesToShow: 2 } },
-              { breakpoint: 600, settings: { slidesToShow: 1 } },
+              { breakpoint: 1100, settings: { slidesToShow: 3 } },
+              { breakpoint: 600, settings: { slidesToShow: 2 } },
             ]}
           >
             {OTHER_CAMPAIGNS.map((c, i) => (

@@ -20,6 +20,7 @@ import CampaignDetail from "../pages/guest/CampaignDetail/CampaignDetail.jsx";
 import CreateCampaign  from "../pages/organization/CreateCampaign/CreateCampaign.jsx";
 import NewsFeed  from "../pages/user/NewsFeed/NewsFeed.jsx";
 import CreatePost  from "../pages/user/CreatePost/CreatePost.jsx";
+import Admin from "../pages/admin/Admin/Admin.jsx";
 // ================== PUBLIC ROUTES ==================
 const publicRoutes = [
   {

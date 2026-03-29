@@ -1,3 +1,6 @@
+import { Modal } from "antd";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import CampaignCard from "../../../components/CampaignCard/index.jsx";
 import OrganizationCard from "../../../components/OrganizationCard/index.jsx";
 import Header from "../../../components/Header/index.jsx";
@@ -9,10 +12,12 @@ import { GiKnifeFork } from "react-icons/gi";
 import { RiHandCoinLine } from "react-icons/ri";
 import { FaChildren, FaEarthEurope } from "react-icons/fa6";
 import { MdCastForEducation } from "react-icons/md";
+import { FiLogIn } from "react-icons/fi";
 import { FiChevronRight, FiChevronLeft } from "react-icons/fi";
 import { Button, Row, Col, Typography, Space, Card, Image } from "antd";
 import { useRef } from "react";
 import { Carousel } from "antd";
+import canhbaoImg from "../../../assets/canhbao.png";
 import img1 from "../../../assets/user/img1.png";
 import img2 from "../../../assets/user/img2.png";
 import img3 from "../../../assets/user/img3.png";
@@ -131,10 +136,10 @@ function CardCarousel({ children, className = "" }) {
         dots={false}
         infinite={false}
         draggable
-        slidesToShow={3}
+        slidesToShow={4}
         responsive={[
-          { breakpoint: 1200, settings: { slidesToShow: 2 } },
-          { breakpoint: 640, settings: { slidesToShow: 1 } },
+          { breakpoint: 1200, settings: { slidesToShow: 3 } },
+          { breakpoint: 640, settings: { slidesToShow: 2 } },
         ]}
       >
         {children}
@@ -159,6 +164,18 @@ function CardCarousel({ children, className = "" }) {
 
 // ── Page ──────────────────────────────────────────────────────────────
 export default function HomePage() {
+  const [openLoginModal, setOpenLoginModal] = useState(false);
+  const navigate = useNavigate();
+
+  const handleLoginOk = () => {
+    setOpenLoginModal(false);
+    navigate("/login");
+  };
+
+  const handleCancel = () => {
+    setOpenLoginModal(false);
+  };
+
   const categories = [
     { id: 1, label: "Thiên tai", icon: <FaPooStorm />, color: "#FD4848" },
     { id: 2, label: "Xóa đói", icon: <GiKnifeFork />, color: "#FDBE48" },
@@ -190,10 +207,19 @@ export default function HomePage() {
                 nhận quà từ cộng đồng
               </Paragraph>
               <Space size="middle" className="home-hero__btns">
-                <Button type="primary" size="large" className="btn-hero-orange">
+                <Button
+                  type="primary"
+                  size="large"
+                  className="btn-hero-orange"
+                  onClick={() => setOpenLoginModal(true)}
+                >
                   KHÁM PHÁ CHIẾN DỊCH
                 </Button>
-                <Button size="large" className="btn-hero-green">
+                <Button
+                  size="large"
+                  className="btn-hero-green"
+                  onClick={() => setOpenLoginModal(true)}
+                >
                   ĐĂNG BÀI CHO/NHẬN
                 </Button>
               </Space>
@@ -231,7 +257,7 @@ export default function HomePage() {
       <section className="home-campaigns-orgs">
         <div className="home-section__header">
           <h2 className="home-section__title">CHIẾN DỊCH NỔI BẬT</h2>
-          <a href="#" className="view-all">
+          <a href="/chien-dich/danh-sach" className="view-all">
             Xem tất cả <FiChevronRight />
           </a>
         </div>
@@ -373,7 +399,12 @@ export default function HomePage() {
                   </Paragraph>
                 </Col>
               </Row>
-              <Button type="primary" size="large" className="btn-cta-give">
+              <Button
+                type="primary"
+                size="large"
+                className="btn-cta-give"
+                onClick={() => setOpenLoginModal(true)}
+              >
                 ĐĂNG BÀI NGAY
               </Button>
               <div className="cta-give-image">
@@ -388,7 +419,7 @@ export default function HomePage() {
       <section className="home-campaigns-orgs">
         <div className="home-section__header">
           <h2 className="home-section__title">TỔ CHỨC TỪ THIỆN</h2>
-          <a href="#" className="view-all">
+          <a href="/login" className="view-all">
             Xem tất cả <FiChevronRight />
           </a>
         </div>
@@ -403,7 +434,40 @@ export default function HomePage() {
           ))}
         </CardCarousel>
       </section>
-
+      <Modal
+        title={
+          <span
+            style={{
+              color: "#cc0909",
+              fontWeight: "bold",
+              marginLeft: "120px",
+              fontSize: "22px",
+            }}
+          >
+            YÊU CẦU ĐĂNG NHẬP
+          </span>
+        }
+        open={openLoginModal}
+        onOk={handleLoginOk}
+        onCancel={handleCancel}
+        okText= <FiLogIn />
+        cancelText="Hủy"
+        className="enhanced-modal"
+      >
+        <img
+          src={canhbaoImg}
+          alt="login"
+          style={{
+            width: "100%",
+            height: "350px",
+            marginBottom: "10px",
+          }}
+        />
+        <p>
+          Có vẻ như bạn chưa đăng nhập. Hãy đăng nhập ngay để sử dụng đầy đủ các
+          tiện ích và dịch vụ mà chúng tôi cung cấp nhé!
+        </p>
+      </Modal>
       <Footer />
     </div>
   );

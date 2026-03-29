@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo} from "react";
 import { Input, Select, Pagination, Empty } from "antd";
 import {
   FiSearch, FiFilter, FiX, FiClock,
@@ -49,7 +49,6 @@ function sortCampaigns(list, sortKey) {
 
 export default function SearchCampaign() {
   const [query, setQuery]           = useState("");
-  const [inputVal, setInputVal]     = useState("");
   const [category, setCategory]     = useState("Tất cả");
   const [sortKey, setSortKey]       = useState("newest");
   const [page, setPage]             = useState(1);
@@ -62,13 +61,13 @@ export default function SearchCampaign() {
   }
 
   function clearAll() {
-    setQuery(""); setInputVal("");
+    setQuery(""); 
     setCategory("Tất cả"); setSortKey("newest");
     setPage(1);
   }
 
   const activeFilters = [
-    query && { key: "q", label: `"${query}"`, clear: () => { setQuery(""); setInputVal(""); } },
+    query && { key: "q", label: `"${query}"`, clear: () => { setQuery(""); } },
     category !== "Tất cả" && { key: "cat", label: category, clear: () => setCategory("Tất cả") },
     sortKey !== "newest" && { key: "sort", label: SORT_OPTIONS.find(s => s.value === sortKey)?.label, clear: () => setSortKey("newest") },
   ].filter(Boolean);

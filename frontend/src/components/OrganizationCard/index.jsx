@@ -61,7 +61,7 @@ export default function OrganizationCard({ organization, index = 0 }) {
 
         <div className="org-card__actions">
           <Button type="primary" className="org-card__btn">
-            <FiHeart size={18} style={{ marginRight: 6 }} /> QUAN TÂM
+            <FiHeart size={18} style={{ marginRight: 3 }} /> QUAN TÂM
           </Button>
         </div>
       </div>
