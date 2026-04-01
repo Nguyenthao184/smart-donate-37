@@ -2,41 +2,45 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
 class NguoiDungVaiTroSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        DB::table('nguoi_dung_vai_tro')->insert([
+        DB::table('nguoi_dung_vai_tro')->truncate();
 
-            // admin
-            [
-                'nguoi_dung_id' => 1,
-                'vai_tro_id' => 1
-            ],
+        $users = DB::table('nguoi_dung')->get();
 
-            // user thường
-            [
-                'nguoi_dung_id' => 2,
+        foreach ($users as $user) {
+
+            // 🔥 ADMIN
+            if ($user->id == 1) {
+                DB::table('nguoi_dung_vai_tro')->insert([
+                    'nguoi_dung_id' => $user->id,
+                    'vai_tro_id' => 1
+                ]);
+                continue;
+            }
+
+            // 🔥 MẶC ĐỊNH USER
+            DB::table('nguoi_dung_vai_tro')->insert([
+                'nguoi_dung_id' => $user->id,
                 'vai_tro_id' => 2
-            ],
+            ]);
 
-            // user + tổ chức
-            [
-                'nguoi_dung_id' => 3,
-                'vai_tro_id' => 2
-            ],
-            [
-                'nguoi_dung_id' => 3,
-                'vai_tro_id' => 3
-            ]
+            // 🔥 NẾU CÓ TỔ CHỨC → THÊM ROLE TỔ CHỨC
+            $hasOrg = DB::table('to_chuc')
+                ->where('nguoi_dung_id', $user->id)
+                ->exists();
 
-        ]);
+            if ($hasOrg) {
+                DB::table('nguoi_dung_vai_tro')->insert([
+                    'nguoi_dung_id' => $user->id,
+                    'vai_tro_id' => 3
+                ]);
+            }
+        }
     }
 }

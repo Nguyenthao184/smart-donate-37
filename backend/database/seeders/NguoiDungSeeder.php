@@ -2,46 +2,41 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
+use App\Models\User;
 
 class NguoiDungSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        DB::table('nguoi_dung')->insert([
-            [
-                'id' => 1,
-                'ho_ten' => 'Admin',
-                'ten_tai_khoan' => 'admin',
-                'email' => 'admin@gmail.com',
-                'mat_khau' => Hash::make('123456'),
-                'anh_dai_dien' => null,
-                'trang_thai' => 'HOAT_DONG'
-            ],
-            [
-                'id' => 2,
-                'ho_ten' => 'Nguyễn Văn A',
-                'ten_tai_khoan' => 'nguyenvana',
-                'email' => 'user@gmail.com',
-                'mat_khau' => Hash::make('123456'),
-                'anh_dai_dien' => null,
-                'trang_thai' => 'HOAT_DONG'
-            ],
-            [
-                'id' => 3,
-                'ho_ten' => 'Tổ Chức A',
-                'ten_tai_khoan' => 'tochuc',
-                'email' => 'tochuc@gmail.com',
-                'mat_khau' => Hash::make('123456'),
-                'anh_dai_dien' => null,
-                'trang_thai' => 'HOAT_DONG'
-            ]
+        // Admin
+        User::create([
+            'ho_ten' => 'Admin',
+            'ten_tai_khoan' => 'admin',
+            'email' => 'admin@gmail.com',
+            'mat_khau' => bcrypt('123456'),
+            'trang_thai' => 'HOAT_DONG'
         ]);
+
+        // User thường
+        User::create([
+            'ho_ten' => 'Nguyễn Văn Anh',
+            'ten_tai_khoan' => 'user',
+            'email' => 'user@gmail.com',
+            'mat_khau' => bcrypt('123456'),
+            'trang_thai' => 'HOAT_DONG'
+        ]);
+
+        // tổ chức
+        User::create([
+            'ho_ten' => 'Tổ chức từ thiện',
+            'ten_tai_khoan' => 'tochuc',
+            'email' => 'tochuc@gmail.com',
+            'mat_khau' => bcrypt('123456'),
+            'trang_thai' => 'HOAT_DONG'
+        ]);
+
+        //random users
+        User::factory()->count(30)->create();
     }
 }
