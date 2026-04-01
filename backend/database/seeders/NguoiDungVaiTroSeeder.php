@@ -15,7 +15,7 @@ class NguoiDungVaiTroSeeder extends Seeder
 
         foreach ($users as $user) {
 
-            // 🔥 ADMIN
+            // ADMIN
             if ($user->id == 1) {
                 DB::table('nguoi_dung_vai_tro')->insert([
                     'nguoi_dung_id' => $user->id,
@@ -24,13 +24,13 @@ class NguoiDungVaiTroSeeder extends Seeder
                 continue;
             }
 
-            // 🔥 MẶC ĐỊNH USER
+            // MẶC ĐỊNH USER
             DB::table('nguoi_dung_vai_tro')->insert([
                 'nguoi_dung_id' => $user->id,
                 'vai_tro_id' => 2
             ]);
 
-            // 🔥 NẾU CÓ TỔ CHỨC → THÊM ROLE TỔ CHỨC
+            // NẾU CÓ TỔ CHỨC → THÊM ROLE TỔ CHỨC
             $hasOrg = DB::table('to_chuc')
                 ->where('nguoi_dung_id', $user->id)
                 ->exists();

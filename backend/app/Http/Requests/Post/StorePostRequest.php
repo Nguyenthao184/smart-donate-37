@@ -24,11 +24,18 @@ class StorePostRequest extends FormRequest
     {
         return [
             'loai_bai' => 'required|in:CHO,NHAN',
-            'danh_muc_id' => 'nullable|exists:danh_muc,id',
             'tieu_de' => 'required|string|max:255',
             'mo_ta' => 'required|string|max:255',
             'hinh_anh' => 'nullable|file|mimes:jpg,jpeg,png,webp|max:5120',
-            'dia_diem' => 'required|string|max:255',
+            // dia_diem: địa chỉ user nhập để hiển thị (đường/quận/tỉnh...).
+            // Nếu không gửi lat/lng thì bắt buộc dia_diem phải đủ chi tiết.
+            'dia_diem' => [
+                'required_without_all:lat,lng',
+                'string',
+                'max:255',
+                'not_regex:/^\s*\d+/',
+                'regex:/,/',
+            ],
             'lat' => 'nullable|numeric|between:-90,90',
             'lng' => 'nullable|numeric|between:-180,180',
             'so_luong' => 'required|integer|min:1',
@@ -42,6 +49,8 @@ class StorePostRequest extends FormRequest
         return [
             'loai_bai.required' => 'Vui lòng chọn loại bài (CHO hoặc NHAN).',
             'so_luong.min' => 'Số lượng phải >= 1.',
+            'dia_diem.not_regex' => 'Vui lòng không nhập số nhà. Chỉ nhập Phường/Xã, Quận/Huyện, Tỉnh/Thành.',
+            'dia_diem.regex' => 'Địa điểm cần theo dạng: Phường/Xã, Quận/Huyện, Tỉnh/Thành.',
         ];
     }
 }

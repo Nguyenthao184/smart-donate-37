@@ -11,6 +11,7 @@ use App\Http\Controllers\PostController;
 use App\Http\Controllers\CampaignController;
 use App\Http\Controllers\DonateController;
 
+use App\Http\Controllers\FraudController;
 
 Route::post('/register', [AuthController::class,'register']);
 Route::post('/login', [AuthController::class,'login']);
@@ -36,6 +37,10 @@ Route::middleware('auth:sanctum')->group(function(){
         // ADMIN duyệt chiến dịch
         Route::post('/campaigns/{id}/approve', [CampaignController::class, 'approveCampaign']);
         Route::post('/campaigns/{id}/reject', [CampaignController::class, 'rejectCampaign']);
+        // ADMIN auto fraud check (tu tinh feature roi goi AI)
+        Route::post('/admin/fraud-check/auto', [FraudController::class, 'autoCheck']);
+        Route::get('/admin/fraud-alerts', [FraudController::class, 'getAlerts']);
+        Route::post('/admin/fraud-alerts/{canhBao}', [FraudController::class, 'updateAlert']);
     });
 
     Route::middleware('role:NGUOI_DUNG')->group(function(){
