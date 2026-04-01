@@ -8,6 +8,9 @@ use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\FundAccountController;
 use App\Http\Controllers\PostController;
+use App\Http\Controllers\CampaignController;
+use App\Http\Controllers\DonateController;
+
 use App\Http\Controllers\FraudController;
 
 Route::post('/register', [AuthController::class,'register']);
@@ -18,7 +21,7 @@ Route::get('/auth/google/callback', [GoogleController::class, 'callback']);
 // Feed - guest có thể xem danh sách/chi tiết
 Route::get('/posts', [PostController::class, 'index']);
 Route::get('/posts/{id}', [PostController::class, 'show']);
-
+    
 Route::middleware('auth:sanctum')->group(function(){
     Route::post('/logout',[AuthController::class,'logout']);
 
@@ -31,6 +34,9 @@ Route::middleware('auth:sanctum')->group(function(){
         Route::post('/fund-accounts/{id}/approve', [FundAccountController::class, 'approve']);
         Route::post('/fund-accounts/{id}/lock', [FundAccountController::class, 'lock']);
 
+        // ADMIN duyệt chiến dịch
+        Route::post('/campaigns/{id}/approve', [CampaignController::class, 'approveCampaign']);
+        Route::post('/campaigns/{id}/reject', [CampaignController::class, 'rejectCampaign']);
         // ADMIN auto fraud check (tu tinh feature roi goi AI)
         Route::post('/admin/fraud-check/auto', [FraudController::class, 'autoCheck']);
         Route::get('/admin/fraud-alerts', [FraudController::class, 'getAlerts']);
@@ -46,12 +52,22 @@ Route::middleware('auth:sanctum')->group(function(){
         //đăng ký tổ chức
         Route::post('/organization/register', [OrganizationController::class, 'register']);
         Route::get('/organization/status', [OrganizationController::class, 'status']);
+
+        //ủng hộ
+        Route::post('/donate', [DonateController::class, 'donate']);
+        Route::post('/donate/confirm', [DonateController::class, 'confirmDonate']);
+        Route::get('/donate/history', [DonateController::class, 'donateHistory']);
     });
     
     Route::middleware('role:TO_CHUC')->group(function(){
         //tài khoản gây quỹ       
         Route::post('/fund-accounts', [FundAccountController::class, 'store']);
         Route::get('/fund-accounts/me', [FundAccountController::class, 'me']);
+
+        //chiến dịch
+        Route::post('/campaigns', [CampaignController::class, 'store']);
+        Route::get('/campaigns/me', [CampaignController::class, 'myCampaigns']);
+        
    });
 
     // Feed - user và tổ chức: đăng/cập nhật/xóa 
@@ -66,3 +82,12 @@ Route::middleware('auth:sanctum')->group(function(){
        
     });
 });
+
+//xem tổ chức
+Route::get('/organization', [OrganizationController::class, 'index']);
+Route::get('/organization/{id}', [OrganizationController::class, 'show']);
+
+//xem chiến dịch
+Route::get('/campaigns', [CampaignController::class, 'index']);
+Route::get('/campaigns/featured', [CampaignController::class, 'featured']);
+Route::get('/campaigns/{id}', [CampaignController::class, 'show']);

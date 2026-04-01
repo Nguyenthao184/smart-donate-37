@@ -8,7 +8,14 @@ use Illuminate\Database\Seeder;
 use Database\Seeders\VaiTroSeeder; 
 use Database\Seeders\NguoiDungSeeder; 
 use Database\Seeders\NguoiDungVaiTroSeeder;
+use Database\Seeders\XacMinhToChucSeeder;
+use Database\Seeders\ToChucSeeder;
+use Database\Seeders\TaiKhoanGayQuySeeder;
+use Database\Seeders\DanhMucSeeder;
 use Database\Seeders\BaiDangSeeder;
+use Database\Seeders\ChienDichGayQuySeeder;
+use Database\Seeders\UngHoSeeder;
+use Database\Seeders\GiaoDichQuySeeder;
 use Database\Seeders\FraudDemoSeeder;
 use Database\Seeders\DanhMucBaiDangSeeder;
 
@@ -22,6 +29,15 @@ class DatabaseSeeder extends Seeder
         $this->call([
             VaiTroSeeder::class,
             NguoiDungSeeder::class,
+            XacMinhToChucSeeder::class,
+            ToChucSeeder::class,
+            TaiKhoanGayQuySeeder::class,
+            DanhMucSeeder::class,
+            BaiDangSeeder::class,
+            ChienDichGayQuySeeder::class,
+            UngHoSeeder::class,
+            GiaoDichQuySeeder::class,
+            NguoiDungVaiTroSeeder::class,
             NguoiDungVaiTroSeeder::class,
             BaiDangSeeder::class,
             DanhMucBaiDangSeeder::class,

@@ -6,39 +6,28 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
-/**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\User>
- */
 class UserFactory extends Factory
 {
-    /**
-     * The current password being used by the factory.
-     */
-    protected static ?string $password;
+    protected $model = \App\Models\User::class;
 
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
     public function definition(): array
     {
-        return [
-            'name' => fake()->name(),
-            'email' => fake()->unique()->safeEmail(),
-            'email_verified_at' => now(),
-            'password' => static::$password ??= Hash::make('password'),
-            'remember_token' => Str::random(10),
-        ];
-    }
+        $ho = ['Nguyễn','Trần','Lê','Phạm','Hoàng','Huỳnh','Phan','Vũ','Đặng','Bùi'];
+        $tenDem = ['Văn','Thị','Minh','Quang','Thanh','Hữu','Đức'];
+        $ten = ['An','Bình','Huy','Nam','Linh','Trang','Tuấn','Hà','Phúc','Khoa'];
 
-    /**
-     * Indicate that the model's email address should be unverified.
-     */
-    public function unverified(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'email_verified_at' => null,
-        ]);
+        $fullName = $ho[array_rand($ho)] . ' ' . $tenDem[array_rand($tenDem)] . ' ' . $ten[array_rand($ten)];
+        $parts = explode(' ', $fullName);
+        $firstName = end($parts);
+        $username = Str::slug($firstName, '');
+        $number = fake()->unique()->numberBetween(1,999);
+        return [
+            'ho_ten' => $fullName,
+            'ten_tai_khoan' => $username . $number,
+            'email' => $username . $number . '@gmail.com',
+            'mat_khau' => Hash::make('123456'),
+            'anh_dai_dien' => null,
+            'trang_thai' => fake()->boolean(90) ? 'HOAT_DONG' : 'BI_CAM',
+        ];
     }
 }

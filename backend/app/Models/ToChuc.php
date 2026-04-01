@@ -19,7 +19,7 @@ class ToChuc extends Model
         'logo',
         'so_cd_dang_hd',
         'trang_thai',
-        'diem_uy_tin'
+        'diem_uy_tin',
     ];
 
     public function user()
@@ -30,5 +30,5 @@ class ToChuc extends Model
     public function taiKhoanGayQuy()
     {
         return $this->hasOne(TaiKhoanGayQuy::class, 'to_chuc_id');
-    }
+    }  
 }
