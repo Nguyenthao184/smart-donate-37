@@ -8,11 +8,11 @@ import MainLayout from "../layouts/MainLayout";
 
 // Pages
 import HomePage from "../pages/guest/Home/Home.jsx";
-import LoginPage from "../pages/guest/Login.jsx";
-import Register from "../pages/guest/Register.jsx";
-import ForgotPassword from "../pages/guest/ForgotPassword.jsx";
-import VerifyCode from "../pages/guest/VerifyCode.jsx";
-import ResetPassword from "../pages/guest/ResetPassword.jsx";
+import LoginPage from "../pages/guest/Login/Login.jsx";
+import Register from "../pages/guest/Register/Register.jsx";
+import ForgotPassword from "../pages/guest/ForgotPassword/ForgotPassword.jsx";
+import VerifyCode from "../pages/guest/VerifyCode/VerifyCode.jsx";
+import ResetPassword from "../pages/guest/ResetPassword/ResetPassword.jsx";
 import CampaignPage from "../pages/user/Campaign/Campaign.jsx";
 import OrganizationList from "../pages/user/OrganizationList/OrganizationList.jsx";
 import OrganizationDetail from "../pages/user/OrganizationDetail/OrganizationDetail.jsx";
@@ -22,6 +22,8 @@ import CreateCampaign from "../pages/organization/CreateCampaign/CreateCampaign.
 import NewsFeed from "../pages/user/NewsFeed/NewsFeed.jsx";
 import CreatePost from "../pages/user/CreatePost/CreatePost.jsx";
 import ProfilePage from "../pages/user/Profile/Profile.jsx";
+import ChatPage from "../pages/user/Chat/Chat.jsx";
+import DonatePage from "../pages/user/Donate/Donate.jsx";
 
 // ================== PUBLIC ROUTES ==================
 const publicRoutes = [
@@ -98,15 +100,15 @@ const publicRoutes = [
 // ================== PRIVATE ROUTES ==================
 const privateRoutes = [
   {
-  path: "/profile",
-  element: (
-    <ProtectedRoute>
-      <MainLayout>
-        <ProfilePage />
-      </MainLayout>
-    </ProtectedRoute>
-  ),
-},
+    path: "/profile",
+    element: (
+      <ProtectedRoute>
+        <MainLayout>
+          <ProfilePage />
+        </MainLayout>
+      </ProtectedRoute>
+    ),
+  },
   {
     path: "/chien-dich",
     element: (
@@ -148,6 +150,16 @@ const privateRoutes = [
     ),
   },
   {
+    path: "/chien-dich/donate",
+    element: (
+      <ProtectedRoute>
+        <MainLayout>
+          <DonatePage />
+        </MainLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
     path: "/bang-tin",
     element: (
       <ProtectedRoute>
@@ -163,6 +175,16 @@ const privateRoutes = [
       <ProtectedRoute>
         <MainLayout>
           <CreatePost />
+        </MainLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/tin-nhan",
+    element: (
+      <ProtectedRoute>
+        <MainLayout>
+          <ChatPage />
         </MainLayout>
       </ProtectedRoute>
     ),
