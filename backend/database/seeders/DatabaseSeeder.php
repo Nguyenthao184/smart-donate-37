@@ -38,8 +38,6 @@ class DatabaseSeeder extends Seeder
             UngHoSeeder::class,
             GiaoDichQuySeeder::class,
             NguoiDungVaiTroSeeder::class,
-            NguoiDungVaiTroSeeder::class,
-            BaiDangSeeder::class,
             DanhMucBaiDangSeeder::class,
             FraudDemoSeeder::class,
         ]);

@@ -12,6 +12,9 @@ class GiaoDichQuySeeder extends Seeder
         $campaigns = DB::table('chien_dich_gay_quy')->get();
 
         foreach ($campaigns as $campaign) {
+            if (in_array($campaign->trang_thai, ['CHO_XU_LY', 'TU_CHOI'])) {
+                continue;
+            }
 
             $ungHos = DB::table('ung_ho')
                 ->where('chien_dich_gay_quy_id', $campaign->id)
@@ -19,14 +22,24 @@ class GiaoDichQuySeeder extends Seeder
 
             $tongTien = 0;
 
-            foreach ($ungHos as $uh) {
+            $users = DB::table('nguoi_dung')->get()->keyBy('id');
+            $campaigns = DB::table('chien_dich_gay_quy')->get()->keyBy('id');
 
+            foreach ($ungHos as $uh) {
+                $user = $users[$uh->nguoi_dung_id];
+                $campaign = $campaigns[$uh->chien_dich_gay_quy_id];
+
+                // format tên in hoa
+                $ten = strtoupper($this->removeVietnameseAccents($user->ho_ten));
+
+                // tạo mô tả
+                $moTa = $campaign->ma_noi_dung_ck . ' ' . $ten . ' UNG HO';
                 DB::table('giao_dich_quy')->insert([
                     'tai_khoan_gay_quy_id' => $campaign->tai_khoan_gay_quy_id,
                     'ung_ho_id' => $uh->id,
                     'so_tien' => $uh->so_tien,
                     'loai_giao_dich' => 'UNG_HO',
-                    'mo_ta' => 'Ủng hộ chiến dịch',
+                    'mo_ta' => $moTa,
                     'created_at' => $uh->created_at,
                 ]);
 
@@ -45,42 +58,29 @@ class GiaoDichQuySeeder extends Seeder
                     'so_tien_da_nhan' => $tongTien
                 ]);
 
-            // =========================
-            // 🎯 LOGIC TRẠNG THÁI CHUẨN
-            // =========================
+            $orgIds = DB::table('to_chuc')->pluck('id');
 
-            $trangThai = $campaign->trang_thai;
+            foreach ($orgIds as $orgId) {
+                $count = DB::table('chien_dich_gay_quy')
+                    ->where('to_chuc_id', $orgId)
+                    ->where('trang_thai', 'HOAT_DONG')
+                    ->count();
 
-            // ❗ giữ nguyên nếu chưa duyệt / bị từ chối
-            if (!in_array($trangThai, ['CHO_XU_LY', 'TU_CHOI'])) {
-
-                if ($tongTien >= $campaign->muc_tieu_tien) {
-                    $trangThai = 'HOAN_THANH';
-                } elseif (now()->gt($campaign->ngay_ket_thuc)) {
-                    $trangThai = 'DA_KET_THUC';
-                } else {
-                    // random pause
-                    $trangThai = rand(0, 4) === 0 ? 'TAM_DUNG' : 'HOAT_DONG';
-                }
+                DB::table('to_chuc')
+                    ->where('id', $orgId)
+                    ->update([
+                        'so_cd_dang_hd' => $count
+                    ]);
             }
 
-            DB::table('chien_dich_gay_quy')
-                ->where('id', $campaign->id)
-                ->update([
-                    'trang_thai' => $trangThai
-                ]);
-
-            // =========================
             // 💸 FAKE RÚT TIỀN (REALISTIC)
-            // =========================
-
             if (rand(0, 1)) {
 
                 $soDu = DB::table('tai_khoan_gay_quy')
                     ->where('id', $campaign->tai_khoan_gay_quy_id)
                     ->value('so_du');
 
-                if ($soDu > 500000) {
+                if ($soDu > 5000000) {
 
                     $rut = min(rand(100, 500) * 1000, $soDu);
 
@@ -89,7 +89,7 @@ class GiaoDichQuySeeder extends Seeder
                         'ung_ho_id' => null,
                         'so_tien' => $rut,
                         'loai_giao_dich' => 'RUT',
-                        'mo_ta' => 'Rút tiền quỹ',
+                        'mo_ta' => 'RUT TIEN QUY',
                         'created_at' => now(),
                     ]);
 
@@ -99,5 +99,27 @@ class GiaoDichQuySeeder extends Seeder
                 }
             }
         }
+    }
+
+    private function removeVietnameseAccents($str) {
+        $str = mb_strtolower($str, 'UTF-8');
+
+        $accents = [
+            'a' => ['à','á','ạ','ả','ã','â','ầ','ấ','ậ','ẩ','ẫ','ă','ằ','ắ','ặ','ẳ','ẵ'],
+            'e' => ['è','é','ẹ','ẻ','ẽ','ê','ề','ế','ệ','ể','ễ'],
+            'i' => ['ì','í','ị','ỉ','ĩ'],
+            'o' => ['ò','ó','ọ','ỏ','õ','ô','ồ','ố','ộ','ổ','ỗ','ơ','ờ','ớ','ợ','ở','ỡ'],
+            'u' => ['ù','ú','ụ','ủ','ũ','ư','ừ','ứ','ự','ử','ữ'],
+            'y' => ['ỳ','ý','ỵ','ỷ','ỹ'],
+            'd' => ['đ']
+        ];
+
+        foreach ($accents as $nonAccent => $accentChars) {
+            foreach ($accentChars as $accent) {
+                $str = str_replace($accent, $nonAccent, $str);
+            }
+        }
+
+        return $str;
     }
 }

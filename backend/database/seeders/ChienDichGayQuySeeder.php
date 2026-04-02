@@ -29,6 +29,81 @@ class ChienDichGayQuySeeder extends Seeder
             'An sinh' => 'an_sinh',
         ];
 
+        $nameTemplates = [
+            'Thiên tai' => [
+                'Cứu trợ khẩn cấp sau bão miền Trung',
+                'Hỗ trợ người dân vùng lũ Quảng Nam',
+                'Chung tay cứu trợ sau thiên tai Đà Nẵng',
+                'Hỗ trợ tái thiết nhà cửa sau bão',
+                'Tiếp tế nhu yếu phẩm vùng lũ',
+                'Cứu trợ khẩn cấp sau mưa lũ',
+                'Hỗ trợ người dân bị sạt lở đất',
+                'Chung tay giúp đỡ vùng thiên tai',
+                'Cứu trợ người dân sau bão lớn',
+                'Hỗ trợ khắc phục hậu quả thiên tai',
+            ],
+            'Trẻ em' => [
+                'Tiếp sức đến trường cho trẻ em vùng cao',
+                'Mang hy vọng đến trẻ em khó khăn',
+                'Bảo vệ trẻ em có hoàn cảnh đặc biệt',
+                'Hỗ trợ dinh dưỡng cho trẻ em nghèo',
+                'Chung tay vì tương lai trẻ em',
+                'Trao học bổng cho trẻ em vượt khó',
+                'Giúp đỡ trẻ em mồ côi',
+                'Hỗ trợ chi phí học tập cho trẻ em',
+                'Xây dựng môi trường sống cho trẻ em',
+                'Chắp cánh ước mơ cho trẻ em',
+            ],
+            'Giáo dục' => [
+                'Học bổng cho học sinh nghèo vượt khó',
+                'Tiếp sức đến trường cho trẻ em vùng sâu',
+                'Xây dựng lớp học cho vùng cao',
+                'Nâng bước tri thức cho học sinh khó khăn',
+                'Trao cơ hội học tập cho trẻ em nghèo',
+                'Chắp cánh ước mơ đến trường',
+                'Hỗ trợ sách vở cho học sinh vùng xa',
+                'Đồng hành cùng học sinh nghèo hiếu học',
+                'Phát triển giáo dục vùng khó khăn',
+                'Ánh sáng tri thức cho trẻ em nghèo',
+            ],
+            'Môi trường' => [
+                'Chung tay làm sạch môi trường sống',
+                'Giảm rác thải nhựa vì tương lai xanh',
+                'Trồng cây gây rừng tại khu vực đô thị',
+                'Bảo vệ môi trường sống cho thế hệ sau',
+                'Hành động vì một Việt Nam xanh',
+                'Dọn dẹp rác thải tại khu dân cư',
+                'Phục hồi hệ sinh thái tự nhiên',
+                'Lan tỏa ý thức bảo vệ môi trường',
+                'Giữ gìn nguồn nước sạch cho cộng đồng',
+                'Chung tay bảo vệ trái đất xanh',
+            ],
+            'Xóa đói' => [
+                'Chung tay xóa đói giảm nghèo',
+                'Hỗ trợ lương thực cho hộ nghèo',
+                'Trao sinh kế cho người dân khó khăn',
+                'Giúp đỡ hộ nghèo vượt qua khó khăn',
+                'Hỗ trợ thực phẩm cho vùng khó khăn',
+                'Chia sẻ bữa ăn cho người nghèo',
+                'Tiếp sức cho người dân thiếu thốn',
+                'Cùng nhau vượt qua đói nghèo',
+                'Hỗ trợ cuộc sống cho hộ khó khăn',
+                'Mang no ấm đến mọi nhà',
+            ],
+            'An sinh' => [
+                'Chung tay vì cộng đồng khó khăn',
+                'Hỗ trợ người yếu thế trong xã hội',
+                'Chia sẻ yêu thương đến mọi người',
+                'Hỗ trợ người dân có hoàn cảnh khó khăn',
+                'Đồng hành cùng người già neo đơn',
+                'Giúp đỡ người khuyết tật hòa nhập',
+                'Lan tỏa yêu thương trong cộng đồng',
+                'Hỗ trợ chi phí sinh hoạt cho người nghèo',
+                'Kết nối yêu thương đến mọi nhà',
+                'Vì một xã hội tốt đẹp hơn',
+            ],
+        ];
+
         $orgs = DB::table('to_chuc')
             ->join('tai_khoan_gay_quy', 'to_chuc.id', '=', 'tai_khoan_gay_quy.to_chuc_id')
             ->select('to_chuc.*', 'tai_khoan_gay_quy.id as tk_id')
@@ -69,17 +144,17 @@ class ChienDichGayQuySeeder extends Seeder
                 $selected = collect($files)->random(min(5, count($files)));
 
                 $images = collect($selected)
-                    ->map(fn($f) => 'storage/' . $f)
+                    ->map(fn($f) => $f)
                     ->toArray();
 
                 // mục tiêu tiền
                 $rand = rand(1, 100);
                 if ($rand <= 50) {
-                    $mucTieu = rand(10, 50) * 1000000;
+                    $mucTieu = rand(500, 1000) * 1000000;
                 } elseif ($rand <= 80) {
-                    $mucTieu = rand(50, 200) * 1000000;
+                    $mucTieu = rand(1000, 2000) * 1000000;
                 } else {
-                    $mucTieu = rand(200, 1000) * 1000000;
+                    $mucTieu = rand(2000, 5000) * 1000000;
                 }
 
                 $ngayKetThuc = now()->addDays(rand(-10, 30));
@@ -94,28 +169,15 @@ class ChienDichGayQuySeeder extends Seeder
                 );
 
                 $trangThai = $statuses[array_rand($statuses)];
-
                 $orgIds = DB::table('to_chuc')->pluck('id');
+                $tenChienDich = $nameTemplates[$categoryName][$i] ?? "Chung tay vì cộng đồng";
 
-                foreach ($orgIds as $orgId) {
-
-                    $count = DB::table('chien_dich_gay_quy')
-                        ->where('to_chuc_id', $orgId)
-                        ->where('trang_thai', 'HOAT_DONG')
-                        ->count();
-
-                    DB::table('to_chuc')
-                        ->where('id', $orgId)
-                        ->update([
-                            'so_cd_dang_hd' => $count
-                        ]);
-                }
                 DB::table('chien_dich_gay_quy')->insert([
                     'to_chuc_id' => $org->id,
                     'danh_muc_id' => $danhMuc->id,
                     'tai_khoan_gay_quy_id' => $org->tk_id,
 
-                    'ten_chien_dich' => "Chiến dịch {$categoryName} #" . ($i+1),
+                    'ten_chien_dich' => $tenChienDich,
                     'mo_ta' => "Chiến dịch hỗ trợ {$categoryName}",
 
                     'hinh_anh' => json_encode($images),

@@ -201,7 +201,7 @@ class OrganizationController extends Controller
             return [
                 'id' => $org->id,
                 'ten_to_chuc' => $org->ten_to_chuc,
-                'logo' => $org->logo,
+                'logo' => $org->logo ? asset('storage/' . $org->logo) : null,
                 'dia_chi' => $org->dia_chi,
                 'tong_gay_quy' => (float) $org->tong_gay_quy,
                 'so_tai_khoan' => optional($org->taiKhoanGayQuy)->so_tai_khoan,
@@ -314,7 +314,9 @@ class OrganizationController extends Controller
             'ten_tai_khoan' => optional($tk)->chu_tai_khoan,
             'so_tai_khoan' => optional($tk)->so_tai_khoan,
             'so_du_hien_tai' => (float) optional($tk)->so_du ?? 0,
-            'qr_code' => optional($tk)->qr_code,
+            'qr_code' => optional($tk)->qr_code 
+                ? asset('storage/' . $tk->qr_code) 
+                : null,
 
             // thống kê (match UI)
             'tong_thu' => (float) $tongThu,

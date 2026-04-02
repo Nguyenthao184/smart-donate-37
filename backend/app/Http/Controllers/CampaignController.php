@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\ChienDichGayQuy;
 use App\Models\ToChuc;
 use App\Models\TaiKhoanGayQuy;
+use App\Models\DanhMuc;
 use Illuminate\Support\Str;
 use App\Http\Requests\Campaign\StoreCampaignRequest;
 use Illuminate\Support\Facades\Http;
@@ -270,6 +271,7 @@ class CampaignController extends Controller
 
             'to_chuc' => [
                 'ten_to_chuc' => $chienDich->toChuc->ten_to_chuc ?? null,
+                'logo' => $chienDich->toChuc->logo ? asset('storage/' . $chienDich->toChuc->logo) : null,
                 'mo_ta' => $chienDich->toChuc->mo_ta ?? null,
                 'dia_chi' => $chienDich->toChuc->dia_chi ?? null,
                 'email' => $chienDich->toChuc->email ?? null,
@@ -361,5 +363,18 @@ class CampaignController extends Controller
             'so_tien_con_thieu' => $soTienConThieu,
             'so_luot_ung_ho' => $item->ung_hos_count ?? 0,
         ];
+    }
+
+    public function getDanhMuc()
+    {
+        $danhMucs = DB::table('danh_muc')
+            ->select('id', 'ten_danh_muc', 'hinh_anh')
+            ->get()
+            ->map(function ($item) {
+                $item->hinh_anh = asset('storage/' . $item->hinh_anh);
+                return $item;
+            });
+
+        return response()->json($danhMucs);
     }
 }

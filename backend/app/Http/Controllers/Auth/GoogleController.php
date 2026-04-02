@@ -24,10 +24,7 @@ class GoogleController extends Controller
         $user = User::where('email', $email)->first();
 
         if (!$user) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Email này chưa đăng ký trong hệ thống'
-            ],401);
+            return redirect("http://localhost:5175/login?error=email_not_found");
         }
 
         if ($user->trang_thai == 'BI_CAM') {
@@ -39,11 +36,7 @@ class GoogleController extends Controller
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        return response()->json([
-            'status' => true,
-            'message' => 'Đăng nhập Google thành công',
-            'user' => $user,
-            'token' => $token
-        ]);
+        $roles = $user->roles->pluck('ten_vai_tro')->implode(',');
+        return redirect("http://localhost:5175/auth/google/callback?token={$token}&roles={$roles}");
     }
 }
