@@ -20,7 +20,7 @@ import CampaignDetail from "../pages/guest/CampaignDetail/CampaignDetail.jsx";
 import CreateCampaign  from "../pages/organization/CreateCampaign/CreateCampaign.jsx";
 import NewsFeed  from "../pages/user/NewsFeed/NewsFeed.jsx";
 import CreatePost  from "../pages/user/CreatePost/CreatePost.jsx";
-import Admin from "../pages/admin/Admin/Admin.jsx";
+import AdminPanel from "../pages/admin/AdminPanel/AdminPanel.jsx";
 // ================== PUBLIC ROUTES ==================
 const publicRoutes = [
   {
@@ -144,6 +144,14 @@ const privateRoutes = [
         <MainLayout>
           <CreatePost />
         </MainLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/admin",
+    element: (
+      <ProtectedRoute>
+          <AdminPanel />
       </ProtectedRoute>
     ),
   },
