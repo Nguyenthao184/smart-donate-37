@@ -7,6 +7,7 @@ import {
 } from "react-icons/fi";
 import { LiaHeartbeatSolid } from "react-icons/lia";
 import { formatVnd } from "../../utils/format";
+import banner1 from "../../assets/user/banner1.jpg";
 import "./styles.scss";
 
 function clampPercent(value) {
@@ -16,28 +17,22 @@ function clampPercent(value) {
 }
 
 export default function CampaignCard({ campaign }) {
-  const goal = Number(campaign.goal ?? 0);
-  const raised = Number(campaign.raised ?? 0);
+  const goal = Number(campaign.muc_tieu_tien ?? 0);
+  const raised = Number(campaign.so_tien_da_nhan ?? 0);
   const percent = clampPercent(goal > 0 ? (raised / goal) * 100 : 0);
 
-  const isNear = campaign.daysLeft <= 3;
+  const isNear = campaign.so_ngay_con_lai <= 3;
 
   return (
     <Card className="campaign-card" variant="borderless">
       {/* ── Cover ── */}
       <div className="campaign-card__cover">
-        {campaign.image ? (
           <img
             className="campaign-card__img"
-            src={campaign.image}
-            alt={campaign.title}
+            src={banner1}
+            alt={campaign.ten_chien_dich}
             loading="lazy"
           />
-        ) : (
-          <div className="campaign-card__placeholder">
-            <FiImage size={44} />
-          </div>
-        )}
 
         {/* Overlay gradient */}
         <div className="campaign-card__cover-overlay" />
@@ -52,7 +47,7 @@ export default function CampaignCard({ campaign }) {
             }`}
           >
             <FiClock size={11} />
-            {campaign.daysLeft} ngày
+            {campaign.so_ngay_con_lai} ngày
           </span>
         </div>
 
@@ -64,7 +59,7 @@ export default function CampaignCard({ campaign }) {
 
       {/* ── Body ── */}
       <div className="campaign-card__body">
-        <div className="campaign-card__title">{campaign.title}</div>
+        <div className="campaign-card__title">{campaign.ten_chien_dich}</div>
 
         {/* Progress */}
         <div className="campaign-card__progress-wrap">
