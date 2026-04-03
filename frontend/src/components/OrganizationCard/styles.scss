@@ -93,35 +93,17 @@
     place-items: center;
     z-index: 2;
     transition: transform 0.3s ease;
-
-    &::before {
-      content: "";
-      position: absolute;
-      inset: -3px;
-      border-radius: 999px;
-      background: conic-gradient(
-        #ff4d4f,
-        #fa541c,
-        #ffa940,
-        #52c41a,
-        #1890ff,
-        #722ed1,
-        #ff4d4f
-      );
-      z-index: -1;
-      animation: org-spin 6s linear infinite;
-      opacity: 0.7;
-    }
   }
 
   &__avatar-img {
-    width: 80px;
-    height: 80px;
+    width: 100%;
+    height: 100%;
     border-radius: 999px;
     object-fit: cover;
     display: block;
     position: relative;
     z-index: 1;
+    animation: org-spin 10s linear infinite;
   }
 
   &__avatar-placeholder {
@@ -135,7 +117,7 @@
   }
 
   &__body {
-    padding: 76px 18px 18px;
+    padding: 76px 15px 15px;
     display: flex;
     flex-direction: column;
     gap: 10px;
