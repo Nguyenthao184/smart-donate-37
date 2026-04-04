@@ -114,7 +114,7 @@ export default function HomePage() {
               <div className="category-item">
                 <img
                   className="category-item__img"
-                  src={banner1}
+                  src={cat.hinh_anh}
                   alt={cat.ten_danh_muc}
                 />
                 <Text strong className="category-item__label">

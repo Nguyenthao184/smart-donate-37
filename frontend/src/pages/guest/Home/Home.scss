@@ -10,24 +10,10 @@
   section {
     padding-left: 150px;
     padding-right: 150px;
-    margin-bottom: 60px;
+    margin-bottom: 30px;
     animation: home-fadeIn 0.4s ease both;
 
-    @media (max-width: 1440px) {
-      padding-left: 100px;
-      padding-right: 100px;
-    }
-
-    @media (max-width: 1200px) {
-      padding-left: 50px;
-      padding-right: 50px;
-    }
-
-    @media (max-width: 768px) {
-      padding-left: 20px;
-      padding-right: 20px;
-      margin-bottom: 40px;
-    }
+    
   }
 
   .view-all {
@@ -55,22 +41,6 @@
     padding-left: 150px;
     padding-right: 150px;
     background-color: var(--bg);
-    margin-bottom: 60px;
-
-    @media (max-width: 1440px) {
-      padding-left: 100px;
-      padding-right: 100px;
-    }
-
-    @media (max-width: 1200px) {
-      padding-left: 50px;
-      padding-right: 50px;
-    }
-
-    @media (max-width: 768px) {
-      padding-left: 20px;
-      padding-right: 20px;
-    }
 
     &__content {
       position: relative;
@@ -266,7 +236,7 @@
       align-items: center;
       gap: 10px;
       cursor: pointer;
-      padding: 10px;
+      padding: 5px;
       border-radius: 16px;
       background: #fff;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
@@ -275,6 +245,7 @@
 
       @media (max-width: 1200px) {
         flex: 0 1 calc(50% - 8px);
+
       }
       @media (max-width: 768px) {
         flex: 0 1 100%;
@@ -305,10 +276,14 @@
       }
 
       &__label {
-        font-size: 16px;
+        font-size: 17px;
         font-weight: 600;
         color: #1f1f1f;
         white-space: nowrap;
+
+        @media (max-width: 1400px) {
+          font-size: 12px;
+        }
       }
     }
   }
@@ -319,11 +294,8 @@
 
   .home-campaigns-orgs {
     background: #fff;
-    padding: 30px 20px;
+    padding: 30px 5px;
     margin: 0px 150px 30px;
-    border-radius: 10px;
-    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
-    border: 1px solid #e8e8e8;
 
     .home-section__header {
       display: flex;
@@ -389,10 +361,10 @@
       }
 
       &--prev {
-        left: -18px;
+        left: -30px;
       }
       &--next {
-        right: -18px;
+        right: -30px;
       }
     }
 

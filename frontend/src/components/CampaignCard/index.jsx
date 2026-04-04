@@ -1,13 +1,12 @@
 import { Card, Progress } from "antd";
+import { useState } from "react";
 import {
-  FiImage,
   FiClock,
   FiTarget,
   FiTrendingUp,
 } from "react-icons/fi";
 import { LiaHeartbeatSolid } from "react-icons/lia";
 import { formatVnd } from "../../utils/format";
-import banner1 from "../../assets/user/banner1.jpg";
 import "./styles.scss";
 
 function clampPercent(value) {
@@ -17,6 +16,7 @@ function clampPercent(value) {
 }
 
 export default function CampaignCard({ campaign }) {
+  const [imgLoaded, setImgLoaded] = useState(false);
   const goal = Number(campaign.muc_tieu_tien ?? 0);
   const raised = Number(campaign.so_tien_da_nhan ?? 0);
   const percent = clampPercent(goal > 0 ? (raised / goal) * 100 : 0);
@@ -24,14 +24,14 @@ export default function CampaignCard({ campaign }) {
   const isNear = campaign.so_ngay_con_lai <= 3;
 
   return (
-    <Card className="campaign-card" variant="borderless">
+    <Card className={`campaign-card fade-load ${imgLoaded ? "loaded" : ""}`} variant="borderless">
       {/* ── Cover ── */}
       <div className="campaign-card__cover">
           <img
-            className="campaign-card__img"
-            src={banner1}
+            className={`campaign-card__img fade-load ${imgLoaded ? "loaded" : ""}`}
+            src={campaign.hinh_anh}
             alt={campaign.ten_chien_dich}
-            loading="lazy"
+            onLoad={() => setImgLoaded(true)}
           />
 
         {/* Overlay gradient */}
@@ -59,10 +59,12 @@ export default function CampaignCard({ campaign }) {
 
       {/* ── Body ── */}
       <div className="campaign-card__body">
-        <div className="campaign-card__title">{campaign.ten_chien_dich}</div>
+        <div className={`campaign-card__title fade-load ${imgLoaded ? "loaded" : ""}`}>
+          {campaign.ten_chien_dich}
+        </div>
 
         {/* Progress */}
-        <div className="campaign-card__progress-wrap">
+        <div className={`campaign-card__progress-wrap fade-load ${imgLoaded ? "loaded" : ""}`}>
           <Progress
             className="campaign-card__progress"
             percent={percent}
