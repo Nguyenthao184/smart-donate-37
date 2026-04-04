@@ -166,7 +166,7 @@ export default function Campaign() {
         <section className="camp-section">
           <div className="camp-section__header">
             <h2 className="camp-section__title">
-              CHIẾN DỊCH NỔI BẬT <FaFirefoxBrowser color="red" size={26} />
+              CHIẾN DỊCH NỔI BẬT <FaFirefoxBrowser color="#333" size={26} />
             </h2>
             <a href="/chien-dich/danh-sach" className="camp-section__view-all">
               Xem tất cả <FiChevronRight size={14} />
@@ -212,7 +212,7 @@ export default function Campaign() {
           <div className="camp-section__header">
             <h2 className="camp-section__title">
               TỔ CHỨC TỪ THIỆN{" "}
-              <SiWorldhealthorganization color="red" size={26} />
+              <SiWorldhealthorganization color="#333" size={26} />
             </h2>
             <a href="chien-dich/to-chuc" className="camp-section__view-all">
               Xem tất cả <FiChevronRight size={14} />

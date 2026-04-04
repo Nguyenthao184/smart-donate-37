@@ -20,7 +20,10 @@ import CampaignDetail from "../pages/guest/CampaignDetail/CampaignDetail.jsx";
 import CreateCampaign  from "../pages/organization/CreateCampaign/CreateCampaign.jsx";
 import NewsFeed  from "../pages/guest/NewsFeed/NewsFeed.jsx";
 import CreatePost  from "../pages/user/CreatePost/CreatePost.jsx";
-//import AdminPanel from "../pages/admin/AdminPanel/AdminPanel.jsx";
+import AdminPanel  from "../pages/admin/AdminPanel/AdminPanel.jsx";
+import Login from "../pages/auth/Login/Login.jsx";   
+import Register from "../pages/auth/Register/Register.jsx";
+import ForgotPassword from "../pages/auth/ForgotPassword/Forgot.jsx";
 // ================== PUBLIC ROUTES ==================
 const publicRoutes = [
   {
@@ -28,6 +31,30 @@ const publicRoutes = [
     element: (
       <PublicRoute>
         <HomePage />
+      </PublicRoute>
+    ),
+  },
+  {
+    path: "/dang-nhap",
+    element: (
+      <PublicRoute>
+        <Login />
+      </PublicRoute>
+    ),
+  },
+  {
+    path: "/dang-ky",
+    element: (
+      <PublicRoute>
+        <Register />
+      </PublicRoute>
+    ),
+  },
+  {
+    path: "/quen-mat-khau",
+    element: (
+      <PublicRoute>
+        <ForgotPassword />
       </PublicRoute>
     ),
   },
@@ -150,14 +177,15 @@ const privateRoutes = [
       </ProtectedRoute>
     ),
   },
-  // {
-  //   path: "/admin",
-  //   element: (
-  //     <ProtectedRoute>
-  //         <AdminPanel />
-  //     </ProtectedRoute>
-  //   ),
-  // },
+  {
+    path: "/admin/*",
+    element: (
+      <ProtectedRoute>
+          <AdminPanel />
+      </ProtectedRoute>
+    ),
+  },
+  
 ];
 
 // ================== APP ROUTES ==================
