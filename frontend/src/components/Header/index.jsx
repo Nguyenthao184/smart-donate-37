@@ -1,14 +1,22 @@
-import { Avatar, Badge, Input, Menu } from "antd";
+import { useEffect, useState } from "react";
+import { getMeAPI } from "../../api/authService";
+import { Avatar, Badge, Input, Menu, Dropdown } from "antd";
 import { FiBell, FiMessageCircle, FiSearch } from "react-icons/fi";
 import logo from "../../assets/logo.png";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "../../store/AuthContext";
+import RequiredLoginModal from "../../components/Required/index";
+import useAuthStore from "../../store/authStore";
+import { logoutAPI } from "../../api/authService";
 import "./styles.scss";
 
 export default function Header({ notificationsCount = 2, messagesCount = 3 }) {
-  const { user, isLoggedIn } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const [openLoginModal, setOpenLoginModal] = useState(false);
+  const user = useAuthStore((state) => state.user);
+  const token = useAuthStore((state) => state.token);
+  const isLoggedIn = !!token;
+  const logoutStore = useAuthStore((state) => state.logout);
 
   const navbar = [
     {
@@ -73,12 +81,54 @@ export default function Header({ notificationsCount = 2, messagesCount = 3 }) {
     return [];
   };
 
+  const handleLogout = async () => {
+    try {
+      await logoutAPI();
+    } catch (err) {
+      console.log("Logout lỗi:", err);
+    } finally {
+      logoutStore();
+      window.location.href = "/dang-nhap";
+    }
+  };
+
   const handleClick = (e) => {
     const clickedItem = navbar.find((item) => item.key === e.key);
     if (clickedItem && !clickedItem.children) {
       navigate(`/${clickedItem.key}`);
     }
   };
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        if (!token) return;
+
+        const res = await getMeAPI();
+
+        // cập nhật lại store
+        useAuthStore.setState({
+          user: res.data.user,
+        });
+      } catch (err) {
+        console.log("Lỗi lấy user:", err);
+      }
+    };
+
+    fetchUser();
+  }, [token]);
+
+  const items = [
+    {
+      key: "profile",
+      label: "Thông tin cá nhân",
+    },
+    {
+      key: "logout",
+      label: "Đăng xuất",
+      onClick: handleLogout,
+    },
+  ];
 
   return (
     <header className="app-header full-bleed">
@@ -126,27 +176,28 @@ export default function Header({ notificationsCount = 2, messagesCount = 3 }) {
                   <FiMessageCircle size={22} />
                 </Badge>
               </button>
-              <div className="app-header__user">
-                <Avatar size={34} src={user?.avatarUrl}>
-                  {user?.name?.[0]?.toUpperCase?.() ?? "U"}
-                </Avatar>
-                <div className="app-header__userText">
-                  <div className="app-header__userName">{user?.name}</div>
-                  <div className="app-header__userRole">{user?.role}</div>
+              <Dropdown menu={{ items }}>
+                <div className="app-header__user">
+                  <Avatar size={34}>
+                    {user?.ho_ten?.[0]?.toUpperCase() || "U"}
+                  </Avatar>
+                  <div className="app-header__userText">
+                    <div className="app-header__userName">{user?.ho_ten}</div>
+                  </div>
                 </div>
-              </div>
+              </Dropdown>
             </>
           ) : (
             <div className="app-header__auth">
               <button
                 className="app-header__btn app-header__btn--orange"
-                onClick={() => (window.location.href = "#")}
+                onClick={() => setOpenLoginModal(true)}
               >
                 Tạo chiến dịch
               </button>
               <button
                 className="app-header__btn app-header__btn--green"
-                onClick={() => navigate("/login")}
+                onClick={() => navigate("/dang-nhap")}
               >
                 Đăng nhập
               </button>
@@ -154,6 +205,11 @@ export default function Header({ notificationsCount = 2, messagesCount = 3 }) {
           )}
         </div>
       </div>
+      {/* Modal đăng nhập */}
+      <RequiredLoginModal
+        openLoginModal={openLoginModal}
+        setOpenLoginModal={setOpenLoginModal}
+      />
     </header>
   );
 }

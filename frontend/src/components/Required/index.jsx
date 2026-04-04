@@ -8,7 +8,7 @@ export default function RequiredLoginModal({ openLoginModal, setOpenLoginModal }
 
   const handleLoginOk = () => {
     setOpenLoginModal(false);
-    navigate("/login");
+    navigate("/dang-nhap");
   };
 
   const handleCancel = () => {
@@ -29,7 +29,6 @@ export default function RequiredLoginModal({ openLoginModal, setOpenLoginModal }
           Hủy
         </Button>,
         <Button key="login" type="primary" icon={<FiLogIn />} onClick={handleLoginOk}>
-          Đăng nhập
         </Button>,
       ]}
       className="enhanced-modal"

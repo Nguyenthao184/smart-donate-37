@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 
 import ProtectedRoute from "./protectedRoutes";
 import PublicRoute from "./publicRoutes";
@@ -109,60 +109,56 @@ const publicRoutes = [
         </MainLayout>
       </PublicRoute>
     ),
+  },{
+    path: "/bang-tin",
+    element: (
+      <PublicRoute>
+        <MainLayout>
+          <NewsFeed />
+        </MainLayout>
+      </PublicRoute>
+    ),
   },
-  {
-    
-  }
-];
-
-// ================== PRIVATE ROUTES ==================
-const privateRoutes = [
   {
     path: "/chien-dich",
     element: (
-      <ProtectedRoute>
+      <PublicRoute>
         <MainLayout>
           <CampaignPage />
         </MainLayout>
-      </ProtectedRoute>
+      </PublicRoute>
     ),
   },
   {
     path: "/chien-dich/to-chuc",
     element: (
-      <ProtectedRoute>
+      <PublicRoute>
         <MainLayout>
           <OrganizationList />
         </MainLayout>
-      </ProtectedRoute>
+      </PublicRoute>
     ),
   },
   {
     path: "/chien-dich/to-chuc/chi-tiet",
     element: (
-      <ProtectedRoute>
+      <PublicRoute>
         <MainLayout>
           <OrganizationDetail />
         </MainLayout>
-      </ProtectedRoute>
+      </PublicRoute>
     ),
   },
+];
+
+// ================== PRIVATE ROUTES ==================
+const privateRoutes = [
   {
     path: "/chien-dich/tao-moi",
     element: (
       <ProtectedRoute>
         <MainLayout>
           <CreateCampaign />
-        </MainLayout>
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: "/bang-tin",
-    element: (
-      <ProtectedRoute>
-        <MainLayout>
-          <NewsFeed />
         </MainLayout>
       </ProtectedRoute>
     ),
@@ -191,7 +187,7 @@ const privateRoutes = [
 // ================== APP ROUTES ==================
 export default function AppRoutes() {
   return (
-    <BrowserRouter>
+    <>
       <ScrollToTop />
       <Routes>
         {publicRoutes.map((route, index) => (
@@ -206,6 +202,6 @@ export default function AppRoutes() {
 
         <Route path="*" element={<Navigate to="/" />} /> */}
       </Routes>
-    </BrowserRouter>
+    </>
   );
 }
