@@ -12,15 +12,15 @@ import Search from "../pages/guest/Search/Search.jsx";
 import FAQ from "../pages/guest/FAQ/FAQ.jsx";
 import Privacy from "../pages/guest/Privacy/Privacy.jsx";
 import Terms from "../pages/guest/Terms/Terms.jsx";
-import CampaignPage from "../pages/user/Campaign/Campaign.jsx";
-import OrganizationList from "../pages/user/OrganizationList/OrganizationList.jsx";
-import OrganizationDetail from "../pages/user/OrganizationDetail/OrganizationDetail.jsx";
+import CampaignPage from "../pages/guest/Campaign/Campaign.jsx";
+import OrganizationList from "../pages/guest/OrganizationList/OrganizationList.jsx";
+import OrganizationDetail from "../pages/guest/OrganizationDetail/OrganizationDetail.jsx";
 import CampaignList from "../pages/guest/CampaignList/CampaignList.jsx";
 import CampaignDetail from "../pages/guest/CampaignDetail/CampaignDetail.jsx";
 import CreateCampaign  from "../pages/organization/CreateCampaign/CreateCampaign.jsx";
-import NewsFeed  from "../pages/user/NewsFeed/NewsFeed.jsx";
+import NewsFeed  from "../pages/guest/NewsFeed/NewsFeed.jsx";
 import CreatePost  from "../pages/user/CreatePost/CreatePost.jsx";
-import AdminPanel from "../pages/admin/AdminPanel/AdminPanel.jsx";
+//import AdminPanel from "../pages/admin/AdminPanel/AdminPanel.jsx";
 // ================== PUBLIC ROUTES ==================
 const publicRoutes = [
   {
@@ -83,6 +83,9 @@ const publicRoutes = [
       </PublicRoute>
     ),
   },
+  {
+    
+  }
 ];
 
 // ================== PRIVATE ROUTES ==================
@@ -147,14 +150,14 @@ const privateRoutes = [
       </ProtectedRoute>
     ),
   },
-  {
-    path: "/admin",
-    element: (
-      <ProtectedRoute>
-          <AdminPanel />
-      </ProtectedRoute>
-    ),
-  },
+  // {
+  //   path: "/admin",
+  //   element: (
+  //     <ProtectedRoute>
+  //         <AdminPanel />
+  //     </ProtectedRoute>
+  //   ),
+  // },
 ];
 
 // ================== APP ROUTES ==================
