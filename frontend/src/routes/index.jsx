@@ -17,11 +17,13 @@ import OrganizationList from "../pages/guest/OrganizationList/OrganizationList.j
 import OrganizationDetail from "../pages/guest/OrganizationDetail/OrganizationDetail.jsx";
 import CampaignList from "../pages/guest/CampaignList/CampaignList.jsx";
 import CampaignDetail from "../pages/guest/CampaignDetail/CampaignDetail.jsx";
-import CreateCampaign  from "../pages/organization/CreateCampaign/CreateCampaign.jsx";
-import NewsFeed  from "../pages/guest/NewsFeed/NewsFeed.jsx";
-import CreatePost  from "../pages/user/CreatePost/CreatePost.jsx";
-import AdminPanel  from "../pages/admin/AdminPanel/AdminPanel.jsx";
-import Login from "../pages/auth/Login/Login.jsx";   
+import CreateCampaign from "../pages/organization/CreateCampaign/CreateCampaign.jsx";
+import NewsFeed from "../pages/guest/NewsFeed/NewsFeed.jsx";
+import CreatePost from "../pages/user/CreatePost/CreatePost.jsx";
+import Chat from "../pages/user/Chat/Chat.jsx";
+import Profile from "../pages/user/Profile/Profile.jsx";
+import AdminPanel from "../pages/admin/AdminPanel/AdminPanel.jsx";
+import Login from "../pages/auth/Login/Login.jsx";
 import Register from "../pages/auth/Register/Register.jsx";
 import ForgotPassword from "../pages/auth/ForgotPassword/Forgot.jsx";
 // ================== PUBLIC ROUTES ==================
@@ -109,7 +111,8 @@ const publicRoutes = [
         </MainLayout>
       </PublicRoute>
     ),
-  },{
+  },
+  {
     path: "/bang-tin",
     element: (
       <PublicRoute>
@@ -174,14 +177,29 @@ const privateRoutes = [
     ),
   },
   {
-    path: "/admin/*",
+    path: "/chat",
     element: (
       <ProtectedRoute>
-          <AdminPanel />
+        <Chat />
       </ProtectedRoute>
     ),
   },
-  
+  {
+    path: "/profile",
+    element: (
+      <ProtectedRoute>
+        <Profile />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/admin/*",
+    element: (
+      <ProtectedRoute>
+        <AdminPanel />
+      </ProtectedRoute>
+    ),
+  },
 ];
 
 // ================== APP ROUTES ==================
