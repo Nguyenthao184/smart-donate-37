@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import CampaignCard from "../../../components/CampaignCard/index.jsx";
 import OrganizationCard from "../../../components/OrganizationCard/index.jsx";
 import Header from "../../../components/Header/index.jsx";
@@ -18,6 +19,7 @@ import "./Home.scss";
 import useCampaigns from "../../../hooks/useCampaigns.js";
 import useOrganizations from "../../../hooks/useOrganizations.js";
 import useCategories from "../../../hooks/useCategories.js";
+import useAuthStore from "../../../store/authStore";
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -62,7 +64,18 @@ export default function HomePage() {
   const { campaigns, loading } = useCampaigns();
   const { organizations } = useOrganizations();
   const { categories } = useCategories();
+  const navigate = useNavigate();
+  const { token } = useAuthStore();
+  const isLoggedIn = !!token;
   const [openLoginModal, setOpenLoginModal] = useState(false);
+
+  const requireAuth = (callback) => {
+  if (!isLoggedIn) {
+    setOpenLoginModal(true);
+  } else {
+    callback();
+  }
+};
 
   if (loading) return <p>Đang tải dữ liệu...</p>;
 
@@ -83,17 +96,10 @@ export default function HomePage() {
                 nhận quà từ cộng đồng
               </Paragraph>
               <Space size="middle" className="home-hero__btns">
-                <Button
-                  type="primary"
-                  size="large"
-                  className="btn-hero-orange"
-                >
+                <Button type="primary" size="large" className="btn-hero-orange">
                   KHÁM PHÁ CHIẾN DỊCH
                 </Button>
-                <Button
-                  size="large"
-                  className="btn-hero-green"
-                >
+                <Button size="large" className="btn-hero-green">
                   ĐĂNG BÀI CHO/NHẬN
                 </Button>
               </Space>
@@ -281,7 +287,7 @@ export default function HomePage() {
                 type="primary"
                 size="large"
                 className="btn-cta-give"
-                onClick={() => setOpenLoginModal(true)}
+                onClick={() => requireAuth(() => navigate("/bang-tin"))}
               >
                 ĐĂNG BÀI NGAY
               </Button>
@@ -297,7 +303,7 @@ export default function HomePage() {
       <section className="home-campaigns-orgs">
         <div className="home-section__header">
           <h2 className="home-section__title">TỔ CHỨC TỪ THIỆN</h2>
-          <a href="/login" className="view-all">
+          <a href="/chien-dich/to-chuc" className="view-all">
             Xem tất cả <FiChevronRight />
           </a>
         </div>

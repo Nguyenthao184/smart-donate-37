@@ -29,7 +29,6 @@ mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
 
 export default function CampaignDetail() {
   const { id } = useParams();
-  const { fetchCampaignDetail } = useCampaignStore();
   const { campaigns: otherCampaigns, loading: loadingOther } = useCampaigns();
 
   const [campaign, setCampaign] = useState(null);
@@ -39,44 +38,47 @@ export default function CampaignDetail() {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
 
-  // Fetch chi tiết chiến dịch
+  // Fetch chi tiết chiến dịch (store dedupe + cleanup tránh setState sau unmount)
   useEffect(() => {
     if (!id) return;
+    let cancelled = false;
     const loadCampaign = async () => {
-      const data = await fetchCampaignDetail(id);
-      if (data) {
-        setCampaign({
-          id: data.id,
-          title: data.ten_chien_dich,
-          description: data.mo_ta,
-          images: data.hinh_anh,
-          raised: Number(data.so_tien_da_nhan),
-          goal: Number(data.muc_tieu_tien),
-          daysLeft: data.so_ngay_con_lai,
-          location: data.vi_tri,
-          lat: data.lat,
-          lng: data.lng,
-          total_donor: data.so_luot_ung_ho,
-          org: {
-            name: data.to_chuc?.ten_to_chuc,
-            logo: data.to_chuc?.logo,
-            description: data.to_chuc?.mo_ta ? [data.to_chuc.mo_ta] : [],
-            address: data.to_chuc?.dia_chi,
-            email: data.to_chuc?.email,
-            hotline: data.to_chuc?.so_dien_thoai,
-            verified: true, // giả sử luôn verified
-          },
-          donors: data.danh_sach_ung_ho.map((d, i) => ({
-            id: i,
-            name: d.ten_nguoi_ung_ho,
-            amount: Number(d.so_tien.replace(/[^\d]/g, "")),
-            time: d.thoi_gian,
-            avatar: d.ten_nguoi_ung_ho[0],
-          })),
-        });
-      }
+      const data = await useCampaignStore.getState().fetchCampaignDetail(id);
+      if (cancelled || !data) return;
+      setCampaign({
+        id: data.id,
+        title: data.ten_chien_dich,
+        description: data.mo_ta,
+        images: data.hinh_anh,
+        raised: Number(data.so_tien_da_nhan),
+        goal: Number(data.muc_tieu_tien),
+        daysLeft: data.so_ngay_con_lai,
+        location: data.vi_tri,
+        lat: data.lat,
+        lng: data.lng,
+        total_donor: data.so_luot_ung_ho,
+        org: {
+          name: data.to_chuc?.ten_to_chuc,
+          logo: data.to_chuc?.logo,
+          description: data.to_chuc?.mo_ta ? [data.to_chuc.mo_ta] : [],
+          address: data.to_chuc?.dia_chi,
+          email: data.to_chuc?.email,
+          hotline: data.to_chuc?.so_dien_thoai,
+          verified: true, // giả sử luôn verified
+        },
+        donors: data.danh_sach_ung_ho.map((d, i) => ({
+          id: i,
+          name: d.ten_nguoi_ung_ho,
+          amount: Number(d.so_tien.replace(/[^\d]/g, "")),
+          time: d.thoi_gian,
+          avatar: d.ten_nguoi_ung_ho[0],
+        })),
+      });
     };
-    loadCampaign();
+    void loadCampaign();
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   useEffect(() => {
@@ -178,7 +180,7 @@ export default function CampaignDetail() {
         <div className="cd-info">
           <div className="cd-info__grid">
             <div className="cd-info__item">
-              <span className="cd-info__label">Mục tiêu</span>
+              <span className="cd-info__label">Mã chuyển khoản</span>
               <span className="cd-info__value">{campaign.target}</span>
             </div>
             <div className="cd-info__item">

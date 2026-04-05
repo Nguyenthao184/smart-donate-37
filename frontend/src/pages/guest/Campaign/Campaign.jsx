@@ -37,11 +37,10 @@ export default function Campaign() {
   const orgCarouselRef = useRef(null);
   const navigate = useNavigate();
 
-  const { campaigns, loading: campLoading } = useCampaigns();
+  const { featured, campaigns, loading: campLoading } = useCampaigns();
   const { categories } = useCategories();
   const { organizations } = useOrganizations();
 
-  // Lọc các campaign đang hoạt động
   const activeCampaigns = campaigns.filter((c) => c.trang_thai === "HOAT_DONG");
   const endingCampaigns = activeCampaigns
     .sort((a, b) => a.so_ngay_con_lai - b.so_ngay_con_lai)
@@ -51,15 +50,18 @@ export default function Campaign() {
     const { fetchByCategory } = useCampaignStore.getState();
 
     if (cat.id === 0) {
-      // Chọn "Tất cả"
-      fetchByCategory(null); // hoặc 0, tùy store xử lý
+      fetchByCategory(null);
       navigate("/chien-dich/danh-sach");
     } else {
-      // Chọn danh mục cụ thể
       fetchByCategory(cat.id);
       navigate(`/chien-dich/danh-sach?category=${cat.id}`);
     }
   }
+
+  const handleClick = (campaign) => {
+    const id = campaign.id || campaign.id_chien_dich;
+    navigate(`/chien-dich/chi-tiet/${id}`);
+  };
 
   if (campLoading) {
     return (
@@ -186,7 +188,7 @@ export default function Campaign() {
                 { breakpoint: 780, settings: { slidesToShow: 2 } },
               ]}
             >
-              {campaigns.map((c, i) => (
+              {featured.map((c, i) => (
                 <div key={c.id} className="camp-section__slide">
                   <CampaignCard campaign={c} index={i} />
                 </div>
@@ -353,6 +355,7 @@ export default function Campaign() {
                         danger
                         size="small"
                         className="ending-item__btn"
+                        onClick={() => handleClick(item)}
                       >
                         ỦNG HỘ NGAY
                       </Button>

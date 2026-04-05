@@ -140,7 +140,7 @@ const publicRoutes = [
     ),
   },
   {
-    path: "/chien-dich/to-chuc/chi-tiet",
+    path: "/chien-dich/to-chuc/chi-tiet/:id",
     element: (
       <PublicRoute>
         <MainLayout>

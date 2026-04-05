@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { getMeAPI } from "../../api/authService";
 import { Avatar, Badge, Input, Menu, Dropdown } from "antd";
 import { FiBell, FiMessageCircle, FiSearch } from "react-icons/fi";
 import logo from "../../assets/logo.png";
@@ -13,8 +12,7 @@ export default function Header({ notificationsCount = 2, messagesCount = 3 }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [openLoginModal, setOpenLoginModal] = useState(false);
-  const user = useAuthStore((state) => state.user);
-  const token = useAuthStore((state) => state.token);
+  const { user, token, fetchMe } = useAuthStore();
   const isLoggedIn = !!token;
   const logoutStore = useAuthStore((state) => state.logout);
 
@@ -100,23 +98,8 @@ export default function Header({ notificationsCount = 2, messagesCount = 3 }) {
   };
 
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        if (!token) return;
-
-        const res = await getMeAPI();
-
-        // cập nhật lại store
-        useAuthStore.setState({
-          user: res.data.user,
-        });
-      } catch (err) {
-        console.log("Lỗi lấy user:", err);
-      }
-    };
-
-    fetchUser();
-  }, [token]);
+    void fetchMe().catch(() => {});
+  }, [token, fetchMe]);
 
   const items = [
     {
