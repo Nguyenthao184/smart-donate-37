@@ -3,11 +3,13 @@ import {
   getCampaigns,
   getFeaturedCampaigns,
   getCampaignsByCategory,
+  getCampaignDetail,
 } from "../api/campaignService";
 
 const useCampaignStore = create((set, get) => ({
   campaigns: [],
   featured: [],
+  campaignDetail: {},
   loading: false,
 
   fetchCampaigns: async () => {
@@ -51,6 +53,29 @@ const useCampaignStore = create((set, get) => ({
     } catch (err) {
       console.error("Lỗi filter category:", err);
       set({ loading: false });
+    }
+  },
+
+  // Lấy chi tiết campaign
+  fetchCampaignDetail: async (id) => {
+    const cached = get().campaignDetail[id];
+    if (cached) return cached; // nếu đã có cache thì trả luôn
+
+    set({ loading: true });
+    try {
+      const res = await getCampaignDetail(id);
+      set({
+        campaignDetail: {
+          ...get().campaignDetail,
+          [id]: res, // cache theo id
+        },
+        loading: false,
+      });
+      return res;
+    } catch (err) {
+      console.error("Lỗi fetch campaign detail:", err);
+      set({ loading: false });
+      return null;
     }
   },
 }));

@@ -1,10 +1,7 @@
 import { Card, Progress } from "antd";
+import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import {
-  FiClock,
-  FiTarget,
-  FiTrendingUp,
-} from "react-icons/fi";
+import { FiClock, FiTarget, FiTrendingUp } from "react-icons/fi";
 import { LiaHeartbeatSolid } from "react-icons/lia";
 import { formatVnd } from "../../utils/format";
 import "./styles.scss";
@@ -17,22 +14,31 @@ function clampPercent(value) {
 
 export default function CampaignCard({ campaign }) {
   const [imgLoaded, setImgLoaded] = useState(false);
+  const navigate = useNavigate();
   const goal = Number(campaign.muc_tieu_tien ?? 0);
   const raised = Number(campaign.so_tien_da_nhan ?? 0);
   const percent = clampPercent(goal > 0 ? (raised / goal) * 100 : 0);
 
   const isNear = campaign.so_ngay_con_lai <= 3;
 
+  const handleClick = () => {
+    navigate(`/chien-dich/chi-tiet/${campaign.id || campaign.id_chien_dich}`);
+  };
+
   return (
-    <Card className={`campaign-card fade-load ${imgLoaded ? "loaded" : ""}`} variant="borderless">
+    <Card
+      className={`campaign-card fade-load ${imgLoaded ? "loaded" : ""}`}
+      variant="borderless"
+      onClick={handleClick} 
+    >
       {/* ── Cover ── */}
       <div className="campaign-card__cover">
-          <img
-            className={`campaign-card__img fade-load ${imgLoaded ? "loaded" : ""}`}
-            src={campaign.hinh_anh}
-            alt={campaign.ten_chien_dich}
-            onLoad={() => setImgLoaded(true)}
-          />
+        <img
+          className={`campaign-card__img fade-load ${imgLoaded ? "loaded" : ""}`}
+          src={campaign.hinh_anh}
+          alt={campaign.ten_chien_dich}
+          onLoad={() => setImgLoaded(true)}
+        />
 
         {/* Overlay gradient */}
         <div className="campaign-card__cover-overlay" />
@@ -59,12 +65,16 @@ export default function CampaignCard({ campaign }) {
 
       {/* ── Body ── */}
       <div className="campaign-card__body">
-        <div className={`campaign-card__title fade-load ${imgLoaded ? "loaded" : ""}`}>
+        <div
+          className={`campaign-card__title fade-load ${imgLoaded ? "loaded" : ""}`}
+        >
           {campaign.ten_chien_dich}
         </div>
 
         {/* Progress */}
-        <div className={`campaign-card__progress-wrap fade-load ${imgLoaded ? "loaded" : ""}`}>
+        <div
+          className={`campaign-card__progress-wrap fade-load ${imgLoaded ? "loaded" : ""}`}
+        >
           <Progress
             className="campaign-card__progress"
             percent={percent}

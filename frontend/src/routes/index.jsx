@@ -101,7 +101,7 @@ const publicRoutes = [
     ),
   },
   {
-    path: "/chien-dich/chi-tiet",
+    path: "/chien-dich/chi-tiet/:id",
     element: (
       <PublicRoute>
         <MainLayout>
