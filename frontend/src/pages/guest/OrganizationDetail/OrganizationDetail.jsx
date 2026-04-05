@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import { Progress, Pagination } from "antd";
 import {
   FiMapPin,
@@ -15,105 +16,40 @@ import { MdCampaign } from "react-icons/md";
 import { BsBalloonHeartFill } from "react-icons/bs";
 import { MdOutlineMarkEmailRead, MdOutlinePhoneInTalk } from "react-icons/md";
 import { formatVnd } from "../../../utils/format";
-import qr from "../../../assets/user/qr.png";
 import banner3 from "../../../assets/user/banner3.jpg";
+import useOrganizationStore from "../../../store/organizationStore";
 import "./OrganizationDetail.scss";
-
-const ORG = {
-  name: "HỘI CHỮ THẬP ĐỎ VIỆT NAM",
-  address: "Thanh Khê, Đà Nẵng",
-  desc: "Hội Chữ thập đỏ Việt Nam là một tổ chức nhân đạo, hoạt động trong lĩnh vực cứu trợ, phát triển cộng đồng và hỗ trợ người nghèo. Với sứ mệnh 'Vì một xã hội nhân ái', Hội Chữ thập đỏ Việt Nam đã triển khai nhiều chương trình giúp đỡ người dân gặp khó khăn, thiên tai và thảm họa.",
-  logo: null,
-  email: "hoichuthapdo@gmail.com",
-  hotline: "1900 9095",
-  accountNumber: "1402",
-  accountName: "HOI CHU THAP DO VIET NAM",
-  balance: 143758000,
-  totalIncome: 1143758000,
-  totalExpense: 1000000000,
-  totalCampaigns: 5,
-  totalDonors: 360,
-  qr: qr,
-};
-
-const MOCK_CAMPAIGNS = [
-  {
-    id: 1,
-    title: "Giảm thiệt hại thiên tai miền Trung",
-    raised: 1000000000,
-    goal: 1000000000,
-    donors: 750,
-    image: null,
-    state: "Hoàn thành",
-  },
-  {
-    id: 2,
-    title: "Xây trường cho trẻ em vùng cao",
-    raised: 350000000,
-    goal: 1000000000,
-    donors: 320,
-    image: null,
-    state: "Còn 3 ngày",
-  },
-  {
-    id: 3,
-    title: "Hỗ trợ người già neo đơn Hà Nội",
-    raised: 200000000,
-    goal: 500000000,
-    donors: 180,
-    image: null,
-    state: "Chưa đạt",
-  },
-  {
-    id: 4,
-    title: "Gây quỹ bữa ăn cho trẻ em",
-    raised: 120000000,
-    goal: 300000000,
-    donors: 95,
-    image: null,
-    state: "Hoàn thành",
-  },
-  {
-    id: 5,
-    title: "Trồng rừng phòng hộ miền Bắc",
-    raised: 400000000,
-    goal: 400000000,
-    donors: 60,
-    image: null,
-    state: "Hoàn thành",
-  },
-  {
-    id: 6,
-    title: "Học bổng trẻ em vùng sâu",
-    raised: 180000000,
-    goal: 600000000,
-    donors: 140,
-    image: null,
-    state: "Còn 7 ngày",
-  },
-  {
-    id: 7,
-    title: "Nước sạch cho bản làng Tây Bắc",
-    raised: 95000000,
-    goal: 250000000,
-    donors: 88,
-    image: null,
-    state: "Chưa đạt",
-  },
-];
 
 const PAGE_SIZE = 3;
 
 export default function OrganizationDetail() {
+  const { id } = useParams();
+  const organizationDetail = useOrganizationStore(
+    (state) => state.organizationDetail,
+  );
+
+  const fetchOrganizationDetail = useOrganizationStore(
+    (state) => state.fetchOrganizationDetail,
+  );
+
+  const loading = useOrganizationStore((state) => state.loading);
   const [page, setPage] = useState(1);
 
-  const paginated = useMemo(() => {
-    const start = (page - 1) * PAGE_SIZE;
-    return MOCK_CAMPAIGNS.slice(start, start + PAGE_SIZE);
-  }, [page]);
+  useEffect(() => {
+    if (id) {
+      fetchOrganizationDetail(id);
+    }
+  }, [id]);
 
-  const getStateConfig = (state, pct) => {
-    if (state === "Hoàn thành" || pct >= 100) {
+  const ORG = organizationDetail[id];
+  const campaigns = ORG?.chien_dichs || [];
+
+  const start = (page - 1) * PAGE_SIZE;
+  const paginated = campaigns.slice(start, start + PAGE_SIZE);
+
+  const getStateConfig = (c) => {
+    // Hoàn thành
+    if (c.trang_thai === "HOAN_THANH" || c.phan_tram >= 100) {
       return {
         type: "success",
         icon: <FiCheckCircle size={14} />,
@@ -121,20 +57,49 @@ export default function OrganizationDetail() {
       };
     }
 
-    if (/\d+\s*ngày/.test(state)) {
+    // Đang hoạt động → hiển thị số ngày
+    if (c.trang_thai === "HOAT_DONG") {
+      const days = c.so_ngay_con_lai ?? 0;
+
       return {
         type: "processing",
         icon: <FiClock size={14} />,
-        label: state,
+        label: days > 0 ? `Còn ${days} ngày` : "Sắp kết thúc",
       };
     }
 
+    // Tạm dừng
+    if (c.trang_thai === "TAM_DUNG") {
+      return {
+        type: "danger",
+        icon: <FiInfo size={14} />,
+        label: "Tạm dừng",
+      };
+    }
+    
+    if (c.trang_thai === "TU_CHOI") {
+      return {
+        type: "danger",
+        icon: <FiInfo size={14} />,
+        label: "Từ chối",
+      };
+    }
+
+    // fallback (tránh crash)
     return {
-      type: "danger",
+      type: "default",
       icon: <FiInfo size={14} />,
-      label: "Chưa đạt",
+      label: "Không xác định",
     };
   };
+
+  if (loading && !ORG) {
+    return <div style={{ padding: 40 }}>Đang tải...</div>;
+  }
+
+  if (!ORG) {
+    return <div style={{ padding: 40 }}>Đang tải...</div>;
+  }
 
   return (
     <div className="od-page">
@@ -144,29 +109,25 @@ export default function OrganizationDetail() {
           {/* Org header */}
           <div className="od-header">
             <div className="od-header__avatar">
-              {ORG.logo ? (
-                <img src={ORG.logo} alt={ORG.name} />
-              ) : (
-                <FiImage size={32} />
-              )}
+              <img src={ORG.logo} alt={ORG.ten_to_chuc} />
               <div className="od-header__avatar-ring" />
             </div>
             <div className="od-header__info">
-              <div className="od-header__name">{ORG.name}</div>
+              <div className="od-header__name">{ORG.ten_to_chuc}</div>
               <div className="od-header__meta">
                 <div className="od-header__meta-left">
                   <span className="od-header__badge">
                     <LuShieldCheck size={13} /> Tổ chức xác minh
                   </span>
-                  <p className="od-header__desc">{ORG.desc}</p>
+                  <p className="od-header__desc">{ORG.mo_ta}</p>
                 </div>
                 <div className="od-header__meta-right">
                   <span className="od-header__address">
-                    <FiMapPin size={18} color="#ff4d4f" /> {ORG.address}
+                    <FiMapPin size={18} color="#ff4d4f" /> {ORG.dia_chi}
                   </span>
                   <span className="od-header__hotline">
                     <MdOutlinePhoneInTalk size={18} color="#52c41a" />{" "}
-                    {ORG.hotline}
+                    {ORG.so_dien_thoai}
                   </span>
                   <span className="od-header__email">
                     <MdOutlineMarkEmailRead size={18} color="#1890ff" />{" "}
@@ -182,8 +143,8 @@ export default function OrganizationDetail() {
           {/* Campaign list */}
           <div className="od-campaigns">
             {paginated.map((c, i) => {
-              const pct = Math.round((c.raised / c.goal) * 100);
-              const stateConfig = getStateConfig(c.state, pct);
+              const pct = c.phan_tram;
+              const stateConfig = getStateConfig(c);
               return (
                 <div
                   key={c.id}
@@ -191,14 +152,12 @@ export default function OrganizationDetail() {
                   style={{ animationDelay: `${i * 0.08}s` }}
                 >
                   <div className="od-camp-item__thumb">
-                    {c.image ? (
-                      <img src={c.image} alt={c.title} />
-                    ) : (
-                      <FiImage size={22} />
-                    )}
+                    <img src={c.hinh_anh} alt={c.ten_chien_dich} />
                   </div>
                   <div className="od-camp-item__body">
-                    <div className="od-camp-item__title">{c.title}</div>
+                    <div className="od-camp-item__title">
+                      {c.ten_chien_dich}
+                    </div>
                     <div className="od-camp-item__progress">
                       <Progress
                         percent={pct}
@@ -211,10 +170,10 @@ export default function OrganizationDetail() {
                     </div>
                     <div className="od-camp-item__meta">
                       <span className="od-camp-item__raised">
-                        {formatVnd(c.raised)}
+                        {formatVnd(c.so_tien_da_nhan)}
                       </span>
                       <span className="od-camp-item__goal">
-                        {formatVnd(c.goal)}
+                        {formatVnd(c.muc_tieu_tien)}
                       </span>
                     </div>
                     <div className="od-camp-item__donors">
@@ -237,7 +196,7 @@ export default function OrganizationDetail() {
                         ))}
                       </div>
                       <span className="od-camp-item__donor-text">
-                        <strong>+{c.donors}</strong> người đã ủng hộ
+                        <strong>+{c.so_luot_ung_ho}</strong> người đã ủng hộ
                       </span>
                     </div>
                   </div>
@@ -253,12 +212,12 @@ export default function OrganizationDetail() {
           </div>
 
           {/* Pagination */}
-          {MOCK_CAMPAIGNS.length > PAGE_SIZE && (
+          {campaigns.length > PAGE_SIZE && (
             <div className="od-pagination">
               <Pagination
                 current={page}
                 pageSize={PAGE_SIZE}
-                total={MOCK_CAMPAIGNS.length}
+                total={campaigns.length}
                 onChange={(p) => setPage(p)}
                 showSizeChanger={false}
               />
@@ -277,7 +236,7 @@ export default function OrganizationDetail() {
                 className="od-bank-card__balance"
                 style={{ color: "#515050" }}
               >
-                {ORG.accountName}
+                {ORG.ten_tai_khoan}
               </div>
             </div>
             <div className="od-bank-card__balance-label">
@@ -286,7 +245,7 @@ export default function OrganizationDetail() {
                 className="od-bank-card__balance"
                 style={{ color: "#515050" }}
               >
-                {ORG.accountNumber}
+                {ORG.so_tai_khoan}
               </div>
             </div>
             <div className="od-bank-card__balance-label">
@@ -295,7 +254,7 @@ export default function OrganizationDetail() {
                 className="od-bank-card__balance"
                 style={{ color: "#ff4d4f" }}
               >
-                {formatVnd(ORG.balance)}
+                {formatVnd(ORG.so_du_hien_tai)}
               </div>
             </div>
 
@@ -305,7 +264,7 @@ export default function OrganizationDetail() {
                 <div>
                   <div className="od-bank-card__flow-label">Tổng thu</div>
                   <div className="od-bank-card__flow-value">
-                    {formatVnd(ORG.totalIncome)}
+                    {formatVnd(ORG.tong_thu)}
                   </div>
                 </div>
               </div>
@@ -315,24 +274,14 @@ export default function OrganizationDetail() {
                 <div>
                   <div className="od-bank-card__flow-label">Tổng chi</div>
                   <div className="od-bank-card__flow-value">
-                    {formatVnd(ORG.totalExpense)}
+                    {formatVnd(ORG.tong_chi)}
                   </div>
                 </div>
               </div>
             </div>
             {/* QR */}
             <div className="od-qr-card">
-              {ORG.qr ? (
-                <img src={ORG.qr} alt="QR" className="od-qr-card__img" />
-              ) : (
-                <div className="od-qr-card__placeholder">
-                  <img className="od-qr-card__grid" src={ORG.qr}></img>
-                  <div className="od-qr-card__label">
-                    <span>VIETQR</span>
-                    <span>napas247</span>
-                  </div>
-                </div>
-              )}
+                <img src={ORG.qr_code} alt="QR" className="od-qr-card__img" />
             </div>
           </div>
 
@@ -357,7 +306,7 @@ export default function OrganizationDetail() {
                     🎯 Đã vận động
                   </span>
                   <span className="od-stats-card__banner-value">
-                    {formatVnd(ORG.totalIncome)}
+                    {formatVnd(ORG.tong_thu)}
                   </span>
                 </div>
               </div>
@@ -371,7 +320,7 @@ export default function OrganizationDetail() {
                 </div>
                 <div className="od-stats-card__item-info">
                   <span className="od-stats-card__item-value">
-                    {ORG.totalCampaigns}
+                    {ORG.tong_chien_dich}
                   </span>
                   <span className="od-stats-card__item-label">chiến dịch</span>
                 </div>
@@ -383,7 +332,7 @@ export default function OrganizationDetail() {
                 </div>
                 <div className="od-stats-card__item-info">
                   <span className="od-stats-card__item-value">
-                    {ORG.totalDonors.toLocaleString()}
+                    {ORG.tong_luot_ung_ho}
                   </span>
                   <span className="od-stats-card__item-label">lượt ủng hộ</span>
                 </div>

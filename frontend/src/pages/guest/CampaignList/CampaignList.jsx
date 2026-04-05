@@ -39,7 +39,7 @@ function sortCampaigns(list, sortKey) {
 export default function CampaignList() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { campaigns, fetchByCategory } = useCampaignStore();
+  const campaigns = useCampaignStore((s) => s.campaigns);
   const { categories } = useCategories();
   const queryCategory = Number(
     new URLSearchParams(location.search).get("category") ?? 0,
@@ -57,18 +57,25 @@ export default function CampaignList() {
   );
 
   useEffect(() => {
+    let cancelled = false;
     async function loadCampaigns() {
-      setIsLoading(true); // bắt đầu load
-      if (queryCategory === 0) {
-        await fetchByCategory(null);
-      } else {
-        await fetchByCategory(queryCategory);
+      setIsLoading(true);
+      try {
+        if (queryCategory === 0) {
+          await useCampaignStore.getState().fetchByCategory(null);
+        } else {
+          await useCampaignStore.getState().fetchByCategory(queryCategory);
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
       }
-      setIsLoading(false); // load xong
     }
 
-    loadCampaigns();
-  }, [queryCategory, fetchByCategory]);
+    void loadCampaigns();
+    return () => {
+      cancelled = true;
+    };
+  }, [queryCategory]);
 
   const filtered = useMemo(() => {
     return sortCampaigns(campaigns, sortKey);

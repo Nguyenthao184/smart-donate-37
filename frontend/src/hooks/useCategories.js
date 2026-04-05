@@ -1,15 +1,11 @@
-import { useEffect, useState } from "react";
-import { getCategories } from "../api/campaignService";
+import { useEffect } from "react";
+import useCategoryStore from "../store/categoryStore";
 
 export default function useCategories() {
-  const [categories, setCategories] = useState([]);
+  const categories = useCategoryStore((s) => s.categories);
 
   useEffect(() => {
-    const fetch = async () => {
-      const data = await getCategories();
-      setCategories(data);
-    };
-    fetch();
+    useCategoryStore.getState().fetchCategories();
   }, []);
 
   return { categories };

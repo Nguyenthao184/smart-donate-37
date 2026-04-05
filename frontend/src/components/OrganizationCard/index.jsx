@@ -1,6 +1,6 @@
 import { Button, Card } from "antd";
+import { useNavigate } from "react-router-dom";
 import {
-  FiStar,
   FiHeart,
   FiMapPin,
   FiCalendar,
@@ -11,9 +11,14 @@ import { formatVnd } from "../../utils/format";
 import "./styles.scss";
 
 export default function OrganizationCard({ organization }) {
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    navigate(`/chien-dich/to-chuc/chi-tiet/${organization.id}`);
+  };
 
   return (
-    <Card className="org-card" variant="borderless">
+    <Card className="org-card" variant="borderless" onClick={handleClick}>
       <div className="org-card__shimmer" />
 
       <div className="org-card__avatar">

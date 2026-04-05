@@ -1,15 +1,18 @@
 import { useEffect } from "react";
-import useOrganizationStore from "../store/organizationStore.js";
+import useOrganizationStore from "../store/organizationStore";
 
-const useOrganizations = () => {
-  const { organizations, fetchOrganizations } = useOrganizationStore();
+const useOrganizations = (params = null) => {
+  const organizations = useOrganizationStore((s) => s.organizations);
+  const orgTypes = useOrganizationStore((s) => s.orgTypes);
+  const fetchOrganizations = useOrganizationStore((s) => s.fetchOrganizations);
 
   useEffect(() => {
-    fetchOrganizations();
-  }, []);
+    fetchOrganizations(params || {});
+  }, [JSON.stringify(params)]);
 
   return {
     organizations,
+    orgTypes,
   };
 };
 

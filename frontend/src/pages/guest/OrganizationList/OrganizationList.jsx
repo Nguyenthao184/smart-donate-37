@@ -1,183 +1,72 @@
 import { useState, useMemo } from "react";
 import { Pagination, Input } from "antd";
-import {
-  FiGrid, FiUsers, FiHeart, FiBriefcase, FiFilter, FiSearch, FiMapPin
-} from "react-icons/fi";
+import { FiGrid, FiUsers, FiFilter, FiSearch, FiMapPin, FiHome, FiBriefcase } from "react-icons/fi";
 import OrganizationCard from "../../../components/OrganizationCard/index.jsx";
+import useOrganizations from "../../../hooks/useOrganizations";
+import useOrganizationStore from "../../../store/organizationStore";
 import "./OrganizationList.scss";
 
-const ORG_TYPES = [
-  { id: 0, label: "Tất cả", icon: <FiGrid size={16} />, color: "#ff4d4f" },
-  {
-    id: 1,
-    label: "Tổ chức nhà nước",
-    icon: <FiUsers size={16} />,
-    color: "#1890ff",
-  },
-  {
-    id: 2,
-    label: "Quỹ từ thiện",
-    icon: <FiHeart size={16} />,
-    color: "#52c41a",
-  },
-  {
-    id: 3,
-    label: "Doanh nghiệp",
-    icon: <FiBriefcase size={16} />,
-    color: "#fa8c16",
-  },
-];
-
-const MOCK_ORGS = [
-  {
-    id: 1,
-    name: "HỘI CHỮ THẬP ĐỎ VIỆT NAM",
-    accountNumber: 1024,
-    totalRaised: 1782452000,
-    joinedAt: "03/2024",
-    region: "Đà Nẵng",
-    logo: null,
-    typeId: 2,
-  },
-  {
-    id: 2,
-    name: "MẶT TRẬN TỔ QUỐC VIỆT NAM",
-    accountNumber: 1024,
-    totalRaised: 1782452000,
-    joinedAt: "03/2024",
-    region: "Bạc Liêu",
-    logo: null,
-    typeId: 5,
-  },
-  {
-    id: 3,
-    name: "THỊNH PHÁT GROUP",
-    accountNumber: 1024,
-    totalRaised: 1782452000,
-    joinedAt: "03/2024",
-    region: "Đà Nẵng",
-    logo: null,
-    typeId: 2,
-  },
-  {
-    id: 4,
-    name: "QUỸ TRẺ EM VIỆT NAM",
-    accountNumber: 2048,
-    totalRaised: 540000000,
-    joinedAt: "11/2023",
-    region: "Hà Nội",
-    logo: null,
-    typeId: 1,
-  },
-  {
-    id: 5,
-    name: "HỘI BẢO VỆ MÔI TRƯỜNG",
-    accountNumber: 3072,
-    totalRaised: 320000000,
-    joinedAt: "02/2024",
-    region: "TP.HCM",
-    logo: null,
-    typeId: 3,
-  },
-  {
-    id: 6,
-    name: "QUỸ HỌC BỔNG VÙNG CAO",
-    accountNumber: 4096,
-    totalRaised: 980000000,
-    joinedAt: "01/2023",
-    region: "Hà Nội",
-    logo: null,
-    typeId: 1,
-  },
-  {
-    id: 7,
-    name: "TỔ CHỨC NHÂN ĐẠO MIỀN NAM",
-    accountNumber: 5120,
-    totalRaised: 650000000,
-    joinedAt: "06/2023",
-    region: "TP.HCM",
-    logo: null,
-    typeId: 3,
-  },
-  {
-    id: 8,
-    name: "HỘI NGƯỜI CAO TUỔI HÀ NỘI",
-    accountNumber: 6144,
-    totalRaised: 420000000,
-    joinedAt: "08/2023",
-    region: "Hà Nội",
-    logo: null,
-    typeId: 1,
-  },
-  {
-    id: 9,
-    name: "QUỸ PHÁT TRIỂN TÂY NGUYÊN",
-    accountNumber: 7168,
-    totalRaised: 280000000,
-    joinedAt: "04/2024",
-    region: "Buôn Ma Thuột",
-    logo: null,
-    typeId: 2,
-  },
-  {
-    id: 10,
-    name: "HỘI CHỮ THẬP ĐỎ TP.HCM",
-    accountNumber: 8192,
-    totalRaised: 1200000000,
-    joinedAt: "01/2022",
-    region: "TP.HCM",
-    logo: null,
-    typeId: 3,
-  },
-  {
-    id: 11,
-    name: "TỔ CHỨC TỪ THIỆN BÌNH DƯƠNG",
-    accountNumber: 9216,
-    totalRaised: 380000000,
-    joinedAt: "07/2023",
-    region: "Bình Dương",
-    logo: null,
-    typeId: 1,
-  },
-  {
-    id: 12,
-    name: "QUỸ CỨU TRỢ MIỀN TRUNG",
-    accountNumber: 1024,
-    totalRaised: 870000000,
-    joinedAt: "09/2023",
-    region: "Huế",
-    logo: null,
-    typeId: 2,
-  },
-];
-
-const PAGE_SIZE = 8;
-
 export default function OrganizationList() {
-  const [activeType, setActiveType] = useState(0);
+  const [activeType, setActiveType] = useState("ALL");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
 
-  const filtered = useMemo(() => {
-    let result =
-      activeType === 0
-        ? MOCK_ORGS
-        : MOCK_ORGS.filter((o) => o.typeId === activeType);
+  const params = useMemo(
+    () => ({
+      keyword: search,
+      loai_hinh: activeType === "ALL" ? null : activeType,
+      page,
+    }),
+    [search, activeType, page],
+  );
 
-    if (search.trim()) {
-      result = result.filter(
-        (o) =>
-          o.name.toLowerCase().includes(search.toLowerCase()) ||
-          o.region.toLowerCase().includes(search.toLowerCase()),
-      );
-    }
-    return result;
-  }, [activeType, search]);
+  const { organizations, orgTypes } = useOrganizations(params);
 
-  const paginated = useMemo(() => {
-    const start = (page - 1) * PAGE_SIZE;
-    return filtered.slice(start, start + PAGE_SIZE);
-  }, [filtered, page]);
+  const pagination = useOrganizationStore((s) => s.pagination);
+
+  const ORG_TYPES = useMemo(() => {
+    const mapConfig = {
+      NHA_NUOC: {
+        label: "Tổ chức nhà nước",
+        icon: <FiUsers size={16} />,
+        color: "#1890ff",
+      },
+      QUY_TU_THIEN: {
+        label: "Quỹ từ thiện",
+        icon: <FiHome size={16} />,
+        color: "#52c41a",
+      },
+      DOANH_NGHIEP: {
+        label: "Doanh nghiệp",
+        icon: <FiBriefcase size={16} />,
+        color: "#fa8c16",
+      },
+    };
+
+    const base = [
+      {
+        id: "ALL",
+        label: "Tất cả",
+        icon: <FiGrid size={16} />,
+        color: "#ff4d4f",
+        count: pagination?.total || 0,
+      },
+    ];
+
+    const dynamic = (orgTypes || []).map((t) => {
+      const config = mapConfig[t.loai_hinh] || {};
+
+      return {
+        id: t.loai_hinh,
+        label: config.label || t.loai_hinh,
+        icon: config.icon || <FiUsers size={16} />,
+        color: config.color || "#999",
+        count: t.total,
+      };
+    });
+
+    return [...base, ...dynamic];
+  }, [orgTypes, pagination]);
 
   function handleTypeChange(id) {
     setActiveType(id);
@@ -208,11 +97,6 @@ export default function OrganizationList() {
                   {t.icon}
                 </span>
                 <span className="ol-region-label">{t.label}</span>
-                <span className="ol-region-count">
-                  {t.id === 0
-                    ? MOCK_ORGS.length
-                    : MOCK_ORGS.filter((o) => o.typeId === t.id).length}
-                </span>
               </li>
             ))}
           </ul>
@@ -229,7 +113,7 @@ export default function OrganizationList() {
           <div className="ol-info-box__stats">
             <div className="ol-info-box__stat">
               <span className="ol-info-box__stat-value">
-                {MOCK_ORGS.length}+
+                {pagination?.total || 0}+
               </span>
               <span className="ol-info-box__stat-label">Tổ chức</span>
             </div>
@@ -257,25 +141,12 @@ export default function OrganizationList() {
               setPage(1);
             }}
           />
-
-          <div className="ol-toolbar__meta">
-            <span className="ol-toolbar__count-dot" />
-            <span className="ol-toolbar__count-text">
-              <strong>{filtered.length}</strong> tổ chức
-            </span>
-            {activeType !== 0 && (
-              <span className="ol-toolbar__region-tag">
-                {ORG_TYPES.find((t) => t.id === activeType)?.label}
-                <button onClick={() => handleTypeChange(0)}>×</button>
-              </span>
-            )}
-          </div>
         </div>
 
         {/* Grid */}
-        {paginated.length > 0 ? (
+        {organizations.length > 0 ? (
           <div className="ol-grid">
-            {paginated.map((o, i) => (
+            {organizations.map((o, i) => (
               <div
                 key={o.id}
                 className="ol-grid__item"
@@ -293,12 +164,12 @@ export default function OrganizationList() {
         )}
 
         {/* Pagination */}
-        {filtered.length > PAGE_SIZE && (
+        {pagination.total > 0 && (
           <div className="ol-pagination">
             <Pagination
-              current={page}
-              pageSize={PAGE_SIZE}
-              total={filtered.length}
+              current={pagination.current_page}
+              pageSize={pagination.per_page}
+              total={pagination.total}
               onChange={(p) => {
                 setPage(p);
                 window.scrollTo({ top: 0, behavior: "smooth" });

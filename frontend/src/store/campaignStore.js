@@ -6,77 +6,138 @@ import {
   getCampaignDetail,
 } from "../api/campaignService";
 
+let featuredPromise = null;
+let allCampaignsFetchPromise = null;
+let filterCampaignsPromise = null;
+let filterCampaignsKey = null;
+const detailPromises = {};
+
 const useCampaignStore = create((set, get) => ({
   campaigns: [],
   featured: [],
   campaignDetail: {},
+
   loading: false,
 
+  isFetchedCampaigns: false,
+  isFetchedFeatured: false,
+
   fetchCampaigns: async () => {
-    if (get().loading || get().featured.length > 0) return;
+    const { isFetchedCampaigns } = get();
+    if (isFetchedCampaigns) return;
+
+    if (allCampaignsFetchPromise) return allCampaignsFetchPromise;
 
     set({ loading: true });
-    try {
-      const res = await getCampaigns();
-      set({ campaigns: res.data, loading: false });
-    } catch (err) {
-      console.error("Lỗi fetch campaigns:", err);
-      set({ loading: false });
-    }
+    allCampaignsFetchPromise = (async () => {
+      try {
+        const res = await getCampaigns();
+
+        set({
+          campaigns: res.data,
+          loading: false,
+          isFetchedCampaigns: true,
+        });
+      } catch (err) {
+        console.error("Lỗi fetch campaigns:", err);
+        set({ loading: false });
+      } finally {
+        allCampaignsFetchPromise = null;
+      }
+    })();
+
+    return allCampaignsFetchPromise;
   },
 
   fetchFeatured: async () => {
-    if (get().featured.length > 0) return;
+    const { isFetchedFeatured } = get();
+    if (isFetchedFeatured) return;
+
+    if (featuredPromise) return featuredPromise;
 
     set({ loading: true });
-    try {
-      const res = await getFeaturedCampaigns();
-      set({ featured: res, loading: false });
-    } catch (err) {
-      console.error("Lỗi fetch featured:", err);
-      set({ loading: false });
-    }
+
+    featuredPromise = (async () => {
+      try {
+        const res = await getFeaturedCampaigns();
+
+        set({
+          featured: res,
+          loading: false,
+          isFetchedFeatured: true,
+        });
+      } catch (err) {
+        console.error("Lỗi fetch featured:", err);
+        set({ loading: false });
+      } finally {
+        featuredPromise = null;
+      }
+    })();
+
+    return featuredPromise;
   },
 
   fetchByCategory: async (categoryId) => {
-    set({ loading: true });
+    const key =
+      categoryId == null || categoryId === 0 || categoryId === "0"
+        ? "all"
+        : String(categoryId);
 
-    try {
-      if (!categoryId) {
-        const res = await getCampaigns();
-        set({ campaigns: res.data, loading: false });
-        return;
-      }
-
-      const res = await getCampaignsByCategory(categoryId);
-      set({ campaigns: res.data, loading: false });
-    } catch (err) {
-      console.error("Lỗi filter category:", err);
-      set({ loading: false });
+    if (filterCampaignsPromise && filterCampaignsKey === key) {
+      return filterCampaignsPromise;
     }
+
+    set({ loading: true });
+    filterCampaignsKey = key;
+    filterCampaignsPromise = (async () => {
+      try {
+        if (!categoryId) {
+          const res = await getCampaigns();
+          set({ campaigns: res.data, loading: false });
+        } else {
+          const res = await getCampaignsByCategory(categoryId);
+          set({ campaigns: res.data, loading: false });
+        }
+      } catch (err) {
+        console.error("Lỗi filter category:", err);
+        set({ loading: false });
+      } finally {
+        filterCampaignsPromise = null;
+        filterCampaignsKey = null;
+      }
+    })();
+
+    return filterCampaignsPromise;
   },
 
-  // Lấy chi tiết campaign
   fetchCampaignDetail: async (id) => {
-    const cached = get().campaignDetail[id];
-    if (cached) return cached; // nếu đã có cache thì trả luôn
+    const sid = String(id);
+    const cached = get().campaignDetail[sid];
+    if (cached) return cached;
 
-    set({ loading: true });
-    try {
-      const res = await getCampaignDetail(id);
-      set({
-        campaignDetail: {
-          ...get().campaignDetail,
-          [id]: res, // cache theo id
-        },
-        loading: false,
-      });
-      return res;
-    } catch (err) {
-      console.error("Lỗi fetch campaign detail:", err);
-      set({ loading: false });
-      return null;
-    }
+    if (detailPromises[sid]) return detailPromises[sid];
+
+    detailPromises[sid] = (async () => {
+      try {
+        const res = await getCampaignDetail(id);
+
+        set({
+          campaignDetail: {
+            ...get().campaignDetail,
+            [sid]: res,
+          },
+        });
+
+        return res;
+      } catch (err) {
+        console.error("Lỗi fetch campaign detail:", err);
+        return null;
+      } finally {
+        delete detailPromises[sid];
+      }
+    })();
+
+    return detailPromises[sid];
   },
 }));
 

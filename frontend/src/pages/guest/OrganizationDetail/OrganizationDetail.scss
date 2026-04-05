@@ -125,7 +125,6 @@
 
   &__meta-left {
     gap: 15px;
-    border-right: #3232321a solid 1px;
     padding-right: 15px;
   }
 
@@ -138,6 +137,8 @@
 
   &__meta-right {
     margin-top: 16px;
+    border-left: #3232321a solid 1px;
+    padding-left: 15px;
   }
 
   &__address,

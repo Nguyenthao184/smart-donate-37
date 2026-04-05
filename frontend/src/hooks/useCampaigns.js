@@ -2,14 +2,22 @@ import { useEffect } from "react";
 import useCampaignStore from "../store/campaignStore";
 
 const useCampaigns = () => {
-  const { featured, fetchFeatured, loading } = useCampaignStore();
+  const {
+    featured,
+    campaigns,
+    fetchFeatured,
+    fetchCampaigns,
+    loading,
+  } = useCampaignStore();
 
   useEffect(() => {
-    fetchFeatured();
+    fetchFeatured();  
+    fetchCampaigns();  
   }, []);
 
   return {
-    campaigns: featured,
+    featured,
+    campaigns,
     loading,
   };
 };
