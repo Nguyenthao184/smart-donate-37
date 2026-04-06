@@ -22,6 +22,7 @@ import NewsFeed from "../pages/guest/NewsFeed/NewsFeed.jsx";
 import CreatePost from "../pages/user/CreatePost/CreatePost.jsx";
 import Chat from "../pages/user/Chat/Chat.jsx";
 import Profile from "../pages/user/Profile/Profile.jsx";
+import RegisterOrg from "../pages/user/RegisterOrg/RegisterOrg.jsx"
 import AdminPanel from "../pages/admin/AdminPanel/AdminPanel.jsx";
 import Login from "../pages/auth/Login/Login.jsx";
 import Register from "../pages/auth/Register/Register.jsx";
@@ -172,6 +173,16 @@ const privateRoutes = [
       <ProtectedRoute>
         <MainLayout>
           <CreatePost />
+        </MainLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/dk-to-chuc",
+    element: (
+      <ProtectedRoute>
+        <MainLayout>
+          <RegisterOrg />
         </MainLayout>
       </ProtectedRoute>
     ),

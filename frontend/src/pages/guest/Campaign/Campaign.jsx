@@ -63,6 +63,10 @@ export default function Campaign() {
     navigate(`/chien-dich/chi-tiet/${id}`);
   };
 
+  const handleRegisterOrg = () => {
+    navigate("/dk-to-chuc");
+  };
+
   if (campLoading) {
     return (
       <div className="campaign-page">
@@ -144,7 +148,13 @@ export default function Campaign() {
             </span>
           </div>
 
-          <Button className="sidebar__cta-btn" type="primary" danger block>
+          <Button
+            className="sidebar__cta-btn"
+            type="primary"
+            danger
+            block
+            onClick={handleRegisterOrg}
+          >
             ĐĂNG KÝ XÁC MINH
           </Button>
         </div>

@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../../../services/api";
 import banner from "../../../assets/canhbao.png";
 import Header from "../../../components/Header/index.jsx";
 import Footer from "../../../components/Footer/index.jsx";
 import PostCard from "../../../components/PostCard";
-import RegisterOrgModal from "../../../components/RegisterOrgModal";
 import "./Profile.scss";
 
 // ── MOCK để xem giao diện — sau này thay bằng useAuth() ──────────────
@@ -49,12 +49,10 @@ const MOCK_POSTS = [
 ];
 
 export default function ProfilePage() {
-  // ── TODO: sau này bỏ 2 dòng mock này, uncomment useAuth ──
-  // const { user, roles } = useAuth();
   const user = MOCK_USER;
   const roles = MOCK_ROLES;
   // ──────────────────────────────────────────────────────────
-
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("history");
   const [profile, setProfile] = useState(null);
   const [posts] = useState(MOCK_POSTS);
@@ -62,7 +60,10 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [showRegisterOrgModal, setShowRegisterOrgModal] = useState(false);
+
+  const handleRegisterOrg = () => {
+    navigate("/bang-tin/dk-to-chuc");
+  };
 
   // ── TODO: sau này giữ nguyên check này, chỉ cần roles từ useAuth() ──
   const isOrganization = roles?.includes("TO_CHUC");
@@ -594,7 +595,7 @@ export default function ProfilePage() {
                   </p>
                   <button
                     className="profile-empty__btn"
-                    onClick={() => setShowRegisterOrgModal(true)}
+                    onClick={handleRegisterOrg}
                   >
                     Đăng ký tổ chức
                   </button>
@@ -617,9 +618,6 @@ export default function ProfilePage() {
         )}
         {showPasswordModal && (
           <ChangePasswordModal onClose={() => setShowPasswordModal(false)} />
-        )}
-        {showRegisterOrgModal && (
-          <RegisterOrgModal onClose={() => setShowRegisterOrgModal(false)} />
         )}
       </div>
       <Footer />
