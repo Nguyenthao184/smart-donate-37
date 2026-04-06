@@ -32,7 +32,7 @@ class OrganizationRegisterRequest extends FormRequest
             ],
 
             'ma_so_thue' => [
-                'nullable',
+                'required',
                 'digits_between:10,13',
                 Rule::unique('xac_minh_to_chuc', 'ma_so_thue')
             ],
@@ -46,6 +46,7 @@ class OrganizationRegisterRequest extends FormRequest
             ],
             
             'giay_phep' => 'required|file|mimes:pdf,jpg,jpeg,png|max:2048',
+            'loai_hinh' => 'required|in:NHA_NUOC,QUY_TU_THIEN,DOANH_NGHIEP',
         ];
     }
 
@@ -57,6 +58,7 @@ class OrganizationRegisterRequest extends FormRequest
             'ten_to_chuc.max' => 'Tên tổ chức không vượt quá 255 ký tự',
             'ten_to_chuc.regex' => 'Tên tổ chức chứa ký tự không hợp lệ',
 
+            'ma_so_thue.required' => 'Mã số thuế không được để trống',
             'ma_so_thue.digits_between' => 'Mã số thuế phải từ 10 đến 13 chữ số',
             'ma_so_thue.unique' => 'Mã số thuế đã tồn tại trong hệ thống',
 
@@ -69,14 +71,26 @@ class OrganizationRegisterRequest extends FormRequest
             'giay_phep.file' => 'Giấy phép phải là một tệp tin',
             'giay_phep.mimes' => 'Giấy phép phải là file PDF, JPG hoặc PNG',
             'giay_phep.max' => 'Kích thước file giấy phép không được vượt quá 2MB',
+
+            'loai_hinh.required' => 'Vui lòng chọn loại hình tổ chức',
+            'loai_hinh.in' => 'Loại hình tổ chức không hợp lệ',
         ];
     }
 
     public function withValidator($validator)
     {
         $validator->after(function ($validator) {
-
             // Không cho đăng ký nhiều lần
+            $isToChuc = \DB::table('nguoi_dung_vai_tro')
+                ->where('nguoi_dung_id', auth()->id())
+                ->where('vai_tro_id', 3)
+                ->exists();
+
+            if ($isToChuc) {
+                $validator->errors()->add('ten_to_chuc', 'Bạn đã là tổ chức từ thiện, không thể đăng ký lại');
+                return;
+            }
+
             $exists = \App\Models\XacMinhToChuc::where('nguoi_dung_id', auth()->id())
                 ->whereIn('trang_thai', ['CHO_XU_LY', 'CHAP_NHAN'])
                 ->exists();
@@ -93,7 +107,7 @@ class OrganizationRegisterRequest extends FormRequest
     {
         $this->merge([
             'ten_to_chuc' => trim($this->ten_to_chuc),
-            'nguoi_dai_dien' => trim($this->nguoi_dai_dien),
+            'nguoi_dai_dien' => preg_replace('/\s+/', ' ', trim($this->nguoi_dai_dien))
         ]);
     }
 }

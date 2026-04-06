@@ -10,6 +10,9 @@ use Illuminate\Support\Facades\Storage;
 use Endroid\QrCode\Builder\Builder;
 use Endroid\QrCode\Writer\PngWriter;
 use Endroid\QrCode\Encoding\Encoding;
+use App\Notifications\ApprovalNotification;
+use App\Services\ApprovalService;
+use App\Models\ChienDichGayQuy;
 
 class FundAccountController extends Controller
 {
@@ -119,6 +122,12 @@ class FundAccountController extends Controller
             'qr_code' => 'storage/' . $fileName
         ]);
 
+        // Gửi notification
+        $user = $tk->toChuc->user;
+        $user->notify(
+            new ApprovalNotification('approve', 'Tài khoản gây quỹ')
+        );
+
         return response()->json([
             'message' => 'Đã duyệt và tạo tài khoản',
             'data' => $tk,
@@ -127,16 +136,42 @@ class FundAccountController extends Controller
     }
 
     // Admin khóa
-    public function lock($id)
+    public function lock(Request $request, $id, ApprovalService $service)
     {
-        $tk = TaiKhoanGayQuy::findOrFail($id);
-
-        $tk->update([
-            'trang_thai' => 'KHOA'
+        $request->validate([
+            'ly_do' => 'required|string|max:255'
         ]);
 
+        $tk = TaiKhoanGayQuy::findOrFail($id);
+
+        if ($tk->trang_thai === 'KHOA') {
+            return response()->json([
+                'message' => 'Tài khoản đã bị khóa trước đó'
+            ], 400);
+        }
+
+        $service->lock($tk, 'KHOA');
+
+        ChienDichGayQuy::where('to_chuc_id', $tk->to_chuc_id)
+            ->where('trang_thai', 'HOAT_DONG')
+            ->update([
+                'trang_thai' => 'TAM_DUNG'
+            ]);
+
+        // gửi notification
+        $user = $tk->toChuc->user;
+
+        $user->notify(
+            new ApprovalNotification(
+                'lock',
+                'Tài khoản gây quỹ',
+                $request->ly_do
+            )
+        );
+
         return response()->json([
-            'message' => 'Đã khóa tài khoản'
+            'message' => 'Đã khóa tài khoản',
+            'ly_do' => $request->ly_do
         ]);
     }
 

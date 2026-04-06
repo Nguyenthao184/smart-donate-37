@@ -1,26 +1,19 @@
+@keyframes home-fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 .home-page {
   background-color: var(--bg);
+  animation: home-fadeIn 0.4s ease both;
 
   section {
     padding-left: 150px;
     padding-right: 150px;
-    margin-bottom: 60px;
+    margin-bottom: 30px;
+    animation: home-fadeIn 0.4s ease both;
 
-    @media (max-width: 1440px) {
-      padding-left: 100px;
-      padding-right: 100px;
-    }
-
-    @media (max-width: 1200px) {
-      padding-left: 50px;
-      padding-right: 50px;
-    }
-
-    @media (max-width: 768px) {
-      padding-left: 20px;
-      padding-right: 20px;
-      margin-bottom: 40px;
-    }
+    
   }
 
   .view-all {
@@ -48,22 +41,6 @@
     padding-left: 150px;
     padding-right: 150px;
     background-color: var(--bg);
-    margin-bottom: 60px;
-
-    @media (max-width: 1440px) {
-      padding-left: 100px;
-      padding-right: 100px;
-    }
-
-    @media (max-width: 1200px) {
-      padding-left: 50px;
-      padding-right: 50px;
-    }
-
-    @media (max-width: 768px) {
-      padding-left: 20px;
-      padding-right: 20px;
-    }
 
     &__content {
       position: relative;
@@ -78,12 +55,12 @@
 
       @media (max-width: 992px) {
         height: 400px;
-        border-radius: 20px;
+        border-radius: 10px;
       }
 
       @media (max-width: 768px) {
         height: 300px;
-        border-radius: 16px;
+        border-radius: 10px;
       }
     }
 
@@ -259,7 +236,7 @@
       align-items: center;
       gap: 10px;
       cursor: pointer;
-      padding: 10px;
+      padding: 5px;
       border-radius: 16px;
       background: #fff;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
@@ -268,6 +245,7 @@
 
       @media (max-width: 1200px) {
         flex: 0 1 calc(50% - 8px);
+
       }
       @media (max-width: 768px) {
         flex: 0 1 100%;
@@ -279,7 +257,7 @@
         border-color: transparent;
       }
 
-      &__icon {
+      &__img {
         width: 64px;
         height: 64px;
         min-width: 64px;
@@ -298,10 +276,14 @@
       }
 
       &__label {
-        font-size: 16px;
+        font-size: 17px;
         font-weight: 600;
         color: #1f1f1f;
         white-space: nowrap;
+
+        @media (max-width: 1400px) {
+          font-size: 12px;
+        }
       }
     }
   }
@@ -312,11 +294,8 @@
 
   .home-campaigns-orgs {
     background: #fff;
-    padding: 30px 20px;
+    padding: 30px 5px;
     margin: 0px 150px 30px;
-    border-radius: 20px;
-    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
-    border: 1px solid #e8e8e8;
 
     .home-section__header {
       display: flex;
@@ -347,7 +326,7 @@
     }
 
     .home-carousel__slide {
-      padding: 0 12px 0 20px;
+      padding: 0 10px;
     }
 
     .home-carousel__nav {
@@ -382,10 +361,10 @@
       }
 
       &--prev {
-        left: -18px;
+        left: -30px;
       }
       &--next {
-        right: -18px;
+        right: -30px;
       }
     }
 
@@ -407,7 +386,7 @@
 
     .cta-card {
       padding: 14px;
-      border-radius: 24px;
+      border-radius: 10px;
       border: none;
       transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
       position: relative;
@@ -513,6 +492,10 @@
           flex: 1;
           align-items: stretch !important;
 
+          .ant-col{
+            padding-inline: 25px !important;
+          }
+
           .ant-col:first-child {
             display: flex;
             flex-direction: column;
@@ -547,8 +530,8 @@
           border-color: #52c41a;
           font-weight: 600;
           font-size: 18px;
-          padding: 4px 12px;
-          margin-top: auto;
+          padding: 8px 12px;
+          margin-left: 15px;
           align-self: flex-start;
         }
       }
@@ -576,7 +559,7 @@
 
     .bottom-banner-item {
       height: 350px;
-      border-radius: 20px;
+      border-radius: 10px;
       margin-right: 10px;
       overflow: visible !important; // ← đổi từ hidden → visible
       box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);

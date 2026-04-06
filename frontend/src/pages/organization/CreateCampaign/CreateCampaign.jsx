@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Button, Input, Select, DatePicker } from "antd";
+import { Button, Input, Select, DatePicker, notification } from "antd";
 import {
   FiChevronRight,
   FiChevronLeft,
@@ -16,6 +16,7 @@ import { GiKnifeFork } from "react-icons/gi";
 import { FaChildren, FaEarthEurope, FaPooStorm } from "react-icons/fa6";
 import { RiHandCoinLine } from "react-icons/ri";
 import { MdCastForEducation } from "react-icons/md";
+import LocationPicker from "../../../components/LocationPicker/index";
 import "./CreateCampaign.scss";
 
 const { TextArea } = Input;
@@ -29,14 +30,14 @@ const CATEGORIES = [
     color: "#FD4848",
   },
   {
-    value: "giam-doi",
-    label: "Giảm đói",
+    value: "xoa-doi",
+    label: "Xóa đói",
     icon: <GiKnifeFork />,
     color: "#FDBE48",
   },
   {
-    value: "xoa-ngheo",
-    label: "Xóa nghèo",
+    value: "an-sinh",
+    label: "An sinh",
     icon: <RiHandCoinLine />,
     color: "#D9FD48",
   },
@@ -73,7 +74,11 @@ export default function CreateCampaign() {
     description: "",
     goal: "",
     endDate: null,
-    location: "",
+    location: {
+      address: "",
+      lat: null,
+      lng: null,
+    },
   });
 
   function handleFile(e) {
@@ -105,6 +110,17 @@ export default function CreateCampaign() {
   function handleBack() {
     setStep(1);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function handleSubmit() {
+    if (!form.location.lat) {
+      notification.error({
+        title: "Vui lòng chọn vị trí có trên bản đồ!",
+        placement: "topRight",
+      });
+    }
+
+    console.log(form);
   }
 
   return (
@@ -360,29 +376,16 @@ export default function CreateCampaign() {
 
             <div className="cc-field">
               <label className="cc-field__label">Vị trí chiến dịch</label>
-              <Input
-                className="cc-field__input"
-                placeholder="Nhập địa điểm..."
+
+              <LocationPicker
                 value={form.location}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, location: e.target.value }))
-                }
-                prefix={
-                  <FiMapPin size={15} className="cc-field__prefix-icon" />
+                onChange={(val) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    location: val,
+                  }))
                 }
               />
-
-              <div className="cc-map">
-                <iframe
-                  src={`https://maps.google.com/maps?q=${encodeURIComponent(form.location || "Da Nang")}&output=embed`}
-                  width="100%"
-                  height="100%"
-                  style={{ border: 0 }}
-                  allowFullScreen
-                  loading="lazy"
-                  title="map"
-                />
-              </div>
             </div>
 
             <div className="cc-form__actions cc-form__actions--split">
@@ -397,6 +400,7 @@ export default function CreateCampaign() {
                 type="primary"
                 size="large"
                 className="cc-btn cc-btn--finish"
+                onClick={handleSubmit}
               >
                 Hoàn tất <FiChevronRight size={16} />
               </Button>

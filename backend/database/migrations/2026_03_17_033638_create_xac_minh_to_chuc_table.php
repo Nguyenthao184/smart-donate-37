@@ -15,10 +15,15 @@ return new class extends Migration
             $table->id();
             $table->foreignId('nguoi_dung_id')->constrained('nguoi_dung');
             $table->string('ten_to_chuc');
-            $table->string('ma_so_thue')->nullable();
+            $table->string('ma_so_thue');
             $table->string('nguoi_dai_dien');
             $table->string('giay_phep');
             $table->enum('trang_thai', ['CHO_XU_LY','CHAP_NHAN','TU_CHOI'])->default('CHO_XU_LY');
+            $table->enum('loai_hinh', [
+                'NHA_NUOC',
+                'QUY_TU_THIEN',
+                'DOANH_NGHIEP'
+            ])->default('QUY_TU_THIEN');
             $table->unsignedBigInteger('duyet_boi')->nullable();
             $table->timestamp('duyet_luc')->nullable();
             $table->timestamps();

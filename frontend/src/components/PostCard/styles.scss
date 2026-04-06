@@ -132,23 +132,17 @@
 
   &__user-info {
     flex: 1;
-    min-width: 0;
   }
 
   &__username {
     font-size: 14px;
     font-weight: 700;
     color: #1a1a1a;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
 
   &__desc {
-   display: flex !important;
+    display: flex !important;
     align-items: center;
-    justify-content: space-between;
-    flex-wrap: nowrap;
   }
 
   &__location {
@@ -158,13 +152,9 @@
     font-size: 11.5px;
     color: rgba(0, 0, 0, 0.4);
     margin-top: 2px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 55%;
+    margin-right: 5%;
     svg {
       color: #1890ff;
-      flex-shrink: 0;
     }
   }
 
@@ -174,9 +164,6 @@
     gap: 3px;
     font-size: 11px;
     color: rgba(0, 0, 0, 0.35);
-    white-space: nowrap;
-    margin-top: 2px;
-    flex-shrink: 0;
   }
 
   /* Body */

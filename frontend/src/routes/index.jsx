@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 
 import ProtectedRoute from "./protectedRoutes";
 import PublicRoute from "./publicRoutes";
@@ -8,23 +8,27 @@ import MainLayout from "../layouts/MainLayout";
 
 // Pages
 import HomePage from "../pages/guest/Home/Home.jsx";
-import LoginPage from "../pages/guest/Login/Login.jsx";
-import Register from "../pages/guest/Register/Register.jsx";
-import ForgotPassword from "../pages/guest/ForgotPassword/ForgotPassword.jsx";
-import VerifyCode from "../pages/guest/VerifyCode/VerifyCode.jsx";
-import ResetPassword from "../pages/guest/ResetPassword/ResetPassword.jsx";
-import CampaignPage from "../pages/user/Campaign/Campaign.jsx";
-import OrganizationList from "../pages/user/OrganizationList/OrganizationList.jsx";
-import OrganizationDetail from "../pages/user/OrganizationDetail/OrganizationDetail.jsx";
+import Search from "../pages/guest/Search/Search.jsx";
+import FAQ from "../pages/guest/FAQ/FAQ.jsx";
+import Privacy from "../pages/guest/Privacy/Privacy.jsx";
+import Terms from "../pages/guest/Terms/Terms.jsx";
+import CampaignPage from "../pages/guest/Campaign/Campaign.jsx";
+import OrganizationList from "../pages/guest/OrganizationList/OrganizationList.jsx";
+import OrganizationDetail from "../pages/guest/OrganizationDetail/OrganizationDetail.jsx";
 import CampaignList from "../pages/guest/CampaignList/CampaignList.jsx";
 import CampaignDetail from "../pages/guest/CampaignDetail/CampaignDetail.jsx";
 import CreateCampaign from "../pages/organization/CreateCampaign/CreateCampaign.jsx";
-import NewsFeed from "../pages/user/NewsFeed/NewsFeed.jsx";
+import NewsFeed from "../pages/guest/NewsFeed/NewsFeed.jsx";
 import CreatePost from "../pages/user/CreatePost/CreatePost.jsx";
-import ProfilePage from "../pages/user/Profile/Profile.jsx";
-import ChatPage from "../pages/user/Chat/Chat.jsx";
-import DonatePage from "../pages/user/Donate/Donate.jsx";
-
+import Chat from "../pages/user/Chat/Chat.jsx";
+import Profile from "../pages/user/Profile/Profile.jsx";
+import RegisterOrg from "../pages/user/RegisterOrg/RegisterOrg.jsx"
+import Donate from "../pages/user/Donate/Donate.jsx"
+import DonateSuccess from "../pages/user/DonateSuccess/DonateSuccess.jsx"
+import AdminPanel from "../pages/admin/AdminPanel/AdminPanel.jsx";
+import Login from "../pages/auth/Login/Login.jsx";
+import Register from "../pages/auth/Register/Register.jsx";
+import ForgotPassword from "../pages/auth/ForgotPassword/Forgot.jsx";
 // ================== PUBLIC ROUTES ==================
 const publicRoutes = [
   {
@@ -36,15 +40,15 @@ const publicRoutes = [
     ),
   },
   {
-    path: "/login",
+    path: "/dang-nhap",
     element: (
       <PublicRoute>
-        <LoginPage />
+        <Login />
       </PublicRoute>
     ),
   },
   {
-    path: "/register",
+    path: "/dang-ky",
     element: (
       <PublicRoute>
         <Register />
@@ -52,7 +56,7 @@ const publicRoutes = [
     ),
   },
   {
-    path: "/forgot-password",
+    path: "/quen-mat-khau",
     element: (
       <PublicRoute>
         <ForgotPassword />
@@ -60,18 +64,34 @@ const publicRoutes = [
     ),
   },
   {
-    path: "/verify-code",
+    path: "/tim-kiem",
     element: (
       <PublicRoute>
-        <VerifyCode />
+        <Search />
       </PublicRoute>
     ),
   },
   {
-    path: "/reset-password",
+    path: "/ho-tro/hoi-dap",
     element: (
       <PublicRoute>
-        <ResetPassword />
+        <FAQ />
+      </PublicRoute>
+    ),
+  },
+  {
+    path: "/ho-tro/dieu-khoan",
+    element: (
+      <PublicRoute>
+        <Terms />
+      </PublicRoute>
+    ),
+  },
+  {
+    path: "/ho-tro/chinh-sach",
+    element: (
+      <PublicRoute>
+        <Privacy />
       </PublicRoute>
     ),
   },
@@ -86,11 +106,51 @@ const publicRoutes = [
     ),
   },
   {
-    path: "/chien-dich/chi-tiet",
+    path: "/chien-dich/chi-tiet/:id",
     element: (
       <PublicRoute>
         <MainLayout>
           <CampaignDetail />
+        </MainLayout>
+      </PublicRoute>
+    ),
+  },
+  {
+    path: "/bang-tin",
+    element: (
+      <PublicRoute>
+        <MainLayout>
+          <NewsFeed />
+        </MainLayout>
+      </PublicRoute>
+    ),
+  },
+  {
+    path: "/chien-dich",
+    element: (
+      <PublicRoute>
+        <MainLayout>
+          <CampaignPage />
+        </MainLayout>
+      </PublicRoute>
+    ),
+  },
+  {
+    path: "/chien-dich/to-chuc",
+    element: (
+      <PublicRoute>
+        <MainLayout>
+          <OrganizationList />
+        </MainLayout>
+      </PublicRoute>
+    ),
+  },
+  {
+    path: "/chien-dich/to-chuc/chi-tiet/:id",
+    element: (
+      <PublicRoute>
+        <MainLayout>
+          <OrganizationDetail />
         </MainLayout>
       </PublicRoute>
     ),
@@ -100,71 +160,11 @@ const publicRoutes = [
 // ================== PRIVATE ROUTES ==================
 const privateRoutes = [
   {
-    path: "/profile",
-    element: (
-      <ProtectedRoute>
-        <MainLayout>
-          <ProfilePage />
-        </MainLayout>
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: "/chien-dich",
-    element: (
-      <ProtectedRoute>
-        <MainLayout>
-          <CampaignPage />
-        </MainLayout>
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: "/chien-dich/to-chuc",
-    element: (
-      <ProtectedRoute>
-        <MainLayout>
-          <OrganizationList />
-        </MainLayout>
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: "/chien-dich/to-chuc/chi-tiet",
-    element: (
-      <ProtectedRoute>
-        <MainLayout>
-          <OrganizationDetail />
-        </MainLayout>
-      </ProtectedRoute>
-    ),
-  },
-  {
     path: "/chien-dich/tao-moi",
     element: (
       <ProtectedRoute>
         <MainLayout>
           <CreateCampaign />
-        </MainLayout>
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: "/chien-dich/donate",
-    element: (
-      <ProtectedRoute>
-        <MainLayout>
-          <DonatePage />
-        </MainLayout>
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: "/bang-tin",
-    element: (
-      <ProtectedRoute>
-        <MainLayout>
-          <NewsFeed />
         </MainLayout>
       </ProtectedRoute>
     ),
@@ -180,12 +180,54 @@ const privateRoutes = [
     ),
   },
   {
-    path: "/tin-nhan",
+    path: "/dk-to-chuc",
     element: (
       <ProtectedRoute>
         <MainLayout>
-          <ChatPage />
+          <RegisterOrg />
         </MainLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/chien-dich/ung-ho",
+    element: (
+      <ProtectedRoute>
+        <MainLayout>
+          <Donate />
+        </MainLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/thanh-cong",
+    element: (
+      <ProtectedRoute>
+          <DonateSuccess />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/chat",
+    element: (
+      <ProtectedRoute>
+        <Chat />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/profile",
+    element: (
+      <ProtectedRoute>
+        <Profile />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/admin/*",
+    element: (
+      <ProtectedRoute>
+        <AdminPanel />
       </ProtectedRoute>
     ),
   },
@@ -194,7 +236,7 @@ const privateRoutes = [
 // ================== APP ROUTES ==================
 export default function AppRoutes() {
   return (
-    <BrowserRouter>
+    <>
       <ScrollToTop />
       <Routes>
         {publicRoutes.map((route, index) => (
@@ -205,8 +247,10 @@ export default function AppRoutes() {
           <Route key={index} path={route.path} element={route.element} />
         ))}
 
-        <Route path="*" element={<Navigate to="/" />} />
+        {/* <Route path="/403" element={<UnauthorizedPage />} />
+
+        <Route path="*" element={<Navigate to="/" />} /> */}
       </Routes>
-    </BrowserRouter>
+    </>
   );
 }

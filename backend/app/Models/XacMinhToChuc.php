@@ -15,6 +15,7 @@ class XacMinhToChuc extends Model
         'nguoi_dai_dien',
         'giay_phep',
         'trang_thai',
+        'loai_hinh',
         'duyet_boi',
         'duyet_luc'
     ];

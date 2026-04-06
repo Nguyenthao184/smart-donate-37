@@ -1,14 +1,12 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import CampaignCard from "../../../components/CampaignCard/index.jsx";
 import OrganizationCard from "../../../components/OrganizationCard/index.jsx";
 import Header from "../../../components/Header/index.jsx";
 import Footer from "../../../components/Footer/index.jsx";
+import RequiredLoginModal from "../../../components/Required/index.jsx";
 import banner1 from "../../../assets/user/banner1.jpg";
 import chonhan from "../../../assets/user/chonhan.jpg";
-import { FaPooStorm } from "react-icons/fa6";
-import { GiKnifeFork } from "react-icons/gi";
-import { RiHandCoinLine } from "react-icons/ri";
-import { FaChildren, FaEarthEurope } from "react-icons/fa6";
-import { MdCastForEducation } from "react-icons/md";
 import { FiChevronRight, FiChevronLeft } from "react-icons/fi";
 import { Button, Row, Col, Typography, Space, Card, Image } from "antd";
 import { useRef } from "react";
@@ -18,108 +16,12 @@ import img2 from "../../../assets/user/img2.png";
 import img3 from "../../../assets/user/img3.png";
 import img4 from "../../../assets/user/img4.png";
 import "./Home.scss";
+import useCampaigns from "../../../hooks/useCampaigns.js";
+import useOrganizations from "../../../hooks/useOrganizations.js";
+import useCategories from "../../../hooks/useCategories.js";
+import useAuthStore from "../../../store/authStore";
 
 const { Title, Paragraph, Text } = Typography;
-
-// ── Mock data ─────────────────────────────────────────────────────────
-const MOCK_CAMPAIGNS = [
-  {
-    id: 1,
-    title: "Giảm thiệt hại thiên tai miền Trung",
-    daysLeft: 5,
-    raised: 750000000,
-    goal: 1000000000,
-    image: null,
-  },
-  {
-    id: 2,
-    title: "Xây trường cho trẻ em vùng cao",
-    daysLeft: 3,
-    raised: 350000000,
-    goal: 1000000000,
-    image: null,
-  },
-  {
-    id: 3,
-    title: "Hội người khuyết tật Đà Nẵng",
-    daysLeft: 4,
-    raised: 750000000,
-    goal: 1000000000,
-    image: null,
-  },
-  {
-    id: 4,
-    title: "Quỹ bữa ăn cho trẻ em khó khăn",
-    daysLeft: 6,
-    raised: 120000000,
-    goal: 300000000,
-    image: null,
-  },
-  {
-    id: 5,
-    title: "Hỗ trợ người già neo đơn Hà Nội",
-    daysLeft: 10,
-    raised: 200000000,
-    goal: 500000000,
-    image: null,
-  },
-  {
-    id: 6,
-    title: "Trồng rừng phòng hộ miền Bắc",
-    daysLeft: 14,
-    raised: 80000000,
-    goal: 400000000,
-    image: null,
-  },
-];
-
-const MOCK_ORGANIZATIONS = [
-  {
-    id: 1,
-    name: "HỘI CHỮ THẬP ĐỎ VIỆT NAM",
-    accountNumber: 1024,
-    totalRaised: 1782452000,
-    joinedAt: "03/2024",
-    region: "Đà Nẵng",
-    logo: null,
-  },
-  {
-    id: 2,
-    name: "MẶT TRẬN TỔ QUỐC VIỆT NAM",
-    accountNumber: 2048,
-    totalRaised: 3200000000,
-    joinedAt: "01/2023",
-    region: "Hà Nội",
-    logo: null,
-  },
-  {
-    id: 3,
-    name: "THỊNH PHÁT GROUP",
-    accountNumber: 3072,
-    totalRaised: 980000000,
-    joinedAt: "06/2023",
-    region: "TP.HCM",
-    logo: null,
-  },
-  {
-    id: 4,
-    name: "QUỸ TRẺ EM VIỆT NAM",
-    accountNumber: 4096,
-    totalRaised: 540000000,
-    joinedAt: "11/2023",
-    region: "Hà Nội",
-    logo: null,
-  },
-  {
-    id: 5,
-    name: "QUỸ BẢO VỆ MÔI TRƯỜNG",
-    accountNumber: 5120,
-    totalRaised: 320000000,
-    joinedAt: "02/2024",
-    region: "Huế",
-    logo: null,
-  },
-];
 
 // ── Carousel wrapper dùng chung ───────────────────────────────────────
 function CardCarousel({ children, className = "" }) {
@@ -131,10 +33,10 @@ function CardCarousel({ children, className = "" }) {
         dots={false}
         infinite={false}
         draggable
-        slidesToShow={3}
+        slidesToShow={4}
         responsive={[
-          { breakpoint: 1200, settings: { slidesToShow: 2 } },
-          { breakpoint: 640, settings: { slidesToShow: 1 } },
+          { breakpoint: 1200, settings: { slidesToShow: 3 } },
+          { breakpoint: 640, settings: { slidesToShow: 2 } },
         ]}
       >
         {children}
@@ -159,19 +61,23 @@ function CardCarousel({ children, className = "" }) {
 
 // ── Page ──────────────────────────────────────────────────────────────
 export default function HomePage() {
-  const categories = [
-    { id: 1, label: "Thiên tai", icon: <FaPooStorm />, color: "#FD4848" },
-    { id: 2, label: "Giảm đói", icon: <GiKnifeFork />, color: "#FDBE48" },
-    { id: 3, label: "Xóa nghèo", icon: <RiHandCoinLine />, color: "#D9FD48" },
-    { id: 4, label: "Trẻ em", icon: <FaChildren />, color: "#48FDE8" },
-    { id: 5, label: "Môi trường", icon: <FaEarthEurope />, color: "#5AFD48" },
-    {
-      id: 6,
-      label: "Giáo dục",
-      icon: <MdCastForEducation />,
-      color: "#FF9FE7",
-    },
-  ];
+  const { campaigns, loading } = useCampaigns();
+  const { organizations } = useOrganizations();
+  const { categories } = useCategories();
+  const navigate = useNavigate();
+  const { token } = useAuthStore();
+  const isLoggedIn = !!token;
+  const [openLoginModal, setOpenLoginModal] = useState(false);
+
+  const requireAuth = (callback) => {
+  if (!isLoggedIn) {
+    setOpenLoginModal(true);
+  } else {
+    callback();
+  }
+};
+
+  if (loading) return <p>Đang tải dữ liệu...</p>;
 
   return (
     <div className="home-page">
@@ -212,14 +118,13 @@ export default function HomePage() {
           {categories.map((cat) => (
             <Col key={cat.id} xs={12} sm={8} md={4}>
               <div className="category-item">
-                <div
-                  className="category-item__icon"
-                  style={{ backgroundColor: cat.color }}
-                >
-                  {cat.icon}
-                </div>
+                <img
+                  className="category-item__img"
+                  src={cat.hinh_anh}
+                  alt={cat.ten_danh_muc}
+                />
                 <Text strong className="category-item__label">
-                  {cat.label}
+                  {cat.ten_danh_muc}
                 </Text>
               </div>
             </Col>
@@ -231,14 +136,19 @@ export default function HomePage() {
       <section className="home-campaigns-orgs">
         <div className="home-section__header">
           <h2 className="home-section__title">CHIẾN DỊCH NỔI BẬT</h2>
-          <a href="#" className="view-all">
+          <a href="/chien-dich/danh-sach" className="view-all">
             Xem tất cả <FiChevronRight />
           </a>
         </div>
         <CardCarousel>
-          {MOCK_CAMPAIGNS.map((c, i) => (
+          {campaigns.map((c, i) => (
             <div key={c.id} className="home-carousel__slide">
-              <CampaignCard campaign={c} index={i} />
+              <CampaignCard
+                campaign={{
+                  ...c,
+                }}
+                index={i}
+              />
             </div>
           ))}
         </CardCarousel>
@@ -373,7 +283,12 @@ export default function HomePage() {
                   </Paragraph>
                 </Col>
               </Row>
-              <Button type="primary" size="large" className="btn-cta-give">
+              <Button
+                type="primary"
+                size="large"
+                className="btn-cta-give"
+                onClick={() => requireAuth(() => navigate("/bang-tin"))}
+              >
                 ĐĂNG BÀI NGAY
               </Button>
               <div className="cta-give-image">
@@ -388,22 +303,31 @@ export default function HomePage() {
       <section className="home-campaigns-orgs">
         <div className="home-section__header">
           <h2 className="home-section__title">TỔ CHỨC TỪ THIỆN</h2>
-          <a href="#" className="view-all">
+          <a href="/chien-dich/to-chuc" className="view-all">
             Xem tất cả <FiChevronRight />
           </a>
         </div>
         <CardCarousel>
-          {MOCK_ORGANIZATIONS.map((o, i) => (
+          {organizations.map((o, i) => (
             <div
               key={o.id}
               className="home-carousel__slide home-carousel__slide--org"
             >
-              <OrganizationCard organization={o} index={i} />
+              <OrganizationCard
+                organization={{
+                  ...o,
+                }}
+                index={i}
+              />
             </div>
           ))}
         </CardCarousel>
       </section>
-
+      {/* Modal đăng nhập */}
+      <RequiredLoginModal
+        openLoginModal={openLoginModal}
+        setOpenLoginModal={setOpenLoginModal}
+      />
       <Footer />
     </div>
   );

@@ -1,25 +1,20 @@
 from __future__ import annotations
 
-from typing import Dict, List, Literal, Optional, Tuple
 from datetime import datetime, timezone
-import os
-import json
-from urllib.request import urlopen, Request
-from urllib.parse import quote
+from typing import List, Literal, Optional, Set, Tuple
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
+from sklearn.ensemble import IsolationForest
 
-import numpy as np
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
+from core import config as core_config
+from core import fraud as core_fraud
+from core import geo as core_geo
+from core import similarity as core_similarity
+from core import text as core_text
 
 
-app = FastAPI(title="SmartDonate AI Matching Service")
-
-OSRM_BASE_URL = os.getenv("OSRM_BASE_URL", "https://router.project-osrm.org").rstrip("/")
-OSRM_PROFILE = os.getenv("OSRM_PROFILE", "driving").strip() or "driving"
-OSRM_TIMEOUT_SECONDS = float(os.getenv("OSRM_TIMEOUT_SECONDS", "4"))
+app = FastAPI(title="Dịch vụ ghép nối AI SmartDonate")
 
 
 class AiPost(BaseModel):
@@ -29,13 +24,16 @@ class AiPost(BaseModel):
     mo_ta: str
     lat: Optional[float] = None
     lng: Optional[float] = None
+    region: Optional[str] = None
     created_at: datetime
     danh_muc: Optional[str] = None
+    danh_mucs: Optional[List[str]] = None
 
 
 class MatchRequest(BaseModel):
     post_id: int
-    posts: List[AiPost] = Field(min_length=2)
+    # Cho phép 1 bài: khi không có ứng viên đối ứng trong DB, backend vẫn gọi được; endpoint trả [].
+    posts: List[AiPost] = Field(min_length=1)
 
 
 class MatchResponseItem(BaseModel):
@@ -45,190 +43,354 @@ class MatchResponseItem(BaseModel):
     match_percent: float
 
 
-def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    """
-    Calculate haversine distance in kilometers between two points.
-    """
-    r_km = 6371.0
-
-    lat1_rad = np.radians(lat1)
-    lon1_rad = np.radians(lon1)
-    lat2_rad = np.radians(lat2)
-    lon2_rad = np.radians(lon2)
-
-    dlat = lat2_rad - lat1_rad
-    dlon = lon2_rad - lon1_rad
-
-    a = np.sin(dlat / 2.0) ** 2 + np.cos(lat1_rad) * np.cos(lat2_rad) * np.sin(dlon / 2.0) ** 2
-    c = 2.0 * np.arctan2(np.sqrt(a), np.sqrt(1.0 - a))
-
-    return float(r_km * c)
+class SemanticCandidateInput(BaseModel):
+    id: int
+    noi_dung: str
+    category: Optional[str] = None
+    location: Optional[str] = None
 
 
-def score_location_km(distance_km: float) -> float:
-    if distance_km <= 2:
-        return 3.0
-    if distance_km <= 5:
-        return 2.0
-    if distance_km <= 10:
-        return 1.0
-    return 0.0
+class SemanticMatchRequest(BaseModel):
+    noi_dung: str
+    candidates: List[SemanticCandidateInput] = Field(min_length=1)
+    top_k: int = 5
+    min_score: float = 0.2
+    category: Optional[str] = None
+    location: Optional[str] = None
 
 
-def score_time_days(delta_days: float) -> float:
-    if delta_days < 1:
-        return 2.0
-    if delta_days < 3:
-        return 1.0
-    return 0.0
+class SemanticMatchResponseItem(BaseModel):
+    id: int
+    score: float
+    level: Literal["HIGH", "MEDIUM", "LOW"]
+    noi_dung: str
 
 
-def score_rule(target: AiPost, cand: AiPost) -> float:
-    score = 0.0
-    if cand.loai_bai != target.loai_bai:
-        score += 3.0
-
-    if target.danh_muc is not None and cand.danh_muc is not None and target.danh_muc == cand.danh_muc:
-        score += 2.0
-
-    return score
+class FraudUserInput(BaseModel):
+    user_id: int
+    posts_per_day: float
+    content_similarity: float
+    donation_growth: float
+    same_ip_accounts: float
+    activity_score: float
 
 
-def get_osrm_distance_km(
-    lat1: float,
-    lon1: float,
-    lat2: float,
-    lon2: float,
-    cache: Dict[Tuple[float, float, float, float], float],
-) -> Optional[float]:
-    """
-    Fetch route distance from OSRM (road distance in km).
-    Returns None if OSRM call fails.
-    """
-    key = (round(lat1, 6), round(lon1, 6), round(lat2, 6), round(lon2, 6))
-    if key in cache:
-        return cache[key]
+class FraudCheckRequest(BaseModel):
+    users: List[FraudUserInput] = Field(min_length=2)
 
-    # OSRM route API expects lon,lat;lon,lat
-    coordinates = f"{lon1},{lat1};{lon2},{lat2}"
-    encoded_coordinates = quote(coordinates, safe=";,.-")
-    url = f"{OSRM_BASE_URL}/route/v1/{OSRM_PROFILE}/{encoded_coordinates}?overview=false"
 
-    try:
-        req = Request(url, headers={"User-Agent": "smart-donate-37-ai/1.0"})
-        with urlopen(req, timeout=OSRM_TIMEOUT_SECONDS) as res:
-            payload = json.loads(res.read().decode("utf-8"))
+class FraudCheckItem(BaseModel):
+    user_id: int
+    risk: Literal["HIGH", "LOW"]
 
-        if payload.get("code") != "Ok":
-            return None
 
-        routes = payload.get("routes") or []
-        if not routes:
-            return None
+class CampaignFraudInput(BaseModel):
+    campaign_id: int
+    campaigns_per_user: float
+    donation_growth: float
+    self_donation_ratio: float
+    unique_donors: float
+    donation_frequency: float
 
-        distance_m = routes[0].get("distance")
-        if distance_m is None:
-            return None
 
-        distance_km = float(distance_m) / 1000.0
-        cache[key] = distance_km
-        return distance_km
-    except Exception:
-        return None
+class CampaignFraudCheckRequest(BaseModel):
+    campaigns: List[CampaignFraudInput] = Field(min_length=2)
+
+
+class CampaignFraudCheckItem(BaseModel):
+    campaign_id: int
+    risk: Literal["HIGH", "LOW"]
 
 
 @app.post("/matches", response_model=List[MatchResponseItem])
 def matches(req: MatchRequest) -> List[MatchResponseItem]:
-    # 1) Find target post by post_id
     target = next((p for p in req.posts if p.id == req.post_id), None)
     if target is None:
-        raise HTTPException(status_code=400, detail="post_id not found in posts array")
+        raise HTTPException(status_code=400, detail="Không tìm thấy post_id trong danh sách posts.")
 
     others = [p for p in req.posts if p.id != req.post_id]
     if not others:
         return []
 
-    # 2) Combine text
-    target_text = (target.tieu_de + " " + target.mo_ta).strip()
-    other_texts = [(p.tieu_de + " " + p.mo_ta).strip() for p in others]
+    target_text = core_text.normalize_semantic_text((target.tieu_de + " " + target.mo_ta).strip())
+    allowed_categories = set((target.danh_mucs or []))
+    if target.danh_muc:
+        allowed_categories.add(target.danh_muc)
+    target_intents = core_text.extract_intents(target_text)
+    other_texts = [core_text.normalize_semantic_text((p.tieu_de + " " + p.mo_ta).strip()) for p in others]
+    semantic_sims = core_similarity.semantic_similarity_scores(target_text, other_texts)
+    lexical_sims = core_similarity.lexical_similarity_scores(target_text, other_texts)
 
-    # 3) Apply TF-IDF vectorization
-    texts = [target_text] + other_texts
-    vectorizer = TfidfVectorizer(stop_words="english", max_features=5000)
-    tfidf_matrix = vectorizer.fit_transform(texts)
-
-    # 4) Cosine similarity between target and each other
-    target_vec = tfidf_matrix[0:1]
-    cand_vecs = tfidf_matrix[1:]
-    cos_sims = cosine_similarity(target_vec, cand_vecs)[0]  # shape: (len(others),)
-
-    # 5) Score each post
-    results: List[MatchResponseItem] = []
-    max_total_score = 16.0  # 6 similarity + 3 location + 2 time + 3/2 rule = 16
-
+    scored_rows: List[Tuple[MatchResponseItem, float]] = []
     now = datetime.now(timezone.utc)
-    osrm_cache: Dict[Tuple[float, float, float, float], float] = {}
+    target_urgency = core_text.urgency_score(target_text)
+
+    w_sum = core_config.MATCH_BLEND_SEMANTIC + core_config.MATCH_BLEND_LEXICAL
+    if w_sum <= 0:
+        w_sum = 1.0
+    w_sem = core_config.MATCH_BLEND_SEMANTIC / w_sum
+    w_lex = core_config.MATCH_BLEND_LEXICAL / w_sum
+    min_sim_cut = (
+        core_config.MATCH_MIN_SIM_WITH_CATEGORY
+        if allowed_categories
+        else core_config.MATCH_MIN_SIM_NO_CATEGORY
+    )
+    rel_floor = (
+        core_config.MATCH_RELEVANCE_FLOOR_GATED
+        if allowed_categories
+        else core_config.MIN_SIM_LOOSE
+    )
 
     for idx, cand in enumerate(others):
-        similarity_score = float(cos_sims[idx]) * 6.0
+        cand_text = other_texts[idx]
+        semantic_sim = float(semantic_sims[idx])
+        lexical_sim = float(lexical_sims[idx])
+        match_sim = max(0.0, min(1.0, w_sem * semantic_sim + w_lex * lexical_sim))
 
-        # location_score using haversine distance
+        if core_config.DEBUG_SEMANTIC_MATCH:
+            print("TARGET:", target_text)
+            print("CAND:", cand_text)
+            print("BLEND:", round(match_sim, 6), "SEM:", round(semantic_sim, 6), "LEX:", round(lexical_sim, 6))
+
+        if allowed_categories:
+            cand_codes: Set[str] = set()
+            if cand.danh_muc:
+                cand_codes.add(cand.danh_muc)
+            if cand.danh_mucs:
+                cand_codes.update(cand.danh_mucs)
+            if "vehicle" not in allowed_categories:
+                cand_codes.discard("vehicle")
+            if not cand_codes or cand_codes.isdisjoint(allowed_categories):
+                continue
+            if core_text.should_reject_vehicle_offer_when_vehicle_not_allowed(
+                cand_text, allowed_categories
+            ):
+                continue
+        else:
+            if core_text.should_reject_by_intent(target_text, cand_text):
+                continue
+
+        if core_text.should_reject_for_food_urgency(target_text, cand_text):
+            continue
+
+        if core_text.should_reject_for_vehicle_target(target_text, cand_text):
+            continue
+
+        if core_text.is_cross_domain_hard_reject(target_text, cand_text):
+            continue
+
+        if match_sim < min_sim_cut:
+            continue
+        if match_sim < rel_floor:
+            continue
+
+        similarity_score = match_sim * 7.0
+
         distance_km = 0.0
         location_score = 0.0
-        if (
-            target.lat is not None
-            and target.lng is not None
-            and cand.lat is not None
-            and cand.lng is not None
-        ):
-            # Try road distance from OSRM first; fallback to haversine if OSRM fails.
-            road_km = get_osrm_distance_km(
-                target.lat,
-                target.lng,
-                cand.lat,
-                cand.lng,
-                osrm_cache,
-            )
-            distance_km = road_km if road_km is not None else haversine_km(
-                target.lat,
-                target.lng,
-                cand.lat,
-                cand.lng,
-            )
-            location_score = score_location_km(distance_km)
+        if target.lat is None or target.lng is None or cand.lat is None or cand.lng is None:
+            continue
+        distance_km = core_geo.haversine_km(
+            target.lat,
+            target.lng,
+            cand.lat,
+            cand.lng,
+        )
+        if distance_km > 20.0:
+            continue
+        location_score = core_geo.score_location_km(distance_km)
 
-        # time_score: dựa trên độ "mới" của candidate so với thời điểm hiện tại
         cand_created_at = cand.created_at
         if cand_created_at.tzinfo is None:
             cand_created_at = cand_created_at.replace(tzinfo=timezone.utc)
         else:
             cand_created_at = cand_created_at.astimezone(timezone.utc)
-
         delta_days = (now - cand_created_at).total_seconds() / 86400.0
         if delta_days < 0:
             delta_days = 0.0
-        time_score = score_time_days(delta_days)
+        time_score = core_geo.score_time_days(delta_days)
 
-        rule_score = score_rule(target, cand)
+        final_score = similarity_score + location_score + time_score + (target_urgency * 1.5)
+        final_score += core_text.relevance_penalty(match_sim)
 
-        final_score = similarity_score + location_score + time_score + rule_score
-
-        # 7) filter score >= 5
-        if final_score < 5:
-            continue
-
-        match_percent = float(min(100.0, (final_score / max_total_score) * 100.0))
-
-        results.append(
-            MatchResponseItem(
-                post_id=cand.id,
-                score=round(final_score, 6),
-                distance=round(distance_km, 6),
-                match_percent=round(match_percent, 2),
+        match_percent = min(100.0, (match_sim * 100.0))
+        scored_rows.append(
+            (
+                MatchResponseItem(
+                    post_id=cand.id,
+                    score=round(final_score, 6),
+                    distance=round(distance_km, 6),
+                    match_percent=round(match_percent, 2),
+                ),
+                match_sim,
             )
         )
 
-    # 8/9) sort descending & return top 5
-    results.sort(key=lambda x: x.score, reverse=True)
-    return results[:5]
+    strict_rows = [row for row in scored_rows if row[1] >= core_config.MIN_SIM_STRICT]
 
+    multi_need = len(allowed_categories) > 1
+    # Giáo dục: bài "cần laptop" và "tặng sách/vở" thường có điểm trộn ở mức lỏng, không chỉ khớp laptop chặt
+    intent_loose = bool(
+        {"food", "clothes", "household", "education"} & target_intents
+    )
+    use_loose_fill = len(strict_rows) < 5 and (multi_need or intent_loose)
+
+    loose_floor = core_config.MIN_SIM_LOOSE
+
+    if not strict_rows:
+        scored_rows.sort(key=lambda row: row[0].score, reverse=True)
+        return [row[0] for row in scored_rows[:5]]
+
+    if use_loose_fill:
+        loose_rows = [
+            row
+            for row in scored_rows
+            if loose_floor <= row[1] < core_config.MIN_SIM_STRICT
+        ]
+        strict_ids = {row[0].post_id for row in strict_rows}
+        loose_rows = [row for row in loose_rows if row[0].post_id not in strict_ids]
+        strict_rows.sort(key=lambda row: row[0].score, reverse=True)
+        loose_rows.sort(key=lambda row: row[0].score, reverse=True)
+        merged = strict_rows + loose_rows
+        return [row[0] for row in merged[:5]]
+
+    strict_rows.sort(key=lambda row: row[0].score, reverse=True)
+    return [row[0] for row in strict_rows[:5]]
+
+
+@app.post("/semantic-matches", response_model=List[SemanticMatchResponseItem])
+def semantic_matches(req: SemanticMatchRequest) -> List[SemanticMatchResponseItem]:
+    target_text = core_text.normalize_semantic_text(req.noi_dung or "")
+    if not target_text:
+        raise HTTPException(status_code=400, detail="noi_dung không được để trống.")
+
+    candidate_texts = [core_text.normalize_semantic_text(c.noi_dung or "") for c in req.candidates]
+    sims = core_similarity.semantic_similarity_single_target(target_text, candidate_texts)
+    target_words = set(target_text.split())
+    target_category = (req.category or "").strip().lower()
+    target_location = (req.location or "").strip().lower()
+
+    rows: List[SemanticMatchResponseItem] = []
+    for idx, cand in enumerate(req.candidates):
+        cand_text = candidate_texts[idx]
+        score = float(sims[idx])
+
+        cand_category = (cand.category or "").strip().lower()
+        if target_category and cand_category and target_category == cand_category:
+            score += 0.1
+
+        cand_words = set(cand_text.split())
+        if len(target_words & cand_words) >= 2:
+            score += 0.05
+
+        cand_location = (cand.location or "").strip().lower()
+        if target_location and cand_location and target_location == cand_location:
+            score += 0.05
+
+        if core_text.has_multi_intent_overlap(target_text, cand_text):
+            score += 0.05
+
+        score = max(0.0, min(1.0, score))
+        if score < req.min_score:
+            continue
+
+        rows.append(
+            SemanticMatchResponseItem(
+                id=cand.id,
+                score=round(score, 6),
+                level=core_text.semantic_level(score),
+                noi_dung=cand.noi_dung,
+            )
+        )
+
+    rows.sort(key=lambda x: x.score, reverse=True)
+    top_k = max(1, min(50, int(req.top_k)))
+    return rows[:top_k]
+
+
+@app.post("/fraud-check", response_model=List[FraudCheckItem])
+def fraud_check(req: FraudCheckRequest) -> List[FraudCheckItem]:
+    """
+    Phát hiện gian lận bằng IsolationForest với 5 đặc trưng hành vi.
+    - predict = -1 → bất thường → HIGH
+    - predict = 1  → bình thường → LOW
+    """
+    ds_users = req.users
+
+    ma_tran_dac_trung = [core_fraud.build_fraud_features(nguoi_dung) for nguoi_dung in ds_users]
+
+    model = IsolationForest(
+        n_estimators=200,
+        contamination=0.2,
+        random_state=42,
+    )
+    model.fit(ma_tran_dac_trung)
+
+    du_doan = model.predict(ma_tran_dac_trung)
+
+    ket_qua: List[FraudCheckItem] = []
+    for chi_so, du_doan_muc in enumerate(du_doan):
+        nguoi_dung = ds_users[chi_so]
+
+        rule_high = (
+            nguoi_dung.posts_per_day >= 10
+            and nguoi_dung.same_ip_accounts >= 3
+            and (
+                nguoi_dung.content_similarity >= 0.85
+                or nguoi_dung.donation_growth >= 150
+                or nguoi_dung.activity_score >= 15
+            )
+        )
+
+        muc_rui_ro: Literal["HIGH", "LOW"] = "HIGH" if (int(du_doan_muc) == -1 or rule_high) else "LOW"
+        ket_qua.append(
+            FraudCheckItem(
+                user_id=ds_users[chi_so].user_id,
+                risk=muc_rui_ro,
+            )
+        )
+
+    return ket_qua
+
+
+@app.post("/campaign-fraud-check", response_model=List[CampaignFraudCheckItem])
+def campaign_fraud_check(req: CampaignFraudCheckRequest) -> List[CampaignFraudCheckItem]:
+    """
+    Phát hiện gian lận chiến dịch gây quỹ bằng IsolationForest.
+    - predict = -1 → bất thường → HIGH
+    - predict = 1  → bình thường → LOW
+    """
+    ds_campaign = req.campaigns
+
+    ma_tran_dac_trung = [core_fraud.build_campaign_fraud_features(chien_dich) for chien_dich in ds_campaign]
+
+    model = IsolationForest(
+        n_estimators=200,
+        contamination=0.2,
+        random_state=42,
+    )
+    model.fit(ma_tran_dac_trung)
+
+    du_doan = model.predict(ma_tran_dac_trung)
+
+    ket_qua: List[CampaignFraudCheckItem] = []
+    for chi_so, du_doan_muc in enumerate(du_doan):
+        chien_dich = ds_campaign[chi_so]
+
+        rule_high = (
+            chien_dich.campaigns_per_user >= 4
+            and chien_dich.donation_growth >= 200
+            and chien_dich.self_donation_ratio >= 0.6
+            and chien_dich.unique_donors <= 3
+            and chien_dich.donation_frequency >= 10
+        )
+
+        muc_rui_ro: Literal["HIGH", "LOW"] = "HIGH" if (int(du_doan_muc) == -1 or rule_high) else "LOW"
+        ket_qua.append(
+            CampaignFraudCheckItem(
+                campaign_id=chien_dich.campaign_id,
+                risk=muc_rui_ro,
+            )
+        )
+
+    return ket_qua

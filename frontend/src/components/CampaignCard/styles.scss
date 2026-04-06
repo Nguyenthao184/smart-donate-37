@@ -1,6 +1,6 @@
 .campaign-card {
   max-width: 370px;
-  width: 100%;
+  width: 95%;
   flex-shrink: 0;
   border-radius: 20px;
   overflow: hidden;
@@ -9,14 +9,14 @@
   background: #fff;
   position: relative;
   isolation: isolate;
+  cursor: pointer;
   transition:
     transform 0.3s ease,
     box-shadow 0.3s ease;
-  cursor: pointer;
 
   &:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.13);
+    transform: translateY(-8px) !important;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.13) !important;
 
     .campaign-card__img {
       transform: scale(1.07);
@@ -32,26 +32,20 @@
   }
 
   .ant-card-body {
-    padding: 0;
+    padding: 0 !important;
   }
 
   // ── Cover ──────────────────────────────────────
   &__cover {
     position: relative;
-    height: 190px;
+    height: 160px;
     overflow: hidden;
-    background: linear-gradient(
-      135deg,
-      rgba(255, 77, 79, 0.15),
-      rgba(250, 140, 22, 0.12)
-    );
   }
 
   &__img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    display: block;
     transition: transform 0.5s cubic-bezier(0.165, 0.84, 0.44, 1);
   }
 
@@ -90,9 +84,9 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 3px 9px;
+    padding: 2px 7px;
     border-radius: 999px;
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 800;
     letter-spacing: 0.5px;
     backdrop-filter: blur(8px);
@@ -134,9 +128,9 @@
     right: 12px;
     background: linear-gradient(135deg, #ff4d4f, #fa8c16);
     color: #fff;
-    font-size: 12px;
-    font-weight: 800;
-    padding: 3px 10px;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 3px 7px;
     border-radius: 999px;
     box-shadow: 0 2px 10px rgba(255, 77, 79, 0.4);
     letter-spacing: 0.3px;
@@ -144,20 +138,19 @@
 
   // ── Body ───────────────────────────────────────
   &__body {
-    padding: 14px 16px 16px;
+    padding: 10px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 5px;
   }
 
   &__title {
     font-weight: 700;
-    font-size: 20px;
+    font-size: 22px;
     line-height: 1.35;
-    color: #1f1f1f;
+    color: #333;
     min-height: 40px;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
@@ -175,9 +168,13 @@
     }
 
     .ant-progress-bg {
-      height: 7px !important;
+      height: 5px !important;
       border-radius: 999px;
       transition: box-shadow 0.3s ease;
+    }
+
+    .ant-progress-rail, .ant-progress-track {
+      height: 5px !important;
     }
   }
 
@@ -186,7 +183,7 @@
     display: flex;
     flex-direction: column;
     gap: 5px;
-    font-size: 16px;
+    font-size: 12px;
     color: rgba(0, 0, 0, 0.6);
     position: relative;
   }
@@ -194,9 +191,9 @@
   &__float-icon {
     position: absolute; // ← đổi sang absolute
     right: 0;
-    bottom: 0;
-    width: 60px;
-    height: 60px;
+    bottom: -5px;
+    width: 50px;
+    height: 50px;
     flex-shrink: 0;
     border-radius: 50%;
     background: linear-gradient(135deg, #fff0f0, #ffe8e8);
@@ -247,5 +244,18 @@
   &__goal {
     font-weight: 600;
     color: rgba(0, 0, 0, 0.75);
+  }
+}
+
+.fade-load {
+  opacity: 0;
+  transform: translateY(3px);
+  filter: blur(5px); 
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out, filter 0.25s ease-out;
+
+  &.loaded {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
   }
 }

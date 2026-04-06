@@ -13,7 +13,8 @@ return new class extends Migration
     {
         Schema::create('danh_muc', function (Blueprint $table) {
             $table->id();
-            $table->string('ten_danh_muc', 255);
+            $table->string('ten_danh_muc')->unique();
+            $table->string('hinh_anh')->nullable();
             $table->timestamps();
         });
     }
@@ -26,4 +27,3 @@ return new class extends Migration
         Schema::dropIfExists('danh_muc');
     }
 };
-

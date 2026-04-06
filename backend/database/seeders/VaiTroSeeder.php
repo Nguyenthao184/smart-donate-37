@@ -13,7 +13,7 @@ class VaiTroSeeder extends Seeder
      */
     public function run(): void
     {
-        DB::table('vai_tro')->insert([
+        DB::table('vai_tro')->upsert([
             [
                 'id' => 1,
                 'ten_vai_tro' => 'ADMIN'
@@ -26,6 +26,6 @@ class VaiTroSeeder extends Seeder
                 'id' => 3,
                 'ten_vai_tro' => 'TO_CHUC'
             ]
-        ]);
+        ], ['id'], ['ten_vai_tro']);
     }
 }

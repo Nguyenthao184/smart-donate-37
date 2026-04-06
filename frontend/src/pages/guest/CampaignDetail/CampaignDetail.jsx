@@ -1,4 +1,8 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import mapboxgl from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
 import { Button, Progress, Tabs, Carousel } from "antd";
 import {
   FiHeart,
@@ -11,119 +15,113 @@ import {
   FiUsers,
   FiAward,
   FiInfo,
+  FiCopy,
 } from "react-icons/fi";
-import { TbWorldHeart, TbLocationHeart  } from "react-icons/tb";
+import { TbWorldHeart, TbLocationHeart } from "react-icons/tb";
 import { PiClockUserDuotone } from "react-icons/pi";
 import { LuShieldCheck } from "react-icons/lu";
 import { GiCentaurHeart } from "react-icons/gi";
 import CampaignCard from "../../../components/CampaignCard/index.jsx";
 import { formatVnd } from "../../../utils/format";
+import useCampaignStore from "../../../store/campaignStore";
+import useCampaigns from "../../../hooks/useCampaigns";
 import "./CampaignDetail.scss";
 
-// ── Mock data ──────────────────────────────────────────────────────────
-const CAMPAIGN = {
-  id: 1,
-  title: "Giảm thiệt hại thiên tai miền Trung",
-  raised: 730000000,
-  goal: 1000000000,
-  donors: 254,
-  daysLeft: 12,
-  images: [null, null, null, null],
-};
-
-const ORG = {
-  name: "Hội chữ thập đỏ Đà Nẵng",
-  verified: true,
-  logo: null,
-  description: [
-    "Hội Chữ thập đỏ Đà Nẵng là tổ chức nhân đạo hoạt động vì cộng đồng và người yếu thế.",
-    "Hội thường xuyên triển khai các chương trình cứu trợ, hỗ trợ thiên tai và chăm sóc sức khỏe.",
-    "Với tinh thần sẻ chia, hội góp phần lan tỏa giá trị nhân văn trong xã hội.",
-  ],
-  address: "254 Phan Thanh, Đà Nẵng",
-  hotline: "1900 2578",
-  email: "chuthapdo.dn@gmail.com",
-};
-
-const CAMPAIGN_INFO = {
-  target: "Hỗ trợ người dân bị ảnh hưởng bởi lũ lụt tại miền Trung",
-  startDate: "01/03/2024",
-  endDate: "31/03/2024",
-  category: "Thiên tai",
-  description: `Chiến dịch được triển khai nhằm hỗ trợ khẩn cấp cho các hộ dân bị ảnh hưởng nặng nề bởi đợt lũ lụt lịch sử tại miền Trung Việt Nam. Nguồn quỹ sẽ được sử dụng để mua nhu yếu phẩm, hỗ trợ sửa chữa nhà cửa và cung cấp học bổng cho trẻ em bị gián đoạn việc học.`,
-};
-
-const DONORS = [
-  {
-    id: 1,
-    name: "Nguyễn Văn A",
-    amount: 500000,
-    time: "2 giờ trước",
-    avatar: "A",
-  },
-  {
-    id: 2,
-    name: "Trần Thị B",
-    amount: 1000000,
-    time: "5 giờ trước",
-    avatar: "B",
-  },
-  {
-    id: 3,
-    name: "Lê Văn C",
-    amount: 200000,
-    time: "1 ngày trước",
-    avatar: "C",
-  },
-  {
-    id: 4,
-    name: "Phạm Thị D",
-    amount: 2000000,
-    time: "1 ngày trước",
-    avatar: "D",
-  },
-  {
-    id: 5,
-    name: "Hoàng Văn E",
-    amount: 300000,
-    time: "2 ngày trước",
-    avatar: "E",
-  },
-];
-
-const OTHER_CAMPAIGNS = [
-  {
-    id: 2,
-    title: "Xây trường cho trẻ em vùng cao",
-    daysLeft: 3,
-    raised: 750000000,
-    goal: 1000000000,
-    image: null,
-  },
-  {
-    id: 3,
-    title: "Xây trường cho trẻ em vùng cao",
-    daysLeft: 3,
-    raised: 350000000,
-    goal: 1000000000,
-    image: null,
-  },
-  {
-    id: 4,
-    title: "Hội người khuyết tật Đà Nẵng",
-    daysLeft: 3,
-    raised: 750000000,
-    goal: 1000000000,
-    image: null,
-  },
-];
-
-const percent = Math.round((CAMPAIGN.raised / CAMPAIGN.goal) * 100);
+mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
 
 export default function CampaignDetail() {
+  const { id } = useParams();
+  const location = useLocation();
+  const { campaigns: otherCampaigns, loading: loadingOther } = useCampaigns();
+
+  const [campaign, setCampaign] = useState(null);
   const [mainImg, setMainImg] = useState(0);
   const carouselRef = useRef(null);
   const otherRef = useRef(null);
+  const mapContainerRef = useRef(null);
+  const mapRef = useRef(null);
+  const navigate = useNavigate();
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [location.pathname]);
+
+  // Fetch chi tiết chiến dịch (store dedupe + cleanup tránh setState sau unmount)
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    const loadCampaign = async () => {
+      const data = await useCampaignStore.getState().fetchCampaignDetail(id);
+      if (cancelled || !data) return;
+      setCampaign({
+        id: data.id,
+        title: data.ten_chien_dich,
+        description: data.mo_ta,
+        images: data.hinh_anh,
+        raised: Number(data.so_tien_da_nhan),
+        goal: Number(data.muc_tieu_tien),
+        daysLeft: data.so_ngay_con_lai,
+        location: data.vi_tri,
+        lat: data.lat,
+        lng: data.lng,
+        total_donor: data.so_luot_ung_ho,
+        org: {
+          name: data.to_chuc?.ten_to_chuc,
+          logo: data.to_chuc?.logo,
+          description: data.to_chuc?.mo_ta ? [data.to_chuc.mo_ta] : [],
+          address: data.to_chuc?.dia_chi,
+          email: data.to_chuc?.email,
+          hotline: data.to_chuc?.so_dien_thoai,
+          codebank: data.to_chuc?.ma_noi_dung_ck,
+          verified: true, // giả sử luôn verified
+        },
+        donors: data.danh_sach_ung_ho.map((d, i) => ({
+          id: i,
+          name: d.ten_nguoi_ung_ho,
+          amount: Number(d.so_tien.replace(/[^\d]/g, "")),
+          time: d.thoi_gian,
+          avatar: d.ten_nguoi_ung_ho[0],
+        })),
+      });
+    };
+    void loadCampaign();
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  function handleCopy() {
+    navigator.clipboard.writeText(campaign.codebank);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  }
+
+  useEffect(() => {
+    if (!campaign?.lat || !campaign?.lng) return;
+    if (mapRef.current) return; // chỉ khởi tạo 1 lần
+
+    mapRef.current = new mapboxgl.Map({
+      container: mapContainerRef.current,
+      style: "mapbox://styles/mapbox/streets-v12",
+      center: [campaign.lng, campaign.lat], // [lng, lat]
+      zoom: 12,
+    });
+
+    new mapboxgl.Marker({ color: "#ff4d4f" })
+      .setLngLat([campaign.lng, campaign.lat])
+      .addTo(mapRef.current);
+
+    return () => {
+      mapRef.current?.remove();
+      mapRef.current = null;
+    };
+  }, [campaign]);
+
+  if (!campaign) return <div>Loading...</div>;
+
+  const percent =
+    campaign.goal > 0 ? Math.round((campaign.raised / campaign.goal) * 100) : 0;
 
   const tabItems = [
     {
@@ -138,15 +136,15 @@ export default function CampaignDetail() {
           <div className="cd-org__left">
             <div className="cd-org__header">
               <div className="cd-org__avatar">
-                {ORG.logo ? (
-                  <img src={ORG.logo} alt={ORG.name} />
+                {campaign.org.logo ? (
+                  <img src={campaign.org.logo} alt={campaign.org.name} />
                 ) : (
                   <FiHeart size={24} />
                 )}
               </div>
               <div>
-                <div className="cd-org__name">{ORG.name}</div>
-                {ORG.verified && (
+                <div className="cd-org__name">{campaign.org.name}</div>
+                {campaign.org.verified && (
                   <span className="cd-org__verified">
                     <LuShieldCheck size={12} /> Tổ chức xác minh
                   </span>
@@ -154,7 +152,7 @@ export default function CampaignDetail() {
               </div>
             </div>
             <ul className="cd-org__desc">
-              {ORG.description.map((d, i) => (
+              {campaign.org.description.map((d, i) => (
                 <li key={i}>{d}</li>
               ))}
             </ul>
@@ -165,21 +163,21 @@ export default function CampaignDetail() {
                 size={14}
                 className="cd-org__contact-icon cd-org__contact-icon--red"
               />
-              <span>{ORG.address}</span>
+              <span>{campaign.org.address}</span>
             </div>
             <div className="cd-org__contact-item">
               <FiPhone
                 size={14}
                 className="cd-org__contact-icon cd-org__contact-icon--green"
               />
-              <span>Hotline: {ORG.hotline}</span>
+              <span>Hotline: {campaign.org.hotline}</span>
             </div>
             <div className="cd-org__contact-item">
               <FiMail
                 size={14}
                 className="cd-org__contact-icon cd-org__contact-icon--blue"
               />
-              <span>Email: {ORG.email}</span>
+              <span>Email: {campaign.org.email}</span>
             </div>
             <Button className="cd-org__more-btn">TÌM HIỂU THÊM</Button>
           </div>
@@ -197,25 +195,25 @@ export default function CampaignDetail() {
         <div className="cd-info">
           <div className="cd-info__grid">
             <div className="cd-info__item">
-              <span className="cd-info__label">Mục tiêu</span>
-              <span className="cd-info__value">{CAMPAIGN_INFO.target}</span>
+              <span className="cd-info__label">Mã chuyển khoản</span>
+              <span className="cd-info__value">{campaign.target}</span>
             </div>
             <div className="cd-info__item">
               <span className="cd-info__label">Danh mục</span>
               <span className="cd-info__value cd-info__value--badge">
-                {CAMPAIGN_INFO.category}
+                {campaign.category}
               </span>
             </div>
             <div className="cd-info__item">
               <span className="cd-info__label">Bắt đầu</span>
-              <span className="cd-info__value">{CAMPAIGN_INFO.startDate}</span>
+              <span className="cd-info__value">{campaign.startDate}</span>
             </div>
             <div className="cd-info__item">
               <span className="cd-info__label">Kết thúc</span>
-              <span className="cd-info__value">{CAMPAIGN_INFO.endDate}</span>
+              <span className="cd-info__value">{campaign.endDate}</span>
             </div>
           </div>
-          <p className="cd-info__desc">{CAMPAIGN_INFO.description}</p>
+          <p className="cd-info__desc">{campaign.description}</p>
         </div>
       ),
     },
@@ -228,7 +226,7 @@ export default function CampaignDetail() {
       ),
       children: (
         <div className="cd-donors">
-          {DONORS.map((d, i) => (
+          {campaign.donors.map((d, i) => (
             <div
               className="cd-donor-item"
               key={d.id}
@@ -265,7 +263,7 @@ export default function CampaignDetail() {
   return (
     <div className="cd-page">
       {/* ── Title ── */}
-      <h1 className="cd-title">{CAMPAIGN.title}</h1>
+      <h1 className="cd-title">{campaign.title}</h1>
       <div className="cd-divider" />
 
       {/* ── Main content ── */}
@@ -274,7 +272,7 @@ export default function CampaignDetail() {
         <div className="cd-gallery">
           <div className="cd-gallery__main">
             <div className="cd-gallery__main-img">
-              <FiInfo size={40} className="cd-gallery__placeholder-icon" />
+              <img src={campaign.images[mainImg]} alt={`Hình ${mainImg + 1}`} />
             </div>
             <button
               className="cd-gallery__nav cd-gallery__nav--prev"
@@ -291,13 +289,13 @@ export default function CampaignDetail() {
           </div>
 
           <div className="cd-gallery__thumbs">
-            {CAMPAIGN.images.map((img, i) => (
+            {campaign.images.map((img, i) => (
               <div
                 key={i}
                 className={`cd-gallery__thumb${mainImg === i ? " active" : ""}`}
                 onClick={() => setMainImg(i)}
               >
-                <FiInfo size={20} />
+                <img src={img} alt={`Thumb ${i + 1}`} />
               </div>
             ))}
           </div>
@@ -321,12 +319,11 @@ export default function CampaignDetail() {
                 <div className="cd-stats__raised-ripple cd-stats__raised-ripple--2" />
               </div>
               <div className="cd-stats__raised-amount">
-                {formatVnd(CAMPAIGN.raised)}
+                {formatVnd(campaign.raised)}
                 <div className="cd-stats__raised-sub">
-                đã đóng góp trên mục tiêu {formatVnd(CAMPAIGN.goal)}
+                  đã đóng góp trên mục tiêu {formatVnd(campaign.goal)}
+                </div>
               </div>
-              </div>
-              
             </div>
 
             {/* Progress */}
@@ -344,8 +341,8 @@ export default function CampaignDetail() {
                 className="cd-stats__progress"
               />
               <div className="cd-stats__progress-labels">
-                <span>{formatVnd(CAMPAIGN.raised)}</span>
-                <span>{formatVnd(CAMPAIGN.goal)}</span>
+                <span>{formatVnd(campaign.raised)}</span>
+                <span>{formatVnd(campaign.goal)}</span>
               </div>
             </div>
 
@@ -358,7 +355,7 @@ export default function CampaignDetail() {
                 </div>
                 <div className="cd-stats__meta-text">
                   <span className="cd-stats__meta-value">
-                    {CAMPAIGN.donors.toLocaleString()}
+                    {campaign.total_donor}
                   </span>
                   <span className="cd-stats__meta-label">người đã ủng hộ</span>
                 </div>
@@ -370,20 +367,32 @@ export default function CampaignDetail() {
                 </div>
                 <div className="cd-stats__meta-text">
                   <span className="cd-stats__meta-value">
-                    {CAMPAIGN.daysLeft}
+                    {campaign.daysLeft}
                   </span>
                   <span className="cd-stats__meta-label">ngày còn lại</span>
                 </div>
               </div>
             </div>
 
-            {/* Urgency bar */}
-            {CAMPAIGN.daysLeft <= 3 && (
-              <div className="cd-stats__urgency">
-                <FiClock size={13} />
-                Sắp kết thúc! Hãy ủng hộ ngay hôm nay
+            {/* Transfer content box */}
+            <div className="cd-stats__bank-box">
+              <div className="cd-stats__bank-header">
+                <span>Mã nội dung chuyển khoản</span>
               </div>
-            )}
+
+              <div className="cd-stats__bank-content">
+                <span className="cd-stats__bank-code">{copied ? "Đã sao chép!" : campaign.codebank}</span>
+
+                <button className="cd-stats__copy-btn" onClick={handleCopy}>
+                  <FiCopy size={16} />
+                </button>
+              </div>
+
+              <div className="cd-stats__bank-note">
+                (Vui lòng sao chép mã này vào nội dung chuyển khoản để chúng tôi
+                nhận ra ủng hộ của bạn)
+              </div>
+            </div>
 
             {/* Action button */}
             <div className="cd-stats__action">
@@ -395,6 +404,7 @@ export default function CampaignDetail() {
                 danger
                 size="large"
                 className="cd-stats__donate-btn"
+                onClick={() => navigate("/chien-dich/ung-ho")}
               >
                 <TbLocationHeart size={20} /> ỦNG HỘ CHIẾN DỊCH
               </Button>
@@ -425,17 +435,7 @@ export default function CampaignDetail() {
               <FiMapPin size={15} />
               <span>Khu vực hỗ trợ</span>
             </div>
-            <div className="cd-stats__map">
-              <iframe
-                src="https://maps.google.com/maps?q=Da+Nang&output=embed"
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                allowFullScreen
-                loading="lazy"
-                title="map"
-              />
-            </div>
+            <div className="cd-stats__map" ref={mapContainerRef} />
           </div>
         </div>
       </div>
@@ -443,38 +443,42 @@ export default function CampaignDetail() {
       {/* ── Other campaigns ── */}
       <div className="cd-others">
         <h2 className="cd-others__title">CÁC CHIẾN DỊCH KHÁC</h2>
-        <div className="cd-others__carousel-wrap">
-          <Carousel
-            ref={otherRef}
-            dots={false}
-            infinite={false}
-            draggable
-            slidesToShow={3}
-            slidesToScroll={1}
-            responsive={[
-              { breakpoint: 1100, settings: { slidesToShow: 2 } },
-              { breakpoint: 600, settings: { slidesToShow: 1 } },
-            ]}
-          >
-            {OTHER_CAMPAIGNS.map((c, i) => (
-              <div key={c.id} className="cd-others__slide">
-                <CampaignCard campaign={c} index={i} />
-              </div>
-            ))}
-          </Carousel>
-          <button
-            className="cd-others__nav cd-others__nav--prev"
-            onClick={() => otherRef.current?.prev?.()}
-          >
-            <FiChevronLeft size={20} />
-          </button>
-          <button
-            className="cd-others__nav cd-others__nav--next"
-            onClick={() => otherRef.current?.next?.()}
-          >
-            <FiChevronRight size={20} />
-          </button>
-        </div>
+        {loadingOther ? (
+          <div>Loading...</div>
+        ) : (
+          <div className="cd-others__carousel-wrap">
+            <Carousel
+              ref={otherRef}
+              dots={false}
+              infinite={false}
+              draggable
+              slidesToShow={4}
+              slidesToScroll={1}
+              responsive={[
+                { breakpoint: 1100, settings: { slidesToShow: 3 } },
+                { breakpoint: 600, settings: { slidesToShow: 2 } },
+              ]}
+            >
+              {otherCampaigns.map((c, i) => (
+                <div key={c.id} className="cd-others__slide">
+                  <CampaignCard campaign={c} index={i} />
+                </div>
+              ))}
+            </Carousel>
+            <button
+              className="cd-others__nav cd-others__nav--prev"
+              onClick={() => otherRef.current?.prev?.()}
+            >
+              <FiChevronLeft size={20} />
+            </button>
+            <button
+              className="cd-others__nav cd-others__nav--next"
+              onClick={() => otherRef.current?.next?.()}
+            >
+              <FiChevronRight size={20} />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

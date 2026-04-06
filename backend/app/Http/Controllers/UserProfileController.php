@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use App\Models\ToChuc;
+use Illuminate\Support\Facades\DB;
 
 class UserProfileController extends Controller
 {
@@ -19,11 +20,16 @@ class UserProfileController extends Controller
         // load quan hệ
         $user->load(['toChuc.taiKhoanGayQuy']);
 
+        $tongTienUngHo = DB::table('ung_ho')
+            ->where('nguoi_dung_id', $user->id)
+            ->sum('so_tien');
+        
         return response()->json([
             'user' => $user,
             'avatar_url' => $user->anh_dai_dien
                 ? asset('storage/' . $user->anh_dai_dien)
                 : null,
+            'tong_tien_ung_ho' => $tongTienUngHo,
         ]);
     }
 
