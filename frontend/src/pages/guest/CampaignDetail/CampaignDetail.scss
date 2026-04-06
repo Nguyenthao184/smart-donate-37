@@ -759,31 +759,6 @@
   font-weight: 500;
 }
 
-/* Urgency */
-.cd-stats__urgency {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(255, 77, 79, 0.07);
-  border: 1px solid rgba(255, 77, 79, 0.2);
-  color: #ff4d4f;
-  font-size: 12.5px;
-  font-weight: 700;
-  padding: 8px 12px;
-  border-radius: 10px;
-  animation: urgency-pulse 1.8s ease-in-out infinite;
-
-  @keyframes urgency-pulse {
-    0%,
-    100% {
-      background: rgba(255, 77, 79, 0.07);
-    }
-    50% {
-      background: rgba(255, 77, 79, 0.13);
-    }
-  }
-}
-
 /* Action */
 .cd-stats__action {
   display: flex;
@@ -994,4 +969,56 @@
       right: -16px;
     }
   }
+}
+
+.cd-stats__bank-box {
+  margin-bottom: 16px;
+  padding: 14px;
+  border-radius: 12px;
+  background: #fafafa;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.cd-stats__bank-header {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: #555;
+}
+
+.cd-stats__bank-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border: 0.5px solid #747373;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.cd-stats__bank-code {
+  font-weight: 600;
+  color: #ff4d4f;
+  font-size: 14px;
+  word-break: break-all;
+}
+
+.cd-stats__copy-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 16px;
+  transition: 0.2s;
+}
+
+.cd-stats__copy-btn:hover {
+  transform: scale(1.1);
+}
+
+.cd-stats__bank-note {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #888;
+  line-height: 1.4;
 }
