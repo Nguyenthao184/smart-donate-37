@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useParams } from "react-router-dom";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -14,6 +15,7 @@ import {
   FiUsers,
   FiAward,
   FiInfo,
+  FiCopy,
 } from "react-icons/fi";
 import { TbWorldHeart, TbLocationHeart } from "react-icons/tb";
 import { PiClockUserDuotone } from "react-icons/pi";
@@ -29,6 +31,7 @@ mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
 
 export default function CampaignDetail() {
   const { id } = useParams();
+  const location = useLocation();
   const { campaigns: otherCampaigns, loading: loadingOther } = useCampaigns();
 
   const [campaign, setCampaign] = useState(null);
@@ -37,6 +40,12 @@ export default function CampaignDetail() {
   const otherRef = useRef(null);
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
+  const navigate = useNavigate();
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [location.pathname]);
 
   // Fetch chi tiết chiến dịch (store dedupe + cleanup tránh setState sau unmount)
   useEffect(() => {
@@ -64,6 +73,7 @@ export default function CampaignDetail() {
           address: data.to_chuc?.dia_chi,
           email: data.to_chuc?.email,
           hotline: data.to_chuc?.so_dien_thoai,
+          codebank: data.to_chuc?.ma_noi_dung_ck,
           verified: true, // giả sử luôn verified
         },
         donors: data.danh_sach_ung_ho.map((d, i) => ({
@@ -80,6 +90,12 @@ export default function CampaignDetail() {
       cancelled = true;
     };
   }, [id]);
+
+  function handleCopy() {
+    navigator.clipboard.writeText(campaign.codebank);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  }
 
   useEffect(() => {
     if (!campaign?.lat || !campaign?.lng) return;
@@ -106,7 +122,6 @@ export default function CampaignDetail() {
 
   const percent =
     campaign.goal > 0 ? Math.round((campaign.raised / campaign.goal) * 100) : 0;
-
 
   const tabItems = [
     {
@@ -359,13 +374,25 @@ export default function CampaignDetail() {
               </div>
             </div>
 
-            {/* Urgency bar */}
-            {campaign.daysLeft <= 3 && (
-              <div className="cd-stats__urgency">
-                <FiClock size={13} />
-                Sắp kết thúc! Hãy ủng hộ ngay hôm nay
+            {/* Transfer content box */}
+            <div className="cd-stats__bank-box">
+              <div className="cd-stats__bank-header">
+                <span>Mã nội dung chuyển khoản</span>
               </div>
-            )}
+
+              <div className="cd-stats__bank-content">
+                <span className="cd-stats__bank-code">{copied ? "Đã sao chép!" : campaign.codebank}</span>
+
+                <button className="cd-stats__copy-btn" onClick={handleCopy}>
+                  <FiCopy size={16} />
+                </button>
+              </div>
+
+              <div className="cd-stats__bank-note">
+                (Vui lòng sao chép mã này vào nội dung chuyển khoản để chúng tôi
+                nhận ra ủng hộ của bạn)
+              </div>
+            </div>
 
             {/* Action button */}
             <div className="cd-stats__action">
@@ -377,6 +404,7 @@ export default function CampaignDetail() {
                 danger
                 size="large"
                 className="cd-stats__donate-btn"
+                onClick={() => navigate("/chien-dich/ung-ho")}
               >
                 <TbLocationHeart size={20} /> ỦNG HỘ CHIẾN DỊCH
               </Button>

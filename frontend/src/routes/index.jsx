@@ -23,6 +23,8 @@ import CreatePost from "../pages/user/CreatePost/CreatePost.jsx";
 import Chat from "../pages/user/Chat/Chat.jsx";
 import Profile from "../pages/user/Profile/Profile.jsx";
 import RegisterOrg from "../pages/user/RegisterOrg/RegisterOrg.jsx"
+import Donate from "../pages/user/Donate/Donate.jsx"
+import DonateSuccess from "../pages/user/DonateSuccess/DonateSuccess.jsx"
 import AdminPanel from "../pages/admin/AdminPanel/AdminPanel.jsx";
 import Login from "../pages/auth/Login/Login.jsx";
 import Register from "../pages/auth/Register/Register.jsx";
@@ -184,6 +186,24 @@ const privateRoutes = [
         <MainLayout>
           <RegisterOrg />
         </MainLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/chien-dich/ung-ho",
+    element: (
+      <ProtectedRoute>
+        <MainLayout>
+          <Donate />
+        </MainLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/thanh-cong",
+    element: (
+      <ProtectedRoute>
+          <DonateSuccess />
       </ProtectedRoute>
     ),
   },
