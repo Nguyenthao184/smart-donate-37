@@ -1,8 +1,8 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Popconfirm } from "antd";
+import { Popconfirm, notification } from "antd";
 import { FiX, FiUpload, FiFile, FiCheck, FiAlertCircle } from "react-icons/fi";
-import api from "../../../services/api";
+import useOrganizationStore from "../../../store/organizationStore";
 import "./RegisterOrg.scss";
 
 const LOAI_HINH_OPTIONS = [
@@ -63,8 +63,15 @@ const LOAI_HINH_OPTIONS = [
   },
 ];
 
-export default function RegisterOrgModal({ onClose }) {
+export default function RegisterOrg({ onClose }) {
   const navigate = useNavigate();
+  const registerOrganization = useOrganizationStore(
+    (s) => s.registerOrganization,
+  );
+  const fetchStatus = useOrganizationStore((s) => s.fetchOrganizationStatus);
+  const status = useOrganizationStore((s) => s.organizationStatus);
+  const loadingStatus = useOrganizationStore((s) => s.loadingStatus);
+  const loadingRegister = useOrganizationStore((s) => s.loadingRegister);
   const fileRef = useRef(null);
   const [form, setForm] = useState({
     ten_to_chuc: "",
@@ -76,6 +83,10 @@ export default function RegisterOrgModal({ onClose }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [dragging, setDragging] = useState(false);
+
+  useEffect(() => {
+    fetchStatus();
+  }, []);
 
   function handleChange(e) {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -100,23 +111,27 @@ export default function RegisterOrgModal({ onClose }) {
       !form.nguoi_dai_dien ||
       !form.loai_hinh
     ) {
-      setError("Vui lòng điền đầy đủ các trường bắt buộc!");
+      notification.warning({
+        title: "Vui lòng điền đầy đủ các trường bắt buộc!"
+      })
       return;
     }
     if (!file) {
-      setError("Vui lòng tải lên giấy phép hoạt động!");
+      notification.warning({
+        title: "Vui lòng tải lên giấy phép hoạt động!"
+      })
       return;
     }
     setLoading(true);
     setError("");
     try {
-      const fd = new FormData();
-      Object.entries(form).forEach(([k, v]) => fd.append(k, v));
-      fd.append("giay_phep", file);
-      await api.post("/organization/register", fd, {
-        headers: { "Content-Type": "multipart/form-data" },
+      await registerOrganization({
+        ...form,
+        giay_phep: file,
       });
-      alert("Đăng ký tổ chức thành công! Vui lòng chờ admin duyệt.");
+      notification.success({
+        title: "Đăng ký tổ chức thành công! Vui lòng chờ admin duyệt.",
+      });
       onClose();
     } catch (e) {
       setError(
@@ -125,6 +140,42 @@ export default function RegisterOrgModal({ onClose }) {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (loadingStatus) {
+    return <div className="rom-modal"></div>;
+  }
+
+  if (status) {
+    return (
+      <div className="rom-overlay">
+        <div className="rom-modal">
+          <div className="rom-modal__header">
+            <div className="rom-modal__header-title">Trạng thái đăng ký</div>
+          </div>
+
+          <div className="rom-modal__body">
+            {status.trang_thai === "CHO_XU_LY" && (
+              <div>Hồ sơ đang chờ duyệt...</div>
+            )}
+
+            {status.trang_thai === "CHAP_NHAN" && (
+              <div>Tổ chức đã được duyệt</div>
+            )}
+
+            {status.trang_thai === "TU_CHOI" && (
+              <div>Hồ sơ bị từ chối, vui lòng đăng ký lại</div>
+            )}
+          </div>
+
+          <div className="rom-modal__footer">
+            <button className="rom-btn" onClick={() => navigate("/chien-dich")}>
+              Đóng
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -378,14 +429,14 @@ export default function RegisterOrgModal({ onClose }) {
             cancelText="No"
             onConfirm={() => navigate("/chien-dich")}
           >
-          <button className="rom-btn rom-btn--cancel" onClick={onClose}>
-            Hủy
-          </button>
+            <button className="rom-btn rom-btn--cancel" onClick={onClose}>
+              Hủy
+            </button>
           </Popconfirm>
           <button
             className="rom-btn rom-btn--submit"
             onClick={handleSubmit}
-            disabled={loading}
+            disabled={loadingRegister}
           >
             {loading ? (
               <span className="rom-btn__loading">

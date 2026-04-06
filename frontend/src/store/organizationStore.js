@@ -2,6 +2,8 @@ import { create } from "zustand";
 import {
   getOrganizations,
   getOrganizationDetail,
+  registerOrganization,
+  getOrganizationStatus,
 } from "../api/organizationService";
 
 let organizationsPromise = null;
@@ -13,7 +15,10 @@ const useOrganizationStore = create((set, get) => ({
   pagination: {},
   total: 0,
   loadingList: false,
-  organizationDetail: {}, // cache theo id
+  organizationDetail: {},
+  organizationStatus: null,
+  loadingStatus: false,
+  loadingRegister: false,
 
   loading: false,
 
@@ -81,6 +86,63 @@ const useOrganizationStore = create((set, get) => ({
     })();
 
     return detailPromises[sid];
+  },
+
+  fetchOrganizationStatus: async () => {
+    if (get().loadingStatus) return;
+
+    set({ loadingStatus: true });
+
+    try {
+      const data = await getOrganizationStatus();
+
+      set({
+        organizationStatus: data || null,
+        loadingStatus: false,
+      });
+
+      return data;
+    } catch (err) {
+      console.error("Lỗi fetch status:", err);
+      set({ loadingStatus: false });
+      return null;
+    }
+  },
+
+  registerOrganization: async (values) => {
+    if (get().loadingRegister) return;
+
+    set({ loadingRegister: true });
+
+    try {
+      const formData = new FormData();
+
+      formData.append("ten_to_chuc", values.ten_to_chuc);
+      formData.append("ma_so_thue", values.ma_so_thue);
+      formData.append("nguoi_dai_dien", values.nguoi_dai_dien);
+      formData.append("loai_hinh", values.loai_hinh);
+
+      // ⚠️ file từ antd
+      if (values.giay_phep) {
+        formData.append(
+          "giay_phep",
+          values.giay_phep.originFileObj || values.giay_phep,
+        );
+      }
+
+      const res = await registerOrganization(formData);
+
+      // ✅ sau khi đăng ký → fetch lại status
+      await get().fetchOrganizationStatus();
+
+      set({ loadingRegister: false });
+
+      return res.data;
+    } catch (err) {
+      console.error("Lỗi register:", err);
+      set({ loadingRegister: false });
+      throw err;
+    }
   },
 }));
 
