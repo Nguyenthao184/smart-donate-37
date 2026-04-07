@@ -41,9 +41,9 @@ export default function Campaign() {
   const { featured, campaigns, loading: campLoading } = useCampaigns();
   const { categories } = useCategories();
   const { organizations } = useOrganizations();
-  const user = useAuthStore((s) => s.user);
+  const roles = useAuthStore((s) => s.roles);
 
-  const isOrganization = user?.role === "TO_CHUC";
+  const isOrganization = roles.includes("TO_CHUC");
 
   const activeCampaigns = campaigns.filter((c) => c.trang_thai === "HOAT_DONG");
   const endingCampaigns = activeCampaigns
