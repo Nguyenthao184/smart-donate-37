@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import List, Literal, Optional, Set, Tuple
+from typing import Dict, List, Literal, Optional, Set, Tuple
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
@@ -39,8 +39,10 @@ class MatchRequest(BaseModel):
 class MatchResponseItem(BaseModel):
     post_id: int
     score: float
-    distance: float
+    distance: Optional[float] = None
     match_percent: float
+    reasons: List[str] = Field(default_factory=list)
+    breakdown: Optional[Dict[str, float]] = None
 
 
 class SemanticCandidateInput(BaseModel):
@@ -121,7 +123,8 @@ def matches(req: MatchRequest) -> List[MatchResponseItem]:
     semantic_sims = core_similarity.semantic_similarity_scores(target_text, other_texts)
     lexical_sims = core_similarity.lexical_similarity_scores(target_text, other_texts)
 
-    scored_rows: List[Tuple[MatchResponseItem, float]] = []
+    scored_rows_geo: List[Tuple[MatchResponseItem, float]] = []
+    scored_rows_nogeo: List[Tuple[MatchResponseItem, float]] = []
     now = datetime.now(timezone.utc)
     target_urgency = core_text.urgency_score(target_text)
 
@@ -146,6 +149,7 @@ def matches(req: MatchRequest) -> List[MatchResponseItem]:
         semantic_sim = float(semantic_sims[idx])
         lexical_sim = float(lexical_sims[idx])
         match_sim = max(0.0, min(1.0, w_sem * semantic_sim + w_lex * lexical_sim))
+        reasons: List[str] = []
 
         if core_config.DEBUG_SEMANTIC_MATCH:
             print("TARGET:", target_text)
@@ -162,6 +166,7 @@ def matches(req: MatchRequest) -> List[MatchResponseItem]:
                 cand_codes.discard("vehicle")
             if not cand_codes or cand_codes.isdisjoint(allowed_categories):
                 continue
+            reasons.append("category_gate")
             if core_text.should_reject_vehicle_offer_when_vehicle_not_allowed(
                 cand_text, allowed_categories
             ):
@@ -169,6 +174,7 @@ def matches(req: MatchRequest) -> List[MatchResponseItem]:
         else:
             if core_text.should_reject_by_intent(target_text, cand_text):
                 continue
+            reasons.append("intent_gate")
 
         if core_text.should_reject_for_food_urgency(target_text, cand_text):
             continue
@@ -186,19 +192,29 @@ def matches(req: MatchRequest) -> List[MatchResponseItem]:
 
         similarity_score = match_sim * 7.0
 
-        distance_km = 0.0
+        distance_km: Optional[float] = None
         location_score = 0.0
-        if target.lat is None or target.lng is None or cand.lat is None or cand.lng is None:
-            continue
-        distance_km = core_geo.haversine_km(
-            target.lat,
-            target.lng,
-            cand.lat,
-            cand.lng,
+        has_geo = not (
+            target.lat is None
+            or target.lng is None
+            or cand.lat is None
+            or cand.lng is None
         )
-        if distance_km > 20.0:
-            continue
-        location_score = core_geo.score_location_km(distance_km)
+        if has_geo:
+            distance_km = core_geo.haversine_km(
+                target.lat,
+                target.lng,
+                cand.lat,
+                cand.lng,
+            )
+            if distance_km > 20.0:
+                continue
+            location_score = core_geo.score_location_km(distance_km)
+            reasons.append("geo_ok")
+        else:
+            # Thiếu vị trí: vẫn cho match theo nội dung nhưng hạ ưu tiên,
+            # và UI sẽ hiển thị "không xác định vị trí" vì distance=None.
+            reasons.append("geo_unknown")
 
         cand_created_at = cand.created_at
         if cand_created_at.tzinfo is None:
@@ -211,51 +227,75 @@ def matches(req: MatchRequest) -> List[MatchResponseItem]:
         time_score = core_geo.score_time_days(delta_days)
 
         final_score = similarity_score + location_score + time_score + (target_urgency * 1.5)
-        final_score += core_text.relevance_penalty(match_sim)
+        penalty = core_text.relevance_penalty(match_sim)
+        final_score += penalty
+        if not has_geo:
+            final_score -= 1.25
 
         match_percent = min(100.0, (match_sim * 100.0))
-        scored_rows.append(
-            (
-                MatchResponseItem(
-                    post_id=cand.id,
-                    score=round(final_score, 6),
-                    distance=round(distance_km, 6),
-                    match_percent=round(match_percent, 2),
-                ),
-                match_sim,
-            )
+        item = MatchResponseItem(
+            post_id=cand.id,
+            score=round(final_score, 6),
+            distance=(round(distance_km, 6) if distance_km is not None else None),
+            match_percent=round(match_percent, 2),
+            reasons=reasons,
+            breakdown={
+                "semantic_sim": float(round(semantic_sim, 6)),
+                "lexical_sim": float(round(lexical_sim, 6)),
+                "match_sim": float(round(match_sim, 6)),
+                "similarity_score": float(round(similarity_score, 6)),
+                "location_score": float(round(location_score, 6)),
+                "time_score": float(round(time_score, 6)),
+                "urgency": float(round(target_urgency, 6)),
+                "penalty": float(round(penalty, 6)),
+            },
         )
+        bucket = scored_rows_geo if has_geo else scored_rows_nogeo
+        bucket.append((item, match_sim))
 
-    strict_rows = [row for row in scored_rows if row[1] >= core_config.MIN_SIM_STRICT]
+    strict_rows_geo = [row for row in scored_rows_geo if row[1] >= core_config.MIN_SIM_STRICT]
+    strict_rows_nogeo = [row for row in scored_rows_nogeo if row[1] >= core_config.MIN_SIM_STRICT]
 
     multi_need = len(allowed_categories) > 1
     # Giáo dục: bài "cần laptop" và "tặng sách/vở" thường có điểm trộn ở mức lỏng, không chỉ khớp laptop chặt
     intent_loose = bool(
         {"food", "clothes", "household", "education"} & target_intents
     )
-    use_loose_fill = len(strict_rows) < 5 and (multi_need or intent_loose)
+    use_loose_fill = (len(strict_rows_geo) + len(strict_rows_nogeo) < 5) and (multi_need or intent_loose)
 
     loose_floor = core_config.MIN_SIM_LOOSE
 
-    if not strict_rows:
-        scored_rows.sort(key=lambda row: row[0].score, reverse=True)
-        return [row[0] for row in scored_rows[:5]]
-
-    if use_loose_fill:
-        loose_rows = [
-            row
-            for row in scored_rows
-            if loose_floor <= row[1] < core_config.MIN_SIM_STRICT
-        ]
-        strict_ids = {row[0].post_id for row in strict_rows}
-        loose_rows = [row for row in loose_rows if row[0].post_id not in strict_ids]
-        strict_rows.sort(key=lambda row: row[0].score, reverse=True)
-        loose_rows.sort(key=lambda row: row[0].score, reverse=True)
-        merged = strict_rows + loose_rows
+    if not strict_rows_geo:
+        # Không có strict có geo → ưu tiên trả các match có geo (dù loose),
+        # chỉ fill bằng match không geo nếu vẫn thiếu.
+        scored_rows_geo.sort(key=lambda row: row[0].score, reverse=True)
+        scored_rows_nogeo.sort(key=lambda row: row[0].score, reverse=True)
+        merged = scored_rows_geo + scored_rows_nogeo
         return [row[0] for row in merged[:5]]
 
-    strict_rows.sort(key=lambda row: row[0].score, reverse=True)
-    return [row[0] for row in strict_rows[:5]]
+    if use_loose_fill:
+        loose_geo = [
+            row
+            for row in scored_rows_geo
+            if loose_floor <= row[1] < core_config.MIN_SIM_STRICT
+        ]
+        loose_nogeo = [
+            row
+            for row in scored_rows_nogeo
+            if loose_floor <= row[1] < core_config.MIN_SIM_STRICT
+        ]
+        strict_ids = {row[0].post_id for row in strict_rows_geo}
+        loose_geo = [row for row in loose_geo if row[0].post_id not in strict_ids]
+        loose_nogeo = [row for row in loose_nogeo if row[0].post_id not in strict_ids]
+
+        strict_rows_geo.sort(key=lambda row: row[0].score, reverse=True)
+        loose_geo.sort(key=lambda row: row[0].score, reverse=True)
+        loose_nogeo.sort(key=lambda row: row[0].score, reverse=True)
+        merged = strict_rows_geo + loose_geo + loose_nogeo
+        return [row[0] for row in merged[:5]]
+
+    strict_rows_geo.sort(key=lambda row: row[0].score, reverse=True)
+    return [row[0] for row in strict_rows_geo[:5]]
 
 
 @app.post("/semantic-matches", response_model=List[SemanticMatchResponseItem])
