@@ -43,8 +43,8 @@ const useAuthStore = create((set, get) => {
      * Một request /me cho mọi nơi gọi (StrictMode, App + Header, v.v.).
      */
     fetchMe: async () => {
-      const { token, isFetchedMe } = get();
-      if (!token || isFetchedMe) return;
+      const { token } = get();
+      if (!token) return;
 
       if (mePromise) return mePromise;
 

@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Input, Button, Popconfirm } from "antd";
+import { Input, Button, notification, Popconfirm} from "antd";
 import {
   FiX,
   FiUpload,
@@ -9,17 +9,23 @@ import {
   FiType,
   FiPlus,
 } from "react-icons/fi";
+import { BsBox2HeartFill } from "react-icons/bs";
+import { FaHandsHoldingCircle } from "react-icons/fa6";
+import { MdAddLocationAlt } from "react-icons/md";
+import { GoNumber } from "react-icons/go";
+import usePostStore from "../../../store/postStore";
 import "./CreatePost.scss";
 
 const { TextArea } = Input;
 
 export default function CreatePost() {
   const navigate = useNavigate();
+  const { createPost } = usePostStore();
   const [type, setType] = useState("cho");
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
   const [location, setLocation] = useState("");
-  const [quantity, setQuantity] = useState("");
+  const [quantity, setQuantity] = useState(0);
   const [images, setImages] = useState([]);
   const [preview, setPreview] = useState(null);
   const [dragging, setDragging] = useState(false);
@@ -27,12 +33,69 @@ export default function CreatePost() {
 
   function handleFile(files) {
     const newImgs = Array.from(files).map((f) => ({
+      file: f,
       url: URL.createObjectURL(f),
       name: f.name,
     }));
+
     setImages((prev) => [...prev, ...newImgs]);
     if (!preview && newImgs.length) setPreview(newImgs[0].url);
   }
+
+  const handleSubmit = async () => {
+    if (!title || !desc) {
+      notification.warning({
+        message: "Thiếu thông tin",
+        description: "Vui lòng nhập tiêu đề và mô tả",
+      });
+      return;
+    }
+
+    const formData = new FormData();
+
+    formData.append("tieu_de", title);
+    formData.append("mo_ta", desc);
+    formData.append("loai_bai", type === "cho" ? "CHO" : "NHAN");
+    formData.append("dia_diem", location);
+    formData.append("so_luong", quantity);
+
+    if (images[0]?.file) {
+      formData.append("hinh_anh", images[0].file);
+    }
+
+    try {
+      const res = await createPost(formData);
+
+      if (res) {
+        notification.success({
+          message: "Thành công 🎉",
+          description: "Bài đăng của bạn đã được tạo!",
+        });
+
+        setTimeout(() => {
+          navigate("/bang-tin");
+        }, 1200);
+      }
+    } catch (err) {
+      console.error(err);
+
+      // 🔥 Lấy lỗi từ BE (Laravel validate)
+      const errors = err?.response?.data?.errors;
+
+      if (errors) {
+        Object.values(errors).forEach((errArr) => {
+          notification.warning({
+            message: "Vui lòng nhập số lượng",
+            description: errArr[0],
+          });
+        });
+      } else {
+        notification.error({
+          message: err?.response?.data?.message,
+        });
+      }
+    }
+  };
 
   function removeImage(idx) {
     setImages((prev) => {
@@ -62,13 +125,19 @@ export default function CreatePost() {
                 className={`cp-type-btn cp-type-btn--cho${type === "cho" ? " active" : ""}`}
                 onClick={() => setType("cho")}
               >
-                <span className="cp-type-btn__icon">🎁</span> Cho
+                <span className="cp-type-btn__icon">
+                  <BsBox2HeartFill size={25} />
+                </span>{" "}
+                Cho
               </button>
               <button
                 className={`cp-type-btn cp-type-btn--nhan${type === "nhan" ? " active" : ""}`}
                 onClick={() => setType("nhan")}
               >
-                <span className="cp-type-btn__icon">🤲</span> Nhận
+                <span className="cp-type-btn__icon">
+                  <FaHandsHoldingCircle size={25} />
+                </span>{" "}
+                Nhận
               </button>
             </div>
           </div>
@@ -89,85 +158,89 @@ export default function CreatePost() {
           </div>
 
           {/* Hình ảnh */}
-          <div className="cp-field">
-            <label className="cp-field__label">
-              <FiImage size={14} /> Hình ảnh
-            </label>
+          {type === "cho" && (
+            <div className="cp-field">
+              <label className="cp-field__label">
+                <FiImage size={14} /> Hình ảnh
+              </label>
 
-            {images.length === 0 ? (
-              <div
-                className={`cp-upload__zone${dragging ? " dragging" : ""}`}
-                onClick={() => fileRef.current?.click()}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setDragging(true);
-                }}
-                onDragLeave={() => setDragging(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setDragging(false);
-                  handleFile(e.dataTransfer.files);
-                }}
-              >
-                <div className="cp-upload__zone-circle">
-                  <FiPlus size={24} />
-                </div>
-                <span className="cp-upload__zone-text">Tải ảnh lên</span>
-                <span className="cp-upload__zone-hint">
-                  Kéo thả hoặc click để chọn
-                </span>
-              </div>
-            ) : (
-              <div className="cp-upload__preview">
-                <div className="cp-upload__preview-main">
-                  <img src={preview} alt="preview" />
-                  <div className="cp-upload__preview-overlay">
-                    <button
-                      className="cp-upload__preview-change"
-                      onClick={() => fileRef.current?.click()}
-                    >
-                      <FiUpload size={14} /> Thêm ảnh
-                    </button>
+              {images.length === 0 ? (
+                <div
+                  className={`cp-upload__zone${dragging ? " dragging" : ""}`}
+                  onClick={() => fileRef.current?.click()}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setDragging(true);
+                  }}
+                  onDragLeave={() => setDragging(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDragging(false);
+                    handleFile(e.dataTransfer.files);
+                  }}
+                >
+                  <div className="cp-upload__zone-circle">
+                    <FiPlus size={24} />
                   </div>
+                  <span className="cp-upload__zone-text">Tải ảnh lên</span>
+                  <span className="cp-upload__zone-hint">
+                    Kéo thả hoặc click để chọn
+                  </span>
                 </div>
-                <div className="cp-upload__thumbs">
-                  {images.map((img, i) => (
-                    <div
-                      key={i}
-                      className={`cp-upload__thumb${preview === img.url ? " active" : ""}`}
-                      onClick={() => setPreview(img.url)}
-                    >
-                      <img src={img.url} alt={img.name} />
+              ) : (
+                <div className="cp-upload__preview">
+                  <div className="cp-upload__preview-main">
+                    <img src={preview} alt="preview" />
+                    <div className="cp-upload__preview-overlay">
                       <button
-                        className="cp-upload__thumb-remove"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeImage(i);
-                        }}
+                        className="cp-upload__preview-change"
+                        onClick={() => fileRef.current?.click()}
                       >
-                        <FiX size={10} />
+                        <FiUpload size={14} /> Thêm ảnh
                       </button>
                     </div>
-                  ))}
-                  <div
-                    className="cp-upload__thumb cp-upload__thumb--add"
-                    onClick={() => fileRef.current?.click()}
-                  >
-                    <FiPlus size={16} />
+                  </div>
+                  <div className="cp-upload__thumbs">
+                    {images.map((img, i) => (
+                      <div
+                        key={i}
+                        className={`cp-upload__thumb${
+                          preview === img.url ? " active" : ""
+                        }`}
+                        onClick={() => setPreview(img.url)}
+                      >
+                        <img src={img.url} alt={img.name} />
+                        <button
+                          className="cp-upload__thumb-remove"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeImage(i);
+                          }}
+                        >
+                          <FiX size={10} />
+                        </button>
+                      </div>
+                    ))}
+                    <div
+                      className="cp-upload__thumb cp-upload__thumb--add"
+                      onClick={() => fileRef.current?.click()}
+                    >
+                      <FiPlus size={16} />
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              multiple
-              style={{ display: "none" }}
-              onChange={(e) => handleFile(e.target.files)}
-            />
-          </div>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                multiple
+                style={{ display: "none" }}
+                onChange={(e) => handleFile(e.target.files)}
+              />
+            </div>
+          )}
 
           {/* Mô tả */}
           <div className="cp-field">
@@ -190,13 +263,13 @@ export default function CreatePost() {
             <div className="cp-field-inline">
               <label className="cp-field-inline__label">
                 <span className="cp-field-inline__icon cp-field-inline__icon--red">
-                  📍
+                  <MdAddLocationAlt size={14} />
                 </span>
                 <strong>Địa điểm</strong>
               </label>
               <Input
                 className="cp-field-inline__input"
-                placeholder="Nhập địa điểm..."
+                placeholder="Phường/Xã, Quận/Huyện, Tỉnh/Thành..."
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
               />
@@ -204,7 +277,7 @@ export default function CreatePost() {
             <div className="cp-field-inline">
               <label className="cp-field-inline__label">
                 <span className="cp-field-inline__icon cp-field-inline__icon--brown">
-                  📦
+                  <GoNumber size={14} />
                 </span>
                 <strong>Số lượng</strong>
               </label>
@@ -233,7 +306,11 @@ export default function CreatePost() {
               HỦY
             </Button>
           </Popconfirm>
-          <Button className="cp-btn cp-btn--submit" type="primary">
+          <Button
+            className="cp-btn cp-btn--submit"
+            type="primary"
+            onClick={handleSubmit}
+          >
             ĐĂNG BÀI
           </Button>
         </div>

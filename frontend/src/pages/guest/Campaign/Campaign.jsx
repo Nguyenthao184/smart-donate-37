@@ -22,6 +22,7 @@ import useCampaigns from "../../../hooks/useCampaigns";
 import useCategories from "../../../hooks/useCategories";
 import useOrganizations from "../../../hooks/useOrganizations";
 import useCampaignStore from "../../../store/campaignStore.js";
+import useAuthStore from "../../../store/authStore";
 import "./Campaign.scss";
 
 function formatVnd(n) {
@@ -40,6 +41,9 @@ export default function Campaign() {
   const { featured, campaigns, loading: campLoading } = useCampaigns();
   const { categories } = useCategories();
   const { organizations } = useOrganizations();
+  const user = useAuthStore((s) => s.user);
+
+  const isOrganization = user?.role === "TO_CHUC";
 
   const activeCampaigns = campaigns.filter((c) => c.trang_thai === "HOAT_DONG");
   const endingCampaigns = activeCampaigns
@@ -106,58 +110,60 @@ export default function Campaign() {
         </div>
 
         {/* CTA Box */}
-        <div className="sidebar__cta-box">
-          <div className="sidebar__cta-star">✨</div>
+        {!isOrganization && (
+          <div className="sidebar__cta-box">
+            <div className="sidebar__cta-star">✨</div>
 
-          {/* Thêm illustration banner */}
-          <div className="sidebar__cta-banner">
-            <img
-              src="https://images.unsplash.com/photo-1593113598332-cd288d649433?q=80&w=400&auto=format&fit=crop"
-              alt="volunteer"
-            />
-            <div className="sidebar__cta-banner-overlay">
-              <span>🤝 Cùng nhau lan tỏa yêu thương</span>
+            {/* Thêm illustration banner */}
+            <div className="sidebar__cta-banner">
+              <img
+                src="https://images.unsplash.com/photo-1593113598332-cd288d649433?q=80&w=400&auto=format&fit=crop"
+                alt="volunteer"
+              />
+              <div className="sidebar__cta-banner-overlay">
+                <span>🤝 Cùng nhau lan tỏa yêu thương</span>
+              </div>
             </div>
+
+            <h3 className="sidebar__cta-title">TRỞ THÀNH TỔ CHỨC TỪ THIỆN</h3>
+            <p className="sidebar__cta-desc">
+              Nếu bạn là tổ chức, doanh nghiệp hoặc nhóm thiện nguyện, hãy đăng
+              ký xác minh để tạo và quản lý chiến dịch gây quỹ
+            </p>
+
+            <div className="sidebar__cta-divider" />
+
+            <ul className="sidebar__cta-features">
+              <li>
+                <FiCheckCircle size={14} /> Tạo chiến dịch gây quỹ
+              </li>
+              <li>
+                <FiCheckCircle size={14} /> Quản lý đóng góp minh bạch
+              </li>
+              <li>
+                <FiCheckCircle size={14} /> Nhận hỗ trợ từ cộng đồng
+              </li>
+            </ul>
+
+            {/* Thêm trust line */}
+            <div className="sidebar__cta-trust">
+              <FiAward size={13} />
+              <span>
+                Đã xác minh bởi <strong>Bộ Công Thương</strong>
+              </span>
+            </div>
+
+            <Button
+              className="sidebar__cta-btn"
+              type="primary"
+              danger
+              block
+              onClick={handleRegisterOrg}
+            >
+              ĐĂNG KÝ XÁC MINH
+            </Button>
           </div>
-
-          <h3 className="sidebar__cta-title">TRỞ THÀNH TỔ CHỨC TỪ THIỆN</h3>
-          <p className="sidebar__cta-desc">
-            Nếu bạn là tổ chức, doanh nghiệp hoặc nhóm thiện nguyện, hãy đăng ký
-            xác minh để tạo và quản lý chiến dịch gây quỹ
-          </p>
-
-          <div className="sidebar__cta-divider" />
-
-          <ul className="sidebar__cta-features">
-            <li>
-              <FiCheckCircle size={14} /> Tạo chiến dịch gây quỹ
-            </li>
-            <li>
-              <FiCheckCircle size={14} /> Quản lý đóng góp minh bạch
-            </li>
-            <li>
-              <FiCheckCircle size={14} /> Nhận hỗ trợ từ cộng đồng
-            </li>
-          </ul>
-
-          {/* Thêm trust line */}
-          <div className="sidebar__cta-trust">
-            <FiAward size={13} />
-            <span>
-              Đã xác minh bởi <strong>Bộ Công Thương</strong>
-            </span>
-          </div>
-
-          <Button
-            className="sidebar__cta-btn"
-            type="primary"
-            danger
-            block
-            onClick={handleRegisterOrg}
-          >
-            ĐĂNG KÝ XÁC MINH
-          </Button>
-        </div>
+        )}
       </aside>
 
       {/* ── Main ── */}
