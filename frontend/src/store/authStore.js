@@ -10,7 +10,7 @@ const useAuthStore = create((set, get) => {
   return {
     user: userFromStorage || null,
     token: tokenFromStorage || null,
-
+    roles: JSON.parse(localStorage.getItem("roles")) || [],
     isFetchedMe: false,
 
     setAuth: (data) => {
@@ -20,38 +20,38 @@ const useAuthStore = create((set, get) => {
       set({
         user: data.user,
         token: data.token,
+        roles: data.roles || [],
         isFetchedMe: true,
       });
     },
 
-    setUser: (user) => {
+    setUser: (user, roles = []) => {
       localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("roles", JSON.stringify(roles));
 
       set({
         user,
+        roles,
         isFetchedMe: true,
       });
     },
 
-    /** Gắn token từ OAuth redirect; reset cờ để gọi /me lấy user mới. */
     applyTokenFromUrl: (token) => {
       localStorage.setItem("token", token);
       set({ token, isFetchedMe: false });
     },
 
-    /**
-     * Một request /me cho mọi nơi gọi (StrictMode, App + Header, v.v.).
-     */
     fetchMe: async () => {
-      const { token, isFetchedMe } = get();
-      if (!token || isFetchedMe) return;
+      const { token } = get();
+      if (!token) return;
 
       if (mePromise) return mePromise;
 
       mePromise = (async () => {
         try {
           const res = await getMeAPI();
-          get().setUser(res.data.user);
+
+          get().setUser(res.data.user, res.data.roles);
         } catch (err) {
           console.log("Lỗi lấy user:", err);
           throw err;
@@ -66,10 +66,12 @@ const useAuthStore = create((set, get) => {
     logout: () => {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
+      localStorage.removeItem("roles"); 
 
       set({
         user: null,
         token: null,
+        roles: [],
         isFetchedMe: false,
       });
     },

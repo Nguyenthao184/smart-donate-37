@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Requests\Auth\LoginRequest;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
@@ -71,6 +72,15 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Đăng xuất thành công'
+        ]);
+    }
+
+    public function me(Request $request)
+    {
+        $user = $request->user()->load('roles');
+        return response()->json([
+            'user' => $request->user(),
+            'roles' => $user->roles->pluck('ten_vai_tro')
         ]);
     }
 }

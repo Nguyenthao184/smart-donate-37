@@ -75,9 +75,9 @@ class PostController extends Controller
                 ? asset('storage/' . $post->nguoiDung->anh_dai_dien)
                 : null;
 
-            $post->hinh_anh_url = $post->hinh_anh
-                ? asset('storage/' . $post->hinh_anh)
-                : null;
+            $paths = is_array($post->hinh_anh) ? $post->hinh_anh : [];
+            $post->hinh_anh_urls = array_values(array_map(static fn ($p) => asset('storage/' . $p), $paths));
+            $post->hinh_anh_url = $post->hinh_anh_urls[0] ?? null; // backward compatible
 
             $post->nguoi_dung_ten = $post->nguoiDung?->ho_ten;
 
@@ -99,9 +99,68 @@ class PostController extends Controller
         $post->avatar_url = $post->nguoiDung && $post->nguoiDung->anh_dai_dien
             ? asset('storage/' . $post->nguoiDung->anh_dai_dien)
             : null;
-        $post->hinh_anh_url = $post->hinh_anh ? asset('storage/' . $post->hinh_anh) : null;
+        $paths = is_array($post->hinh_anh) ? $post->hinh_anh : [];
+        $post->hinh_anh_urls = array_values(array_map(static fn ($p) => asset('storage/' . $p), $paths));
+        $post->hinh_anh_url = $post->hinh_anh_urls[0] ?? null; // backward compatible
         return response()->json([
             'data' => $post
+        ]);
+    }
+
+    /**
+     * GET /api/posts/me
+     * Trang cá nhân: danh sách bài đăng của user hiện tại.
+     * Query: loai_bai=CHO|NHAN, trang_thai=..., page, per_page
+     */
+    public function me(Request $request)
+    {
+        $userId = (int) Auth::id();
+
+        $loaiBai = $request->query('loai_bai');
+        if (is_string($loaiBai)) {
+            $loaiBai = strtoupper(trim($loaiBai));
+        }
+
+        $trangThai = $request->query('trang_thai');
+        if (is_string($trangThai)) {
+            $trangThai = strtoupper(trim($trangThai));
+        }
+
+        $perPage = (int) $request->query('per_page', 12);
+        $perPage = max(1, min($perPage, 50));
+
+        $query = BaiDang::query()
+            ->with(['nguoiDung'])
+            ->where('nguoi_dung_id', $userId)
+            ->orderByDesc('created_at');
+
+        if (in_array($loaiBai, ['CHO', 'NHAN'], true)) {
+            $query->where('loai_bai', $loaiBai);
+        }
+
+        if (in_array($trangThai, ['CON_NHAN', 'CON_TANG', 'DA_NHAN', 'DA_TANG'], true)) {
+            $query->where('trang_thai', $trangThai);
+        }
+
+        $posts = $query->paginate($perPage);
+
+        $posts->getCollection()->transform(function (BaiDang $post) {
+            $post->avatar_url = $post->nguoiDung && $post->nguoiDung->anh_dai_dien
+                ? asset('storage/' . $post->nguoiDung->anh_dai_dien)
+                : null;
+
+            $paths = is_array($post->hinh_anh) ? $post->hinh_anh : [];
+            $post->hinh_anh_urls = array_values(array_map(static fn ($p) => asset('storage/' . $p), $paths));
+            $post->hinh_anh_url = $post->hinh_anh_urls[0] ?? null;
+
+            $post->nguoi_dung_ten = $post->nguoiDung?->ho_ten;
+            unset($post->nguoiDung);
+
+            return $post;
+        });
+
+        return response()->json([
+            'data' => $posts,
         ]);
     }
 
@@ -148,11 +207,20 @@ class PostController extends Controller
 
         $data['nguoi_dung_id'] = $userId;
 
-        if ($request->hasFile('hinh_anh')) {
-            $data['hinh_anh'] = $request->file('hinh_anh')->store('posts', 'public');
-        } else {
-            $data['hinh_anh'] = null;
+        $hinhAnhPaths = [];
+        $files = $request->file('hinh_anh');
+        if ($files) {
+            $files = is_array($files) ? $files : [$files];
+            foreach ($files as $f) {
+                if ($f) {
+                    $p = $f->store('posts', 'public');
+                    if ($p) {
+                        $hinhAnhPaths[] = $p;
+                    }
+                }
+            }
         }
+        $data['hinh_anh'] = $hinhAnhPaths === [] ? null : $hinhAnhPaths;
 
         $post = BaiDang::create($data);
 
@@ -173,7 +241,9 @@ class PostController extends Controller
         $post->avatar_url = $post->nguoiDung && $post->nguoiDung->anh_dai_dien
             ? asset('storage/' . $post->nguoiDung->anh_dai_dien)
             : null;
-        $post->hinh_anh_url = $post->hinh_anh ? asset('storage/' . $post->hinh_anh) : null;
+        $paths = is_array($post->hinh_anh) ? $post->hinh_anh : [];
+        $post->hinh_anh_urls = array_values(array_map(static fn ($p) => asset('storage/' . $p), $paths));
+        $post->hinh_anh_url = $post->hinh_anh_urls[0] ?? null; // backward compatible
         unset($post->nguoiDung);
 
         $danhMucGoiY = DanhMucBaiDang::where('bai_dang_id', $post->id)
@@ -245,12 +315,27 @@ class PostController extends Controller
             }
         }
 
-        if ($request->hasFile('hinh_anh')) {
-            if ($post->hinh_anh && Storage::disk('public')->exists($post->hinh_anh)) {
-                Storage::disk('public')->delete($post->hinh_anh);
+        $files = $request->file('hinh_anh');
+        if ($files) {
+            // delete old images
+            $oldPaths = is_array($post->hinh_anh) ? $post->hinh_anh : [];
+            foreach ($oldPaths as $op) {
+                if (is_string($op) && $op !== '' && Storage::disk('public')->exists($op)) {
+                    Storage::disk('public')->delete($op);
+                }
             }
 
-            $data['hinh_anh'] = $request->file('hinh_anh')->store('posts', 'public');
+            $newPaths = [];
+            $files = is_array($files) ? $files : [$files];
+            foreach ($files as $f) {
+                if ($f) {
+                    $p = $f->store('posts', 'public');
+                    if ($p) {
+                        $newPaths[] = $p;
+                    }
+                }
+            }
+            $data['hinh_anh'] = $newPaths === [] ? null : $newPaths;
         }
 
         $post->update($data);
@@ -273,7 +358,9 @@ class PostController extends Controller
         $post->avatar_url = $post->nguoiDung && $post->nguoiDung->anh_dai_dien
             ? asset('storage/' . $post->nguoiDung->anh_dai_dien)
             : null;
-        $post->hinh_anh_url = $post->hinh_anh ? asset('storage/' . $post->hinh_anh) : null;
+        $paths = is_array($post->hinh_anh) ? $post->hinh_anh : [];
+        $post->hinh_anh_urls = array_values(array_map(static fn ($p) => asset('storage/' . $p), $paths));
+        $post->hinh_anh_url = $post->hinh_anh_urls[0] ?? null; // backward compatible
         unset($post->nguoiDung);
 
         $danhMucGoiY = DanhMucBaiDang::where('bai_dang_id', $post->id)
@@ -301,8 +388,11 @@ class PostController extends Controller
             ], 403);
         }
 
-        if ($post->hinh_anh && Storage::disk('public')->exists($post->hinh_anh)) {
-            Storage::disk('public')->delete($post->hinh_anh);
+        $paths = is_array($post->hinh_anh) ? $post->hinh_anh : [];
+        foreach ($paths as $p) {
+            if (is_string($p) && $p !== '' && Storage::disk('public')->exists($p)) {
+                Storage::disk('public')->delete($p);
+            }
         }
 
         $post->delete();
@@ -403,16 +493,39 @@ class PostController extends Controller
             $post->avatar_url = $post->nguoiDung && $post->nguoiDung->anh_dai_dien
                 ? asset('storage/' . $post->nguoiDung->anh_dai_dien)
                 : null;
-            $post->hinh_anh_url = $post->hinh_anh ? asset('storage/' . $post->hinh_anh) : null;
+            $paths = is_array($post->hinh_anh) ? $post->hinh_anh : [];
+            $post->hinh_anh_urls = array_values(array_map(static fn ($p) => asset('storage/' . $p), $paths));
+            $post->hinh_anh_url = $post->hinh_anh_urls[0] ?? null; // backward compatible
 
             $post->nguoi_dung_ten = $post->nguoiDung?->ho_ten;
             unset($post->nguoiDung);
 
+            $reasonCodes = is_array($item['reasons'] ?? null) ? $item['reasons'] : [];
+            $reasonMapVi = [
+                'category_gate' => 'Cùng danh mục nên được ưu tiên',
+                'intent_gate' => 'Cùng nhóm nhu cầu (ý định) nên được ưu tiên',
+                'geo_ok' => 'Có thể tính khoảng cách theo vị trí',
+                'geo_unknown' => 'Không đủ dữ liệu vị trí để tính khoảng cách',
+            ];
+            $reasonsVi = [];
+            foreach ($reasonCodes as $code) {
+                $reasonsVi[] = $reasonMapVi[$code] ?? (string)$code;
+            }
+
             $responseData[] = [
                 'post' => $post,
                 'score' => (float)$item['score'],
-                'distance_km' => (float)$item['distance'],
+                // distance có thể null nếu bài thiếu lat/lng (AI service sẽ fallback theo nội dung)
+                'distance_km' => array_key_exists('distance', $item) && $item['distance'] !== null
+                    ? (float)$item['distance']
+                    : null,
                 'match_percent' => (float)$item['match_percent'],
+                // Explainability (để FE demo "vì sao gợi ý")
+                // reasons: tiếng Việt để hiển thị trực tiếp
+                'reasons' => $reasonsVi,
+                // reason_codes: giữ lại mã nếu cần debug
+                'reason_codes' => $reasonCodes,
+                'breakdown' => $item['breakdown'] ?? null,
             ];
 
             // Cache kết quả vào bảng ghep_noi_ai

@@ -12,7 +12,9 @@ class UngHo extends Model
         'nguoi_dung_id',
         'chien_dich_gay_quy_id',
         'so_tien',
-        'ma_giao_dich',
+        'phuong_thuc',
+        'vnp_txn_ref', 
+        'trang_thai',
     ];
 
     public function giaoDichQuy()

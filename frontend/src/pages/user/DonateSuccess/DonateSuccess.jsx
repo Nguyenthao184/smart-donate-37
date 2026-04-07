@@ -1,11 +1,11 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { FiHome, FiDownload, FiShare2 } from "react-icons/fi";
 import { GiHeartWings } from "react-icons/gi";
-import { RiSparklingLine } from "react-icons/ri";
+import { RiSparklingLine, RiQrCodeLine } from "react-icons/ri";
 import "./DonateSuccess.scss";
 
 function formatVnd(n) {
-  return Number(n).toLocaleString("vi-VN");
+  return Number(n || 0).toLocaleString("vi-VN");
 }
 
 function formatDate() {
@@ -14,7 +14,7 @@ function formatDate() {
 }
 
 const METHOD_NAMES = {
-  bank: "Chuyển khoản ngân hàng",
+  qr: "Mã QR ngân hàng",
   vnpay: "VNPay",
 };
 
@@ -22,23 +22,25 @@ export default function DonateSuccess() {
   const navigate  = useNavigate();
   const location  = useLocation();
   const state     = location.state || {};
-  const amount    = state.amount  || 200000;
-  const donor     = state.donor   || "Nguyễn Văn A";
-  const method    = state.method  || "momo";
-  const txId      = state.txId    || "#DN-2026031984";
-  const dateStr   = formatDate();
+
+  const amount  = state.amount || 0;
+  const donor   = state.donor || "Ẩn danh";
+  const method  = state.method || "qr";
+  const txId    = state.txId || state.ung_ho_id || "—";
+  const dateStr = formatDate();
 
   const rows = [
     { label:"Người quyên góp", value: donor },
-    { label:"Phương thức",      value: METHOD_NAMES[method] || method, isMomo: method==="momo" },
-    { label:"Mã giao dịch",     value: txId },
-    { label:"Thời gian",        value: dateStr },
+    { label:"Phương thức", value: METHOD_NAMES[method] },
+    { label:"Mã giao dịch", value: txId },
+    { label:"Thời gian", value: dateStr },
   ];
 
   return (
     <div className="ds-page">
       <div className="ds-card">
 
+        {/* Hero */}
         <div className="ds-hero">
           <h1 className="ds-hero__title">
             Quyên góp thành công!
@@ -59,10 +61,9 @@ export default function DonateSuccess() {
             <div key={i} className="ds-info-row">
               <span className="ds-info-row__label">{r.label}</span>
               <span className="ds-info-row__value">
-                {r.isMomo ? (
-                  <span className="ds-momo-tag">
-                    <span className="ds-momo-tag__icon">mo<br/>mo</span>
-                    MoMo
+                {r.label === "Phương thức" && method === "qr" ? (
+                  <span className="ds-qr-tag">
+                    <RiQrCodeLine size={14}/> Mã QR ngân hàng
                   </span>
                 ) : r.value}
               </span>
@@ -70,7 +71,16 @@ export default function DonateSuccess() {
           ))}
         </div>
 
-        {/* Thank you message */}
+        {/* Extra UI cho VNPAY */}
+        {method === "vnpay" && (
+          <div className="ds-extra">
+            <p className="ds-extra__text">
+              Giao dịch đã được xử lý qua cổng VNPay.
+            </p>
+          </div>
+        )}
+
+        {/* Thank you */}
         <div className="ds-thank">
           <div className="ds-thank__icon"><GiHeartWings size={40}/></div>
           <p className="ds-thank__text">
@@ -81,9 +91,13 @@ export default function DonateSuccess() {
 
         {/* Actions */}
         <div className="ds-actions">
-          <button className="ds-btn ds-btn--outline" onClick={() => navigate("/chien-dich")}>
+          <button
+            className="ds-btn ds-btn--outline"
+            onClick={() => navigate("/chien-dich")}
+          >
             <FiHome size={15}/> Về trang chủ
           </button>
+
           <button className="ds-btn ds-btn--primary">
             <FiDownload size={15}/> Lưu biên lai
           </button>

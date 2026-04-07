@@ -187,18 +187,6 @@ export default function RegisterOrg({ onClose }) {
         {/* Header */}
         <div className="rom-modal__header">
           <div className="rom-modal__header-left">
-            <div className="rom-modal__header-icon">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#fff"
-                strokeWidth="2"
-              >
-                <path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0H5m14 0h2M5 21H3m4-14h1m4 0h1m-6 4h1m4 0h1m-5 10v-5h4v5" />
-              </svg>
-            </div>
             <div>
               <div className="rom-modal__header-title">
                 Đăng ký tổ chức từ thiện
@@ -208,9 +196,6 @@ export default function RegisterOrg({ onClose }) {
               </div>
             </div>
           </div>
-          <button className="rom-modal__close" onClick={onClose}>
-            <FiX size={18} />
-          </button>
         </div>
 
         {/* Body — scrollable */}

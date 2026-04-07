@@ -190,7 +190,7 @@ const privateRoutes = [
     ),
   },
   {
-    path: "/chien-dich/ung-ho",
+    path: "/chien-dich/ung-ho/:id",
     element: (
       <ProtectedRoute>
         <MainLayout>

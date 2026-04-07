@@ -12,6 +12,9 @@ use App\Http\Controllers\CampaignController;
 use App\Http\Controllers\DonateController;
 
 use App\Http\Controllers\FraudController;
+use App\Http\Controllers\AdminUserController;
+use App\Http\Controllers\AdminDashboardController;
+use App\Http\Controllers\TroChuyenController;
 
 Route::post('/register', [AuthController::class,'register']);
 Route::post('/login', [AuthController::class,'login']);
@@ -20,29 +23,56 @@ Route::get('/auth/google/callback', [GoogleController::class, 'callback']);
 
 // Feed - guest có thể xem danh sách/chi tiết
 Route::get('/posts', [PostController::class, 'index']);
-Route::get('/posts/{id}', [PostController::class, 'show']);
+Route::get('/posts/{id}', [PostController::class, 'show'])->whereNumber('id');
 
 // ds danh mục
 Route::get('/categories', [CampaignController::class, 'getDanhMuc']);
+
 Route::middleware('auth:sanctum')->group(function(){
+    Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout',[AuthController::class,'logout']);
 
     Route::middleware('role:ADMIN')->group(function(){
-        // ADMIN duyệt tổ chức
-        Route::post('/admin/organization/{id}/approve', [OrganizationController::class, 'approve']);
-        Route::post('/admin/organization/{id}/reject', [OrganizationController::class, 'reject']);
+        Route::prefix('/admin')->group(function () {
+            // ADMIN - nguoi dung
+            Route::get('/users', [AdminUserController::class, 'index']);
+            Route::post('/users/{id}/lock', [AdminUserController::class, 'lock']);
+            Route::post('/users/{id}/unlock', [AdminUserController::class, 'unlock']);
 
-        // ADMIN duyệt tài khoản gây quỹ
-        Route::post('/fund-accounts/{id}/approve', [FundAccountController::class, 'approve']);
-        Route::post('/fund-accounts/{id}/lock', [FundAccountController::class, 'lock']);
+            // ADMIN - dashboard
+            Route::get('/dashboard/summary', [AdminDashboardController::class, 'summary']);
+            Route::get('/dashboard/fundraising-by-month', [AdminDashboardController::class, 'fundraisingByMonth']);
+            Route::get('/dashboard/recent-activities', [AdminDashboardController::class, 'recentActivities']);
+            Route::get('/dashboard/featured-campaigns', [AdminDashboardController::class, 'featuredCampaigns']);
 
-        // ADMIN duyệt chiến dịch
-        Route::post('/campaigns/{id}/approve', [CampaignController::class, 'approveCampaign']);
-        Route::post('/campaigns/{id}/reject', [CampaignController::class, 'rejectCampaign']);
-        // ADMIN auto fraud check (tu tinh feature roi goi AI)
-        Route::post('/admin/fraud-check/auto', [FraudController::class, 'autoCheck']);
-        Route::get('/admin/fraud-alerts', [FraudController::class, 'getAlerts']);
-        Route::post('/admin/fraud-alerts/{canhBao}', [FraudController::class, 'updateAlert']);
+            // ADMIN - danh sach / chi tiet
+            Route::get('/organizations', [OrganizationController::class, 'index']);
+            Route::get('/organizations/{id}', [OrganizationController::class, 'show']);
+            Route::get('/campaigns', [CampaignController::class, 'index']);
+            Route::get('/campaigns/{id}', [CampaignController::class, 'show']);
+            Route::get('/posts', [PostController::class, 'index']);
+            Route::get('/posts/{id}', [PostController::class, 'show']);
+
+            // ADMIN - duyet to chuc
+            Route::post('/organization/{id}/approve', [OrganizationController::class, 'approve']);
+            Route::post('/organization/{id}/reject', [OrganizationController::class, 'reject']);
+
+            // ADMIN - duyet tai khoan gay quy
+            Route::post('/fund-accounts/{id}/approve', [FundAccountController::class, 'approve']);
+            Route::post('/fund-accounts/{id}/lock', [FundAccountController::class, 'lock']);
+
+            // ADMIN - duyet chien dich
+            Route::post('/campaigns/{id}/approve', [CampaignController::class, 'approveCampaign']);
+            Route::post('/campaigns/{id}/reject', [CampaignController::class, 'rejectCampaign']);
+
+            // ADMIN - fraud
+            Route::post('/fraud-check/auto', [FraudController::class, 'autoCheck']);
+            Route::post('/fraud-check/campaigns/auto', [FraudController::class, 'autoCheckCampaigns']);
+            Route::get('/fraud-alerts', [FraudController::class, 'getAlerts']);
+            Route::post('/fraud-alerts/{canhBao}', [FraudController::class, 'updateAlert']);
+        });
+
+       
     });
 
     Route::middleware('role:NGUOI_DUNG')->group(function(){
@@ -76,14 +106,24 @@ Route::middleware('auth:sanctum')->group(function(){
     Route::middleware('role:NGUOI_DUNG,TO_CHUC')->group(function () {
         // CRUD posts
         Route::post('/posts', [PostController::class, 'store']);
-        Route::put('/posts/{id}', [PostController::class, 'update']);
-        Route::delete('/posts/{id}', [PostController::class, 'destroy']);
+        Route::get('/posts/me', [PostController::class, 'me']);
+        Route::put('/posts/{id}', [PostController::class, 'update'])->whereNumber('id');
+        Route::delete('/posts/{id}', [PostController::class, 'destroy'])->whereNumber('id');
 
         // AI matching
-        Route::get('/posts/{id}/matches', [PostController::class, 'matches']);
+        Route::get('/posts/{id}/matches', [PostController::class, 'matches'])->whereNumber('id');
+        Route::prefix('/tro-chuyen')->group(function () {
+            Route::post('/tao-hoac-lay', [TroChuyenController::class, 'taoHoacLay']);
+            Route::get('/', [TroChuyenController::class, 'danhSach']);
+            Route::get('/{id}/tin-nhan', [TroChuyenController::class, 'layTinNhan']);
+            Route::post('/{id}/tin-nhan', [TroChuyenController::class, 'guiTinNhan']);
+            Route::post('/{id}/da-xem', [TroChuyenController::class, 'danhDauDaXem']);
+        });
+       
        
     });
 });
+
 
 //xem tổ chức
 Route::get('/organization', [OrganizationController::class, 'index']);
@@ -93,3 +133,5 @@ Route::get('/organization/{id}', [OrganizationController::class, 'show']);
 Route::get('/campaigns', [CampaignController::class, 'index']);
 Route::get('/campaigns/featured', [CampaignController::class, 'featured']);
 Route::get('/campaigns/{id}', [CampaignController::class, 'show']);
+
+Route::get('/vnpay/return', [DonateController::class, 'vnpayReturn']);

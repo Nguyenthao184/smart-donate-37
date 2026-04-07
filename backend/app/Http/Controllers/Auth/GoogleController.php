@@ -24,7 +24,7 @@ class GoogleController extends Controller
         $user = User::where('email', $email)->first();
 
         if (!$user) {
-            return redirect("http://localhost:5175/login?error=email_not_found");
+            return redirect("http://localhost:5173/login?error=email_not_found");
         }
 
         if ($user->trang_thai == 'BI_CAM') {
@@ -37,6 +37,6 @@ class GoogleController extends Controller
         $token = $user->createToken('auth_token')->plainTextToken;
 
         $roles = $user->roles->pluck('ten_vai_tro')->implode(',');
-        return redirect("http://localhost:5175/auth/google/callback?token={$token}&roles={$roles}");
+        return redirect("http://localhost:5173/bang-tin?token={$token}&roles={$roles}");
     }
 }

@@ -15,7 +15,7 @@ return new class extends Migration
                 ->cascadeOnDelete();
             $table->foreignId('chien_dich_id')
                 ->nullable()
-                ->constrained('bai_dang')
+                ->constrained('chien_dich_gay_quy')
                 ->nullOnDelete();
             $table->string('loai_gian_lan', 255)->nullable();
             $table->float('diem_rui_ro')->default(0);
@@ -31,4 +31,3 @@ return new class extends Migration
         Schema::dropIfExists('canh_bao_gian_lan');
     }
 };
-

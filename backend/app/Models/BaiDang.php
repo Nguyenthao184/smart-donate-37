@@ -22,6 +22,10 @@ class BaiDang extends Model
         'trang_thai',
     ];
 
+    protected $casts = [
+        'hinh_anh' => 'array',
+    ];
+
     public function nguoiDung()
     {
         return $this->belongsTo(User::class, 'nguoi_dung_id');

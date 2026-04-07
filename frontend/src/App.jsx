@@ -7,6 +7,11 @@ function App() {
   const location = useLocation();
 
   useEffect(() => {
+    const { fetchMe } = useAuthStore.getState();
+    fetchMe();
+  }, []);
+
+  useEffect(() => {
     const params = new URLSearchParams(location.search);
     const token = params.get("token");
 

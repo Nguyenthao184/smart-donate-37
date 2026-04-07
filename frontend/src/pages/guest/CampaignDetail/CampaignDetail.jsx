@@ -59,6 +59,7 @@ export default function CampaignDetail() {
         title: data.ten_chien_dich,
         description: data.mo_ta,
         images: data.hinh_anh,
+        codebank: data.ma_noi_dung_ck,
         raised: Number(data.so_tien_da_nhan),
         goal: Number(data.muc_tieu_tien),
         daysLeft: data.so_ngay_con_lai,
@@ -73,7 +74,6 @@ export default function CampaignDetail() {
           address: data.to_chuc?.dia_chi,
           email: data.to_chuc?.email,
           hotline: data.to_chuc?.so_dien_thoai,
-          codebank: data.to_chuc?.ma_noi_dung_ck,
           verified: true, // giả sử luôn verified
         },
         donors: data.danh_sach_ung_ho.map((d, i) => ({
@@ -404,7 +404,7 @@ export default function CampaignDetail() {
                 danger
                 size="large"
                 className="cd-stats__donate-btn"
-                onClick={() => navigate("/chien-dich/ung-ho")}
+                onClick={() => navigate(`/chien-dich/ung-ho/${campaign.id}`)}
               >
                 <TbLocationHeart size={20} /> ỦNG HỘ CHIẾN DỊCH
               </Button>
