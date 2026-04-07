@@ -1,130 +1,127 @@
-import { PiUserCircleGearFill } from "react-icons/pi";
-import { FcOrganization } from "react-icons/fc";
-import { PiFlagBannerFoldFill } from "react-icons/pi";
-import { FaMoneyBillTrendUp } from "react-icons/fa6";
-import './Dashboard.scss';
+import { FiUsers, FiAward, FiDollarSign, FiAlertCircle, FiArrowUp, FiArrowDown, FiRefreshCw } from "react-icons/fi";
+import "./Dashboard.scss";
 
-const BarChart = ({ data, color }) => {
-  const max = Math.max(...data.map(d => d.value));
-  return (
-    <div className="bar-chart">
-      {data.map((d, i) => (
-        <div className="bar-wrap" key={i}>
-          <div
-            className="bar"
-            style={{
-              height: `${(d.value / max) * 100}%`,
-              background: color,
-              animationDelay: `${i * 0.05}s`
-            }}
-          >
-            <span className="bar-tooltip">{d.value.toLocaleString()}</span>
-          </div>
-          <span className="bar-label">{d.label}</span>
-        </div>
-      ))}
-    </div>
-  );
-};
-
-const StatCard = ({ icon, label, value, change, color }) => (
-  <div className="stat-card" style={{ '--accent': color }}>
-    <div className="stat-icon">{icon}</div>
-    <div className="stat-body">
-      <span className="stat-label">{label}</span>
-      <span className="stat-value">{value}</span>
-      <span className={`stat-change ${change >= 0 ? 'up' : 'down'}`}>
-        {change >= 0 ? '↑' : '↓'} {Math.abs(change)}% so với tháng trước
-      </span>
-    </div>
-  </div>
-);
-
-const monthlyData = [
-  { label: 'T1', value: 120 },
-  { label: 'T2', value: 98 },
-  { label: 'T3', value: 210 },
-  { label: 'T4', value: 175 },
-  { label: 'T5', value: 310 },
-  { label: 'T6', value: 265 },
-  { label: 'T7', value: 390 },
-  { label: 'T8', value: 420 },
-  { label: 'T9', value: 380 },
-  { label: 'T10', value: 510 },
-  { label: 'T11', value: 475 },
-  { label: 'T12', value: 612 },
+const STATS = [
+  { label: "Tổng người dùng",   value: "12,847", trend: "+8.2%",  up: true,  icon: <FiUsers size={18} />,       c: "#7c6df0" },
+  { label: "Tổ chức từ thiện",  value: "320",    trend: "+3.1%",  up: true,  icon: <FiAward size={18} />,       c: "#22c55e" },
+  { label: "Tổng quỹ gây được", value: "8.4 tỷ", trend: "+12.5%", up: true,  icon: <FiDollarSign size={18} />, c: "#f59e0b" },
+  { label: "Báo cáo vi phạm",   value: "47",     trend: "-5.3%",  up: false, icon: <FiAlertCircle size={18} />, c: "#ef4444" },
 ];
 
-const recentActivities = [
-  { user: 'Nguyễn Văn A', action: 'Tạo dự án mới', time: '2 phút trước', type: 'project' },
-  { user: 'Hội Chữ Thập Đỏ', action: 'Được xác minh', time: '15 phút trước', type: 'verify' },
-  { user: 'Trần Thị B', action: 'Báo cáo vi phạm', time: '1 giờ trước', type: 'report' },
-  { user: 'Quỹ Bảo Trợ Trẻ Em', action: 'Gây quỹ 50M VND', time: '2 giờ trước', type: 'fund' },
-  { user: 'Lê Minh C', action: 'Đăng ký tổ chức', time: '3 giờ trước', type: 'org' },
+const MONTHS = ["T1","T2","T3","T4","T5","T6","T7","T8","T9","T10","T11","T12"];
+const BARS   = [42,68,55,80,73,95,88,110,98,125,115,140];
+
+const ACTIVITIES = [
+  { c:"#22c55e", text:"Tổ chức Hội Chữ Thập Đỏ được duyệt xác minh",              time:"5 phút trước" },
+  { c:"#7c6df0", text:"Chiến dịch 'Xây trường vùng cao' đạt mục tiêu 1 tỷ VNĐ",   time:"18 phút trước" },
+  { c:"#ef4444", text:"Báo cáo #R-2847 được xử lý — khóa tài khoản",              time:"1 giờ trước" },
+  { c:"#f59e0b", text:"284 người dùng mới đăng ký hôm nay",                        time:"2 giờ trước" },
+  { c:"#3b82f6", text:"Bài đăng #P-9921 được duyệt tự động bởi AI",               time:"3 giờ trước" },
 ];
+
+const TOP_CAMPS = [
+  { name:"Giảm thiệt hại thiên tai miền Trung", raised:"890tr", goal:"1 tỷ",  pct:89 },
+  { name:"Xây trường cho trẻ em vùng cao",       raised:"750tr", goal:"1 tỷ",  pct:75 },
+  { name:"Nước sạch Tây Bắc",                    raised:"320tr", goal:"500tr", pct:64 },
+];
+
+const max = Math.max(...BARS);
 
 export default function Dashboard() {
-
   return (
-    <div className="dashboard">
-      <div className="dashboard-header">
+    <div className="dash">
+      {/* Page header */}
+      <div className="adm-ph">
         <div>
-          <span>Tổng quan hệ thống</span>
-          <p>Theo dõi & quản lý nền tảng từ thiện</p>
+          <h1 className="adm-ph__title">📊 Dashboard</h1>
+          <p className="adm-ph__sub">Tổng quan hệ thống SmartDonate</p>
+        </div>
+        <div className="adm-ph__actions">
+          <button className="adm-btn adm-btn--ghost adm-btn--sm">
+            <FiRefreshCw size={13} /> Làm mới
+          </button>
         </div>
       </div>
 
-      <div className="stats-grid">
-        <StatCard icon=<PiUserCircleGearFill color="rgb(2 170 36)" /> label="Tổng người dùng" value="24,891" change={12.4} color="#00D4AA" />
-        <StatCard icon=<FcOrganization color="#8B5CF6" /> label="Tổ chức từ thiện" value="1,248" change={8.1} color="#8B5CF6" />
-        <StatCard icon=<PiFlagBannerFoldFill color="#EF4444" /> label="Tổng chiến dịch" value="37" change={-5.2} color="#EF4444" />
-        <StatCard icon=<FaMoneyBillTrendUp color="rgb(245 80 5)" /> label="Tổng tiền gây quỹ" value="₫12.4 tỷ" change={23.5} color="#F59E0B" />
+      {/* Stats */}
+      <div className="adm-stats">
+        {STATS.map((s, i) => (
+          <div key={i} className="adm-stat" style={{"--c": s.c, animationDelay:`${i*0.07}s`}}>
+            <div className="adm-stat__head">
+              <div className="adm-stat__icon">{s.icon}</div>
+              <span className={`adm-stat__trend adm-stat__trend--${s.up?"up":"down"}`}>
+                {s.up ? <FiArrowUp size={11}/> : <FiArrowDown size={11}/>} {s.trend}
+              </span>
+            </div>
+            <div className="adm-stat__val">{s.value}</div>
+            <div className="adm-stat__label">{s.label}</div>
+          </div>
+        ))}
       </div>
 
-      <div className="dashboard-grid">
-        <div className="chart-card">
-          <div className="card-header">
-            <h2>Gây quỹ theo tháng</h2>
-            <span className="badge-year">2025</span>
+      {/* Chart + Activity */}
+      <div className="dash__mid">
+        {/* Bar chart */}
+        <div className="adm-box dash__chart-box">
+          <div className="adm-box__head">
+            <span className="adm-box__title">📈 Quỹ gây được theo tháng</span>
+            <select className="adm-select" style={{padding:"4px 10px",fontSize:12}}>
+              <option>2025</option><option>2024</option>
+            </select>
           </div>
-          <BarChart data={monthlyData} color="linear-gradient(180deg, #00D4AA, #00876a)" />
-        </div>
-
-        <div className="activity-card">
-          <div className="card-header">
-            <h2>Hoạt động gần đây</h2>
-          </div>
-          <div className="activity-list">
-            {recentActivities.map((act, i) => (
-              <div className="activity-item" key={i} style={{ animationDelay: `${i * 0.08}s` }}>
-                <div className={`act-dot type-${act.type}`} />
-                <div className="act-content">
-                  <strong>{act.user}</strong>
-                  <span>{act.action}</span>
-                </div>
-                <span className="act-time">{act.time}</span>
+          <div className="dash__chart">
+            {BARS.map((v, i) => (
+              <div key={i} className="dash__bar-col">
+                <div
+                  className="dash__bar"
+                  style={{ height:`${(v/max)*100}%` }}
+                  title={`${v * 10}tr VNĐ`}
+                />
+                <span className="dash__bar-label">{MONTHS[i]}</span>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="mini-stats">
-          <div className="mini-card">
-            <span>📂 Dự án đang hoạt động</span>
-            <strong>324</strong>
+        {/* Activity */}
+        <div className="adm-box dash__activity-box">
+          <div className="adm-box__head">
+            <span className="adm-box__title">🕐 Hoạt động gần đây</span>
           </div>
-          <div className="mini-card">
-            <span>📰 Bài đăng chờ duyệt</span>
-            <strong>52</strong>
+          <div className="dash__activity">
+            {ACTIVITIES.map((a, i) => (
+              <div key={i} className="dash__act-item" style={{animationDelay:`${i*0.07}s`}}>
+                <div className="dash__act-dot" style={{background:a.c}} />
+                <div>
+                  <div className="dash__act-text">{a.text}</div>
+                  <div className="dash__act-time">{a.time}</div>
+                </div>
+              </div>
+            ))}
           </div>
-          <div className="mini-card">
-            <span>✅ Đã xác minh tổ chức</span>
-            <strong>918</strong>
-          </div>
-          <div className="mini-card">
-            <span>🔒 Tài khoản bị khóa</span>
-            <strong>14</strong>
-          </div>
+        </div>
+      </div>
+
+      {/* Top campaigns */}
+      <div className="adm-box">
+        <div className="adm-box__head">
+          <span className="adm-box__title">🎯 Chiến dịch nổi bật</span>
+        </div>
+        <div style={{padding:"12px 20px 20px"}}>
+          {TOP_CAMPS.map((c, i) => (
+            <div key={i} className="dash__camp-item" style={{animationDelay:`${i*0.08}s`}}>
+              <div className="dash__camp-info">
+                <div className="dash__camp-name">{c.name}</div>
+                <div className="dash__camp-meta">{c.raised} / {c.goal}</div>
+              </div>
+              <div className="dash__camp-bar-wrap">
+                <div className="dash__camp-bar">
+                  <div className="dash__camp-fill" style={{width:`${c.pct}%`}} />
+                </div>
+                <span className="dash__camp-pct">{c.pct}%</span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

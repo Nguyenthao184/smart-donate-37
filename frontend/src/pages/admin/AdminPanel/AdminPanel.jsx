@@ -1,161 +1,192 @@
-import { useState } from "react";
-import { Avatar, Badge } from "antd";
-import "./AdminPanel.scss";
-import { FiBell } from "react-icons/fi";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import {
+  FiMenu,
+  FiX,
+  FiBell,
+  FiSearch,
+  FiLogOut,
+  FiChevronRight,
+  FiGrid,
+  FiUsers,
+  FiFolder,
+  FiFileText,
+} from "react-icons/fi";
 import Dashboard from "../Dashboard/Dashboard";
-import AdminUsers from "../AdminUsers/AdminUsers";
-import AdminProjects from "../AdminProjects/AdminProjects";
-import AdminPosts from "../AdminPosts/AdminPosts";
-import logo from "../../../assets/logo.png";
-import { useAuth } from "../../../store/AuthContext";
+import Users from "../Users/Users";
+import Projects from "../Projects/Projects";
+import Posts from "../Posts/Posts";
+import "./AdminPanel.scss";
 
 const NAV_ITEMS = [
   {
     section: "Tổng quan",
-    items: [{ key: "dashboard", icon: "📊", label: "Dashboard", badge: null }],
+    items: [
+      {
+        key: "dashboard",
+        icon: <FiGrid size={20} />,
+        label: "Dashboard",
+        path: "/admin/dashboard",
+      },
+    ],
   },
   {
     section: "Quản lý",
     items: [
-      { key: "users", icon: "👥", label: "Người dùng", badge: null },
-      { key: "projects", icon: "📂", label: "Chiến dịch", badge: 4 },
-      { key: "posts", icon: "📰", label: "Bài đăng", badge: 6 },
+      { key: "users", icon: <FiUsers size={20} />, label: "Người dùng", path: "/admin/users" },
+      {
+        key: "projects",
+        icon: <FiFolder size={20} />,
+        label: "Chiến dịch",
+        path: "/admin/projects",
+        badge: 4,
+      },
+      {
+        key: "posts",
+        icon: <FiFileText size={20} />,
+        label: "Bài đăng",
+        path: "/admin/posts",
+        badge: 6,
+      },
     ],
   },
 ];
 
 const COMPONENTS = {
   dashboard: Dashboard,
-  users: AdminUsers,
-  projects: AdminProjects,
-  posts: AdminPosts,
+  users: Users,
+  projects: Projects,
+  posts: Posts,
 };
 
 export default function AdminPanel() {
-  const [active, setActive] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { user, isLoggedIn } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const FLAT_NAV = NAV_ITEMS.flatMap((section) => section.items);
 
-  const ActiveComponent = COMPONENTS[active];
+  const currentKey = location.pathname.split("/")[2] || "dashboard";
 
-  const navigate = (key) => {
-    setActive(key);
+  const activeKey = currentKey;
+
+  const activeLabel =
+    FLAT_NAV.find((item) => item.key === activeKey)?.label || "Dashboard";
+
+  const CurrentComponent = COMPONENTS[activeKey] || Dashboard;
+
+  useEffect(() => {
+    if (location.pathname === "/admin") {
+      navigate("/admin/dashboard", { replace: true });
+    }
+  }, []);
+
+  function handleNav(path) {
+    navigate(path);
     setSidebarOpen(false);
-  };
+  }
 
   return (
-    <div className={`admin-panel ${sidebarOpen ? "sidebar-open" : ""}`}>
-      {/* Overlay for mobile */}
+    <div className="adm">
+      {/* Overlay mobile */}
       {sidebarOpen && (
-        <div
-          className="sidebar-overlay"
-          onClick={() => setSidebarOpen(false)}
-        />
+        <div className="adm__overlay" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* Sidebar */}
-      <aside className="sidebar">
-        <div className="sidebar-logo">
-          <div className="logo-img">
-            <img src={logo} alt="Logo" />
-          </div>
-          <div className="logo-text">
-            <span>SmartDonate</span>
-            <small>Quản trị viên</small>
+      {/* ── Sidebar ── */}
+      <aside className={`adm__sidebar${sidebarOpen ? " open" : ""}`}>
+        {/* Logo */}
+        <div className="adm__logo">
+          <div className="adm__logo-icon">🎯</div>
+          <div>
+            <div className="adm__logo-name">SmartDonate</div>
+            <div className="adm__logo-sub">Admin Panel</div>
           </div>
           <button
-            className="sidebar-close"
+            className="adm__logo-close"
             onClick={() => setSidebarOpen(false)}
           >
-            ✕
+            <FiX size={18} />
           </button>
         </div>
 
-        <nav className="sidebar-nav">
+        {/* Nav */}
+        <nav className="adm__nav">
+          <div className="adm__nav-label">MENU CHÍNH</div>
           {NAV_ITEMS.map((section) => (
-            <div className="nav-section" key={section.section}>
-              <span className="nav-section-label">{section.section}</span>
+            <div key={section.section}>
+              <div className="adm__nav-label">{section.section}</div>
+
               {section.items.map((item) => (
                 <button
                   key={item.key}
-                  className={`nav-item ${active === item.key ? "active" : ""}`}
-                  onClick={() => navigate(item.key)}
+                  className={`adm__nav-item${activeKey === item.key ? " active" : ""}`}
+                  onClick={() => handleNav(item.path)}
                 >
-                  <span className="nav-icon">{item.icon}</span>
-                  <span className="nav-label">{item.label}</span>
+                  <span className="adm__nav-icon">{item.icon}</span>
+                  <span className="adm__nav-label-text">{item.label}</span>
+
                   {item.badge && (
-                    <span className="nav-badge">{item.badge}</span>
+                    <span className="adm__nav-badge">{item.badge}</span>
+                  )}
+
+                  {activeKey === item.key && (
+                    <FiChevronRight size={13} className="adm__nav-arrow" />
                   )}
                 </button>
               ))}
             </div>
           ))}
         </nav>
+
+        {/* Footer */}
+        <div className="adm__sidebar-footer">
+          <div className="adm__user">
+            <div className="adm__user-avatar">A</div>
+            <div className="adm__user-info">
+              <div className="adm__user-name">Admin</div>
+              <div className="adm__user-role">Super Admin</div>
+            </div>
+            <button className="adm__user-logout" title="Đăng xuất">
+              <FiLogOut size={15} />
+            </button>
+          </div>
+        </div>
       </aside>
 
-      {/* Main Content */}
-      <div className="main-area">
-        {/* Topbar */}
-        <header className="topbar">
+      {/* ── Main ── */}
+      <div className="adm__main">
+        {/* Header */}
+        <header className="adm__header">
           <button
-            className="hamburger"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="adm__header-menu"
+            onClick={() => setSidebarOpen(true)}
           >
-            <span />
-            <span />
-            <span />
+            <FiMenu size={20} />
           </button>
 
-          <div className="breadcrumb">
+          <div className="adm__header-breadcrumb">
             <span>Admin</span>
-            <span className="sep">›</span>
-            <span className="current">
-              {
-                NAV_ITEMS.flatMap((s) => s.items).find((i) => i.key === active)
-                  ?.label
-              }
-            </span>
+            <FiChevronRight size={13} className="adm__header-sep" />
+            <span className="adm__header-current">{activeLabel}</span>
           </div>
 
-          <div className="topbar-actions">
-            {isLoggedIn ? (
-              <>
-                <div className="date-badge">
-                  {new Date().toLocaleDateString("vi-VN", {
-                    weekday: "long",
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </div>
-                <button
-                  type="button"
-                  className="topbar__iconBtn"
-                  aria-label="Thông báo"
-                >
-                  <Badge size="small" offset={[0, 4]}>
-                    <FiBell size={22} />
-                  </Badge>
-                </button>
-                <div className="topbar-user">
-                  <Avatar size={34} src={user?.avatarUrl}>
-                    {user?.name?.[0]?.toUpperCase?.() ?? "U"}
-                  </Avatar>
-                  <div className="topbar__userText">
-                    <div className="topbar__userName">{user?.name}</div>
-                    <div className="topbar__userRole">{user?.role}</div>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="app-header__auth">Please log in</div>
-            )}
+          <div className="adm__header-search">
+            <FiSearch size={15} />
+            <input placeholder="Tìm kiếm..." />
+          </div>
+
+          <div className="adm__header-actions">
+            <button className="adm__header-btn">
+              <FiBell size={18} />
+              <span className="adm__header-notif" />
+            </button>
+            <div className="adm__header-avatar">A</div>
           </div>
         </header>
 
-        {/* Page Content */}
-        <main className="content" key={active}>
-          <ActiveComponent />
+        {/* Content */}
+        <main className="adm__content">
+          <CurrentComponent />
         </main>
       </div>
     </div>

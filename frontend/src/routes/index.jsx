@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 
 import ProtectedRoute from "./protectedRoutes";
 import PublicRoute from "./publicRoutes";
@@ -12,15 +12,23 @@ import Search from "../pages/guest/Search/Search.jsx";
 import FAQ from "../pages/guest/FAQ/FAQ.jsx";
 import Privacy from "../pages/guest/Privacy/Privacy.jsx";
 import Terms from "../pages/guest/Terms/Terms.jsx";
-import CampaignPage from "../pages/user/Campaign/Campaign.jsx";
-import OrganizationList from "../pages/user/OrganizationList/OrganizationList.jsx";
-import OrganizationDetail from "../pages/user/OrganizationDetail/OrganizationDetail.jsx";
+import CampaignPage from "../pages/guest/Campaign/Campaign.jsx";
+import OrganizationList from "../pages/guest/OrganizationList/OrganizationList.jsx";
+import OrganizationDetail from "../pages/guest/OrganizationDetail/OrganizationDetail.jsx";
 import CampaignList from "../pages/guest/CampaignList/CampaignList.jsx";
 import CampaignDetail from "../pages/guest/CampaignDetail/CampaignDetail.jsx";
-import CreateCampaign  from "../pages/organization/CreateCampaign/CreateCampaign.jsx";
-import NewsFeed  from "../pages/user/NewsFeed/NewsFeed.jsx";
-import CreatePost  from "../pages/user/CreatePost/CreatePost.jsx";
+import CreateCampaign from "../pages/organization/CreateCampaign/CreateCampaign.jsx";
+import NewsFeed from "../pages/guest/NewsFeed/NewsFeed.jsx";
+import CreatePost from "../pages/user/CreatePost/CreatePost.jsx";
+import Chat from "../pages/user/Chat/Chat.jsx";
+import Profile from "../pages/user/Profile/Profile.jsx";
+import RegisterOrg from "../pages/user/RegisterOrg/RegisterOrg.jsx"
+import Donate from "../pages/user/Donate/Donate.jsx"
+import DonateSuccess from "../pages/user/DonateSuccess/DonateSuccess.jsx"
 import AdminPanel from "../pages/admin/AdminPanel/AdminPanel.jsx";
+import Login from "../pages/auth/Login/Login.jsx";
+import Register from "../pages/auth/Register/Register.jsx";
+import ForgotPassword from "../pages/auth/ForgotPassword/Forgot.jsx";
 // ================== PUBLIC ROUTES ==================
 const publicRoutes = [
   {
@@ -28,6 +36,30 @@ const publicRoutes = [
     element: (
       <PublicRoute>
         <HomePage />
+      </PublicRoute>
+    ),
+  },
+  {
+    path: "/dang-nhap",
+    element: (
+      <PublicRoute>
+        <Login />
+      </PublicRoute>
+    ),
+  },
+  {
+    path: "/dang-ky",
+    element: (
+      <PublicRoute>
+        <Register />
+      </PublicRoute>
+    ),
+  },
+  {
+    path: "/quen-mat-khau",
+    element: (
+      <PublicRoute>
+        <ForgotPassword />
       </PublicRoute>
     ),
   },
@@ -74,11 +106,51 @@ const publicRoutes = [
     ),
   },
   {
-    path: "/chien-dich/chi-tiet",
+    path: "/chien-dich/chi-tiet/:id",
     element: (
       <PublicRoute>
         <MainLayout>
           <CampaignDetail />
+        </MainLayout>
+      </PublicRoute>
+    ),
+  },
+  {
+    path: "/bang-tin",
+    element: (
+      <PublicRoute>
+        <MainLayout>
+          <NewsFeed />
+        </MainLayout>
+      </PublicRoute>
+    ),
+  },
+  {
+    path: "/chien-dich",
+    element: (
+      <PublicRoute>
+        <MainLayout>
+          <CampaignPage />
+        </MainLayout>
+      </PublicRoute>
+    ),
+  },
+  {
+    path: "/chien-dich/to-chuc",
+    element: (
+      <PublicRoute>
+        <MainLayout>
+          <OrganizationList />
+        </MainLayout>
+      </PublicRoute>
+    ),
+  },
+  {
+    path: "/chien-dich/to-chuc/chi-tiet/:id",
+    element: (
+      <PublicRoute>
+        <MainLayout>
+          <OrganizationDetail />
         </MainLayout>
       </PublicRoute>
     ),
@@ -88,51 +160,11 @@ const publicRoutes = [
 // ================== PRIVATE ROUTES ==================
 const privateRoutes = [
   {
-    path: "/chien-dich",
-    element: (
-      <ProtectedRoute>
-        <MainLayout>
-          <CampaignPage />
-        </MainLayout>
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: "/chien-dich/to-chuc",
-    element: (
-      <ProtectedRoute>
-        <MainLayout>
-          <OrganizationList />
-        </MainLayout>
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: "/chien-dich/to-chuc/chi-tiet",
-    element: (
-      <ProtectedRoute>
-        <MainLayout>
-          <OrganizationDetail />
-        </MainLayout>
-      </ProtectedRoute>
-    ),
-  },
-  {
     path: "/chien-dich/tao-moi",
     element: (
       <ProtectedRoute>
         <MainLayout>
           <CreateCampaign />
-        </MainLayout>
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: "/bang-tin",
-    element: (
-      <ProtectedRoute>
-        <MainLayout>
-          <NewsFeed />
         </MainLayout>
       </ProtectedRoute>
     ),
@@ -148,10 +180,54 @@ const privateRoutes = [
     ),
   },
   {
-    path: "/admin",
+    path: "/dk-to-chuc",
     element: (
       <ProtectedRoute>
-          <AdminPanel />
+        <MainLayout>
+          <RegisterOrg />
+        </MainLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/chien-dich/ung-ho",
+    element: (
+      <ProtectedRoute>
+        <MainLayout>
+          <Donate />
+        </MainLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/thanh-cong",
+    element: (
+      <ProtectedRoute>
+          <DonateSuccess />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/chat",
+    element: (
+      <ProtectedRoute>
+        <Chat />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/profile",
+    element: (
+      <ProtectedRoute>
+        <Profile />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/admin/*",
+    element: (
+      <ProtectedRoute>
+        <AdminPanel />
       </ProtectedRoute>
     ),
   },
@@ -160,7 +236,7 @@ const privateRoutes = [
 // ================== APP ROUTES ==================
 export default function AppRoutes() {
   return (
-    <BrowserRouter>
+    <>
       <ScrollToTop />
       <Routes>
         {publicRoutes.map((route, index) => (
@@ -175,6 +251,6 @@ export default function AppRoutes() {
 
         <Route path="*" element={<Navigate to="/" />} /> */}
       </Routes>
-    </BrowserRouter>
+    </>
   );
 }

@@ -1,63 +1,88 @@
 import { Button, Card } from "antd";
+import { useNavigate } from "react-router-dom";
 import {
-  FiStar, FiHeart, FiMapPin,
-  FiCalendar, FiCreditCard, FiTrendingUp
+  FiHeart,
+  FiMapPin,
+  FiCalendar,
+  FiCopy
 } from "react-icons/fi";
+import { RiExchangeFundsLine } from "react-icons/ri";
 import { formatVnd } from "../../utils/format";
 import "./styles.scss";
 
-export default function OrganizationCard({ organization, index = 0 }) {
-  const rankColors = ["#FFD700", "#C0C0C0", "#CD7F32"];
-  const rankLabels = ["TOP 1", "TOP 2", "TOP 3"];
+export default function OrganizationCard({ organization }) {
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    navigate(`/chien-dich/to-chuc/chi-tiet/${organization.id}`);
+  };
 
   return (
-    <Card className="org-card" variant="borderless">
-      {index < 3 && (
-        <div
-          className="org-card__rank"
-          style={{ "--rank-color": rankColors[index] }}
-        >
-          <FiStar size={10} /> {rankLabels[index]}
-        </div>
-      )}
+    <Card className="org-card" variant="borderless" onClick={handleClick}>
       <div className="org-card__shimmer" />
 
       <div className="org-card__avatar">
-        {organization.logo ? (
-          <img
-            className="org-card__avatar-img"
-            src={organization.logo}
-            alt={organization.name}
-            loading="lazy"
-          />
-        ) : (
-          <div className="org-card__avatar-placeholder">
-            <FiHeart size={34} />
-          </div>
-        )}
+        <img
+          className="org-card__avatar-img"
+          src={organization.logo}
+          alt={organization.ten_to_chuc}
+          loading="lazy"
+        />
       </div>
 
       <div className="org-card__body">
-        <div className="org-card__name">{organization.name}</div>
+        <div className="org-card__name">{organization.ten_to_chuc}</div>
 
-        <div className="org-card__meta">
-          <div className="org-card__meta-item">
-            <FiCreditCard size={13} className="org-card__meta-icon" />
-            <span>TK thiện nguyện: <span className="org-card__strong">{organization.accountNumber}</span></span>
+        <div className="org-card__divider" />
+
+        <div className="org-card__account">
+          <div className="org-card__account-left">
+            <span className="org-card__account-label">TK thiện nguyện</span>
+            <span className="org-card__account-number">
+              {organization.so_tai_khoan}
+            </span>
           </div>
-          <div className="org-card__meta-item">
-            <FiTrendingUp size={13} className="org-card__meta-icon" />
-            <span>Gây quỹ: <span className="org-card__strong org-card__strong--green">{formatVnd(organization.totalRaised)}</span></span>
+          <button
+            className="org-card__copy-btn"
+            onClick={() =>
+              navigator.clipboard.writeText(organization.so_tai_khoan)
+            }
+          >
+            <FiCopy size={13} />
+          </button>
+        </div>
+
+        <div className="org-card__info-list">
+          <div className="org-card__info-row">
+            <div className="org-card__info-key">
+              <div className="org-card__info-icon">
+                <RiExchangeFundsLine size={18} />
+              </div>
+              Tổng gây quỹ
+            </div>
+            <span className="org-card__info-val">{formatVnd(organization.tong_gay_quy)}</span>
           </div>
-          <div className="org-card__meta-item">
-            <FiCalendar size={13} className="org-card__meta-icon" />
-            <span>Tham gia: <span className="org-card__strong">{organization.joinedAt}</span></span>
+          <div className="org-card__info-row">
+            <div className="org-card__info-key">
+              <div className="org-card__info-icon">
+                <FiCalendar size={18} />
+              </div>
+              Tham gia
+            </div>
+            <span className="org-card__info-val">{organization.tham_gia}</span>
           </div>
-          <div className="org-card__meta-item">
-            <FiMapPin size={13} className="org-card__meta-icon" />
-            <span>Khu vực: <span className="org-card__strong">{organization.region}</span></span>
+          <div className="org-card__info-row">
+            <div className="org-card__info-key">
+              <div className="org-card__info-icon">
+                <FiMapPin size={18} />
+              </div>
+              Khu vực
+            </div>
+            <span className="org-card__info-val">{organization.dia_chi}</span>
           </div>
         </div>
+
+        <div className="org-card__divider" />
 
         <div className="org-card__actions">
           <Button type="primary" className="org-card__btn">
