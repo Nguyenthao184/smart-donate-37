@@ -24,7 +24,9 @@ Route::get('/posts/{id}', [PostController::class, 'show']);
 
 // ds danh mục
 Route::get('/categories', [CampaignController::class, 'getDanhMuc']);
+
 Route::middleware('auth:sanctum')->group(function(){
+    Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout',[AuthController::class,'logout']);
 
     Route::middleware('role:ADMIN')->group(function(){
@@ -93,3 +95,5 @@ Route::get('/organization/{id}', [OrganizationController::class, 'show']);
 Route::get('/campaigns', [CampaignController::class, 'index']);
 Route::get('/campaigns/featured', [CampaignController::class, 'featured']);
 Route::get('/campaigns/{id}', [CampaignController::class, 'show']);
+
+Route::get('/vnpay/return', [DonateController::class, 'vnpayReturn']);

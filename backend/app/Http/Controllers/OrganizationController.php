@@ -187,14 +187,18 @@ class OrganizationController extends Controller
         $query->orderByDesc('tong_gay_quy')
             ->orderByDesc('to_chuc.created_at');
 
-        $orgs = $query->paginate(6);
+        $orgs = $query->paginate(7);
 
         // Tổng tổ chức
         $totalAll = ToChuc::count();
 
-        $totalByType = DB::table('xac_minh_to_chuc')
-            ->select('loai_hinh', DB::raw('count(*) as total'))
-            ->groupBy('loai_hinh')
+        $totalByType = DB::table('to_chuc')
+            ->join('xac_minh_to_chuc', 'to_chuc.xac_minh_to_chuc_id', '=', 'xac_minh_to_chuc.id')
+            ->select(
+                'xac_minh_to_chuc.loai_hinh',
+                DB::raw('COUNT(DISTINCT to_chuc.id) as total')
+            )
+            ->groupBy('xac_minh_to_chuc.loai_hinh')
             ->get();
 
         $orgs->through(function ($org) {
@@ -233,7 +237,7 @@ class OrganizationController extends Controller
                 $hinhAnh = null;
                 if ($cd->hinh_anh) {
                     $arr = json_decode($cd->hinh_anh, true);
-                    $hinhAnh = isset($arr[0]) ? asset($arr[0]) : null;
+                    $hinhAnh = isset($arr[0]) ? asset('storage/' . $arr[0]) : null;
                 }
 
                 // % hoàn thành

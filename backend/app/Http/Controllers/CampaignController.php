@@ -146,7 +146,7 @@ class CampaignController extends Controller
                 break;
         }
 
-        $campaigns = $query->paginate(10);
+        $campaigns = $query->paginate(7);
 
         // format lại dữ liệu cho FE
         $campaigns->getCollection()->transform(fn($item) 
@@ -195,7 +195,7 @@ class CampaignController extends Controller
                 break;
         }
 
-        $campaigns = $query->paginate(10);
+        $campaigns = $query->paginate(7);
 
         $campaigns->getCollection()->transform(fn($item) 
             => $this->formatCampaign($item));
@@ -206,7 +206,7 @@ class CampaignController extends Controller
     //chi tiết chiến dịch
     public function show($id)
     {
-        $chienDich = ChienDichGayQuy::with(['toChuc'])
+        $chienDich = ChienDichGayQuy::with(['toChuc', 'danhMuc'])
             ->find($id);
 
         if (!$chienDich) {
@@ -256,13 +256,18 @@ class CampaignController extends Controller
             'id' => $chienDich->id,
             'ten_chien_dich' => $chienDich->ten_chien_dich,
             'mo_ta' => $chienDich->mo_ta,
+            'ten_danh_muc' => $chienDich->danhMuc->ten_danh_muc ?? null,
+
 
             'hinh_anh' => $images,
 
             'so_tien_da_nhan' => $chienDich->so_tien_da_nhan,
             'muc_tieu_tien' => $chienDich->muc_tieu_tien,
             'phan_tram' => $phanTram,
+            'ma_noi_dung_ck' => $chienDich->ma_noi_dung_ck,
 
+            'ngay_bat_dau' => optional($chienDich->created_at)->format('d/m/Y'),
+            'ngay_ket_thuc' => \Carbon\Carbon::parse($chienDich->ngay_ket_thuc)->format('d/m/Y'),
             'so_ngay_con_lai' => $ngayConLai,
 
             'vi_tri' => $chienDich->vi_tri,
