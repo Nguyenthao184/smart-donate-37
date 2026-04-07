@@ -1,11 +1,20 @@
-@keyframes post-fadeIn {
+/* ─── Reuse animations from post-card ─── */
+@keyframes modal-fadeIn {
   from {
     opacity: 0;
-    transform: translateY(8px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+  }
+}
+@keyframes modal-slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(32px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 @keyframes float-pulse {
@@ -51,47 +60,40 @@
   }
 }
 
-.post-card {
-  background: #fff;
-  border-radius: 18px;
-  border: 1px solid #f0f0f0;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+/* ─── Overlay ─── */
+.post-detail-modal__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 16px;
-  margin-bottom: 10px;
-  transition: all 0.25s ease;
-  animation: post-fadeIn 0.35s ease both;
+  animation: modal-fadeIn 0.2s ease both;
+}
+
+/* ─── Modal shell ─── */
+.post-detail-modal {
+  background: #fff;
+  border-radius: 20px;
+  border: 1px solid #f0f0f0;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
   position: relative;
+  animation: modal-slideUp 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both;
   overflow: hidden;
-  cursor: pointer;
-
-  &::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 3px;
-    height: 100%;
-    opacity: 0;
-    transition: opacity 0.25s;
-  }
-
-  &:hover {
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-    transform: translateY(-2px);
-    &::before {
-      opacity: 1;
-    }
-  }
 
   &--ai {
-    border-color: rgba(24, 144, 255, 0.2);
-
-    &::before {
-      opacity: 0.5;
-    }
+    border-color: rgba(24, 144, 255, 0.25);
   }
 
-  /* AI top badge */
+  /* ─── AI top badge ─── */
   &__ai-top-badge {
     position: absolute;
     top: 0;
@@ -100,30 +102,79 @@
     color: #fff;
     font-size: 10px;
     font-weight: 900;
-    padding: 4px 12px;
-    border-radius: 0 0 0 12px;
+    padding: 5px 14px;
+    border-radius: 0 20px 0 12px;
     display: flex;
     align-items: center;
     gap: 5px;
     letter-spacing: 0.5px;
-    z-index: 1;
+    z-index: 2;
   }
 
-  /* Header */
+  /* ─── Close button ─── */
+  &__close-btn {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, 0.06);
+    color: rgba(0, 0, 0, 0.55);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+    transition: all 0.2s;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.1);
+      color: #1a1a1a;
+    }
+  }
+
+  /* ─── Scrollable body ─── */
+  &__body {
+    overflow-y: auto;
+    padding: 20px 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+
+    /* Thin scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.12) transparent;
+    &::-webkit-scrollbar {
+      width: 4px;
+    }
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.12);
+      border-radius: 4px;
+    }
+  }
+
+  /* ─── Header ─── */
   &__header {
     display: flex;
     align-items: flex-start;
-    gap: 10px;
-    margin-bottom: 12px;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding-left: 42px; 
+    padding-right: 100px; // offset for ai badge
   }
 
   &__avatar {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     color: #fff;
     font-weight: 800;
-    font-size: 16px;
+    font-size: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -136,24 +187,25 @@
   }
 
   &__username {
-    font-size: 16px;
+    font-size: 17px;
     font-weight: 700;
     color: #1a1a1a;
+    margin-bottom: 4px;
   }
 
-  &__desc {
-    display: flex !important;
+  &__meta {
+    display: flex;
     align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
   }
 
   &__location {
     display: flex;
     align-items: center;
-    gap: 3px;
+    gap: 4px;
     font-size: 13px;
     color: rgba(0, 0, 0, 0.4);
-    margin-top: 2px;
-    margin-right: 5%;
     svg {
       color: #1890ff;
     }
@@ -162,107 +214,20 @@
   &__time {
     display: flex;
     align-items: center;
-    gap: 3px;
+    gap: 4px;
     font-size: 13px;
     color: rgba(0, 0, 0, 0.35);
   }
 
-  /* Body */
-  &__body {
-    display: flex;
-    gap: 16px;
-    margin-bottom: 0;
-  }
-
-  &__img {
-    width: 250px;
-    height: 150px;
-    flex-shrink: 0;
-    border-radius: 14px;
-    background: linear-gradient(135deg, #f5f5f5, #ececec);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: rgba(0, 0, 0, 0.18);
-    border: 1px solid #f0f0f0;
-    overflow: hidden;
-
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    @media (max-width: 480px) {
-      width: 80px;
-      height: 80px;
-    }
-  }
-
-  &__content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-  }
-
-  &__title {
-    font-size: 20px;
-    font-weight: 700;
-    color: #1a1a1a;
-    margin-bottom: 6px;
-    line-height: 1.3;
-    text-transform: uppercase;
-  }
-
-  &__desc {
-    font-size: 16px;
-    color: rgba(0, 0, 0, 0.6);
-    line-height: 1.6;
-    margin-bottom: 10px;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    flex: 1;
-  }
-
-  &__actions-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-top: auto;
-  }
-
-  &__main-actions {
-    display: flex;
-    gap: 12px;
-  }
-
-  &__icon-btn {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    background: none;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    color: rgba(0, 0, 0, 0.45);
-    transition: all 0.2s;
-
-    &:hover {
-      color: #ff4d4f;
-    }
-
-    span {
-      font-size: 13px;
-      font-weight: 600;
-    }
-  }
-
   &__status-tag {
-    font-size: 16px;
+    flex-shrink: 0;
+    font-size: 13px;
     font-weight: 600;
-    padding: 6px 10px;
+    padding: 5px 12px;
     border-radius: 999px;
+    display: flex;
+    align-items: center;
+    margin-left: auto;
 
     &--con {
       background: rgba(82, 196, 26, 0.08);
@@ -276,22 +241,156 @@
     }
   }
 
-  .mess{
-    margin-right: 10px;
-    &:hover {
+  /* ─── Title & desc ─── */
+  &__title {
+    font-size: 22px;
+    font-weight: 800;
+    color: #1a1a1a;
+    text-transform: uppercase;
+    line-height: 1.3;
+    margin: 0 0 10px;
+  }
+
+  &__desc {
+    font-size: 15px;
+    color: rgba(0, 0, 0, 0.65);
+    line-height: 1.7;
+    margin: 0 0 16px;
+  }
+
+  /* ─── Images ─── */
+  &__images {
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 16px;
+    display: grid;
+    gap: 3px;
+
+    /* 1 image: full width */
+    &--single {
+      grid-template-columns: 1fr;
+
+      .post-detail-modal__image-item {
+        height: 320px;
+
+        @media (max-width: 480px) {
+          height: 200px;
+        }
+      }
+    }
+
+    /* 2 images: side by side */
+    &--two {
+      grid-template-columns: 1fr 1fr;
+
+      .post-detail-modal__image-item {
+        height: 240px;
+      }
+    }
+
+    /* 3 images: 1 big left + 2 stacked right */
+    &--three {
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 160px 160px;
+
+      .post-detail-modal__image-item {
+        height: 160px;
+
+        &--large {
+          grid-row: span 2;
+          height: 100%;
+        }
+      }
+    }
+
+    /* 4+ images: 2x2 grid */
+    &--grid {
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 180px 180px;
+
+      .post-detail-modal__image-item {
+        height: 180px;
+      }
+    }
+  }
+
+  &__image-item {
+    position: relative;
+    overflow: hidden;
+    background: #f5f5f5;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.3s ease;
+    }
+
+    &:hover img {
+      transform: scale(1.04);
+    }
+  }
+
+  &__image-more {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    color: #fff;
+    font-size: 24px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ─── Actions ─── */
+  &__actions {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  &__action-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 0;
+    border-radius: 12px;
+    border: none;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &--message {
+      background: rgba(250, 73, 38, 0.07);
+      color: #fa4926;
+      &:hover {
+        background: rgba(250, 73, 38, 0.14);
+      }
+    }
+
+    &--share {
+      background: rgba(24, 144, 255, 0.07);
       color: #1890ff;
+      &:hover {
+        background: rgba(24, 144, 255, 0.14);
+      }
     }
   }
 
-  .share{
-    &:hover {
-      color: #222322;
-    }
+  /* ─── Divider ─── */
+  &__divider {
+    height: 1px;
+    background: #f0f0f0;
+    margin-bottom: 16px;
   }
 
-  /* AI Box */
+  /* ─── AI Box (mirrors post-card) ─── */
   &__ai-box {
-    margin-top: 14px;
     background: linear-gradient(165deg, #f0f7ff, #e8f4ff);
     border: 1px solid rgba(24, 144, 255, 0.2);
     border-radius: 14px;
@@ -308,6 +407,7 @@
       left: 0;
       right: 0;
       height: 2px;
+      background: linear-gradient(90deg, #1890ff, #722ed1, #1890ff);
       background-size: 200% 100%;
       animation: gradient-slide 3s linear infinite;
     }
@@ -465,6 +565,38 @@
       background: linear-gradient(135deg, #40a9ff, #1890ff);
       transform: scale(1.05);
       box-shadow: 0 4px 12px rgba(24, 144, 255, 0.35);
+    }
+  }
+
+  /* ─── Responsive ─── */
+  @media (max-width: 480px) {
+    border-radius: 16px;
+    max-height: 95vh;
+
+    &__body {
+      padding: 16px 16px 20px;
+    }
+
+    &__header {
+      padding-left: 40px;
+      padding-right: 60px;
+    }
+
+    &__title {
+      font-size: 18px;
+    }
+
+    &__images {
+      &--three,
+      &--grid {
+        .post-detail-modal__image-item {
+          height: 130px;
+        }
+        &.post-detail-modal__images--three
+          .post-detail-modal__image-item--large {
+          height: 100%;
+        }
+      }
     }
   }
 }

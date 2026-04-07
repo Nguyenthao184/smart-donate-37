@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Avatar, Badge, Input, Menu, Dropdown } from "antd";
 import { FiBell, FiMessageCircle, FiSearch } from "react-icons/fi";
 import logo from "../../assets/logo.png";
@@ -12,7 +12,7 @@ export default function Header({ notificationsCount = 2, messagesCount = 3 }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [openLoginModal, setOpenLoginModal] = useState(false);
-  const { user, token, fetchMe } = useAuthStore();
+  const { user, token } = useAuthStore();
   const isLoggedIn = !!token;
   const logoutStore = useAuthStore((state) => state.logout);
 
@@ -96,10 +96,6 @@ export default function Header({ notificationsCount = 2, messagesCount = 3 }) {
       navigate(`/${clickedItem.key}`);
     }
   };
-
-  useEffect(() => {
-    void fetchMe().catch(() => {});
-  }, [token, fetchMe]);
 
   const items = [
     {
