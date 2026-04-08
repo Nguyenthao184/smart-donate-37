@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Avatar, Badge, Input, Menu, Dropdown } from "antd";
 import { FiBell, FiMessageCircle, FiSearch } from "react-icons/fi";
 import logo from "../../assets/logo.png";
@@ -6,15 +6,32 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import RequiredLoginModal from "../../components/Required/index";
 import useAuthStore from "../../store/authStore";
 import { logoutAPI } from "../../api/authService";
+import useChatStore from "../../store/chatStore";
 import "./styles.scss";
 
-export default function Header({ notificationsCount = 2, messagesCount = 3 }) {
+export default function Header({ notificationsCount = 2 }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { chats, fetchChats } = useChatStore();
   const [openLoginModal, setOpenLoginModal] = useState(false);
   const { user, token } = useAuthStore();
   const isLoggedIn = !!token;
   const logoutStore = useAuthStore((state) => state.logout);
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    fetchChats();
+
+    // Polling để badge unread cập nhật ở mọi trang, không chỉ trang chat
+    const id = setInterval(() => {
+      fetchChats();
+    }, 5000);
+
+    return () => clearInterval(id);
+  }, [isLoggedIn, fetchChats]);
+
+  const unreadConversations = chats.filter((c) => (c.unread_count || 0) > 0).length;
 
   const navbar = [
     {
@@ -150,8 +167,9 @@ export default function Header({ notificationsCount = 2, messagesCount = 3 }) {
                 type="button"
                 className="app-header__iconBtn"
                 aria-label="Tin nhắn"
+                onClick={() => navigate("/chat")}
               >
-                <Badge count={messagesCount} size="small" offset={[0, 4]}>
+                <Badge count={unreadConversations} size="small" offset={[0, 4]}>
                   <FiMessageCircle size={22} />
                 </Badge>
               </button>
