@@ -24,4 +24,9 @@ class TaiKhoanGayQuy extends Model
     {
         return $this->belongsTo(ToChuc::class, 'to_chuc_id');
     }
+
+    public function getQrCodeAttribute($value)
+    {
+        return asset($value);
+    }
 }

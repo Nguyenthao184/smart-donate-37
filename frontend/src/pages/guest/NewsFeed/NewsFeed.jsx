@@ -87,6 +87,7 @@ export default function NewsFeed() {
     id: p.id,
     type: p.loai_bai?.toLowerCase(),
     user: {
+      id: p.nguoi_dung_id,
       name: p.nguoi_dung_ten || "Ẩn danh",
       avatar: p.nguoi_dung_ten?.charAt(0) || "?",
       color: "#1890ff",

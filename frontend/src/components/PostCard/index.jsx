@@ -2,19 +2,46 @@ import { useState } from "react";
 import {
   FiMessageCircle,
   FiSend,
-  FiImage,
   FiMapPin,
   FiClock,
   FiChevronRight,
 } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
 import { FaGift, FaInbox, FaCheckCircle } from "react-icons/fa";
 import { RiRobot2Line, RiSparklingLine } from "react-icons/ri";
 import PostModal from "../../components/PostModal/index";
+import { createOrGetChat } from "../../api/chatService";
+import useAuthStore from "../../store/authStore";
 import "./styles.scss";
 
 export default function PostCard({ post, style }) {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const { user } = useAuthStore();
   const hasAiSuggestions = post.aiSuggestions?.length > 0;
+
+  const isMyPost = user?.id === post.user?.id;
+
+  const handleChat = async (e) => {
+    e.stopPropagation();
+
+    try {
+      const receiverId = post?.user?.id ?? post?.nguoi_dung_id ?? post?.user_id;
+      if (!receiverId) {
+        console.error("Thiếu receiver id để tạo chat", post);
+        return;
+      }
+
+      const res = await createOrGetChat(receiverId);
+      const chatId = res?.data?.cuoc_tro_chuyen_id ?? res?.cuoc_tro_chuyen_id;
+
+      if (chatId) {
+        navigate(`/chat?cid=${chatId}`);
+      }
+    } catch (err) {
+      console.error("Lỗi tạo chat:", err);
+    }
+  };
 
   return (
     <>
@@ -63,10 +90,19 @@ export default function PostCard({ post, style }) {
             <div className="post-card__desc">{post.desc}</div>
             <div className="post-card__actions-row">
               <div className="post-card__main-actions">
-                <button className="post-card__icon-btn mess">
-                  <FiMessageCircle size={30} color="#fa4926" />
-                </button>
-                <button className="post-card__icon-btn share">
+                {!isMyPost && (
+                  <button
+                    className="post-card__icon-btn mess"
+                    onClick={handleChat}
+                  >
+                    <FiMessageCircle size={30} color="#fa4926" />
+                  </button>
+                )}
+
+                <button
+                  className="post-card__icon-btn share"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <FiSend size={30} color="#1890ff" />
                 </button>
               </div>

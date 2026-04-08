@@ -1,0 +1,49 @@
+import api from "./authService";
+
+// tạo hoặc lấy cuộc trò chuyện
+export const createOrGetChat = async (nguoi_nhan_id) => {
+  const res = await api.post(`/tro-chuyen/tao-hoac-lay`, {
+    nguoi_nhan_id,
+  });
+  return res.data;
+};
+
+// danh sách chat
+export const getChats = async () => {
+  const res = await api.get(`/tro-chuyen`);
+  return res.data;
+};
+
+// lấy tin nhắn
+export const getMessages = async (chatId, params = {}) => {
+  const res = await api.get(`/tro-chuyen/${chatId}/tin-nhan`, {
+    params,
+  });
+  return res.data;
+};
+
+// gửi tin nhắn
+export const sendMessage = async (chatId, payload) => {
+  // payload có thể là text hoặc FormData
+  const isFormData = payload instanceof FormData;
+
+  const res = await api.post(
+    `/tro-chuyen/${chatId}/tin-nhan`,
+    payload,
+    isFormData
+      ? {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      : {}
+  );
+
+  return res.data;
+};
+
+// đánh dấu đã xem
+export const markAsRead = async (chatId) => {
+  const res = await api.post(`/tro-chuyen/${chatId}/da-xem`);
+  return res.data;
+};

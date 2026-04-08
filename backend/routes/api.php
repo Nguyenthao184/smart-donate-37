@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Broadcast;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\UserProfileController;
@@ -10,7 +11,6 @@ use App\Http\Controllers\FundAccountController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\CampaignController;
 use App\Http\Controllers\DonateController;
-
 use App\Http\Controllers\FraudController;
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\AdminDashboardController;
@@ -31,6 +31,9 @@ Route::get('/categories', [CampaignController::class, 'getDanhMuc']);
 Route::middleware('auth:sanctum')->group(function(){
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout',[AuthController::class,'logout']);
+    Route::post('/broadcasting/auth', function (Request $request) {
+        return Broadcast::auth($request);
+    });
 
     Route::middleware('role:ADMIN')->group(function(){
         Route::prefix('/admin')->group(function () {
@@ -46,7 +49,7 @@ Route::middleware('auth:sanctum')->group(function(){
             Route::get('/dashboard/featured-campaigns', [AdminDashboardController::class, 'featuredCampaigns']);
 
             // ADMIN - danh sach / chi tiet
-            Route::get('/organizations', [OrganizationController::class, 'index']);
+            Route::get('/organizations', [OrganizationController::class, 'adminIndex']);
             Route::get('/organizations/{id}', [OrganizationController::class, 'show']);
             Route::get('/campaigns', [CampaignController::class, 'index']);
             Route::get('/campaigns/{id}', [CampaignController::class, 'show']);
@@ -70,9 +73,7 @@ Route::middleware('auth:sanctum')->group(function(){
             Route::post('/fraud-check/campaigns/auto', [FraudController::class, 'autoCheckCampaigns']);
             Route::get('/fraud-alerts', [FraudController::class, 'getAlerts']);
             Route::post('/fraud-alerts/{canhBao}', [FraudController::class, 'updateAlert']);
-        });
-
-       
+        });    
     });
 
     Route::middleware('role:NGUOI_DUNG')->group(function(){
@@ -92,10 +93,6 @@ Route::middleware('auth:sanctum')->group(function(){
     });
     
     Route::middleware('role:TO_CHUC')->group(function(){
-        //tài khoản gây quỹ       
-        Route::post('/fund-accounts', [FundAccountController::class, 'store']);
-        Route::get('/fund-accounts/me', [FundAccountController::class, 'me']);
-
         //chiến dịch
         Route::post('/campaigns', [CampaignController::class, 'store']);
         Route::get('/campaigns/me', [CampaignController::class, 'myCampaigns']);
