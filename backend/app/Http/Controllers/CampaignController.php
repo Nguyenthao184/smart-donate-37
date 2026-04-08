@@ -146,7 +146,7 @@ class CampaignController extends Controller
                 break;
         }
 
-        $campaigns = $query->paginate(7);
+        $campaigns = $query->paginate(8);
 
         // format lại dữ liệu cho FE
         $campaigns->getCollection()->transform(fn($item) 
@@ -195,7 +195,7 @@ class CampaignController extends Controller
                 break;
         }
 
-        $campaigns = $query->paginate(7);
+        $campaigns = $query->paginate(8);
 
         $campaigns->getCollection()->transform(fn($item) 
             => $this->formatCampaign($item));

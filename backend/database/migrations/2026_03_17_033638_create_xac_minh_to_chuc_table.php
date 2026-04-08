@@ -18,6 +18,10 @@ return new class extends Migration
             $table->string('ma_so_thue');
             $table->string('nguoi_dai_dien');
             $table->string('giay_phep');
+            $table->text('mo_ta');
+            $table->string('dia_chi');
+            $table->string('so_dien_thoai');
+            $table->string('logo')->nullable();
             $table->enum('trang_thai', ['CHO_XU_LY','CHAP_NHAN','TU_CHOI'])->default('CHO_XU_LY');
             $table->enum('loai_hinh', [
                 'NHA_NUOC',

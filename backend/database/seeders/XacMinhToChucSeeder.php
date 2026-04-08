@@ -9,6 +9,32 @@ class XacMinhToChucSeeder extends Seeder
 {
     public function run(): void
     {
+        $tochucUser = DB::table('nguoi_dung')
+            ->where('ten_tai_khoan', 'tochuc')
+            ->first();
+
+        if ($tochucUser) {
+            DB::table('xac_minh_to_chuc')->updateOrInsert(
+                ['nguoi_dung_id' => $tochucUser->id],
+                [
+                    'ten_to_chuc' => 'Thiện Nguyện Test',
+                    'ma_so_thue' => rand(1000000000,9999999999),
+                    'nguoi_dai_dien' => $tochucUser->ho_ten,
+                    'giay_phep' => 'license.pdf',
+                    'mo_ta' => 'Tổ chức thiện nguyện chuyên hỗ trợ trẻ em và người già có hoàn cảnh khó khăn.',
+                    'dia_chi' => '123 Đường Lê Lợi, Quận 1, TP.HCM',
+                    'so_dien_thoai' => '0935678901',
+                    'logo' => 'logos/default.png',
+                    'trang_thai' => 'CHAP_NHAN',
+                    'loai_hinh' => 'QUY_TU_THIEN',
+                    'duyet_boi' => 1,
+                    'duyet_luc' => now(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]
+            );
+        }
+        
         $tenToChucList = [
             'Trung Tâm Hỗ Trợ Cứu Trợ Thiên Tai Việt',
             'Chung Tay Xóa Đói Giảm Nghèo',
@@ -62,7 +88,9 @@ class XacMinhToChucSeeder extends Seeder
                 'ma_so_thue' => rand(1000000000,9999999999),
                 'nguoi_dai_dien' => $user->ho_ten,
                 'giay_phep' => 'license.pdf',
-            
+                'mo_ta' => 'Tổ chức hoạt động vì cộng đồng tại Việt Nam',
+                'dia_chi' => collect(['Đà Nẵng','Hà Nội','TP.HCM'])->random(),
+                'so_dien_thoai' => '0' . rand(300000000,999999999),
                 'trang_thai' => $isPriority ? 'CHAP_NHAN' : 'CHO_XU_LY',
                 'loai_hinh' => $loaiHinhMap[$ten] 
                     ?? collect([
