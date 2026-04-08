@@ -7,7 +7,6 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\OrganizationController;
-use App\Http\Controllers\FundAccountController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\CampaignController;
 use App\Http\Controllers\DonateController;
@@ -60,9 +59,8 @@ Route::middleware('auth:sanctum')->group(function(){
             Route::post('/organization/{id}/approve', [OrganizationController::class, 'approve']);
             Route::post('/organization/{id}/reject', [OrganizationController::class, 'reject']);
 
-            // ADMIN - duyet tai khoan gay quy
-            Route::post('/fund-accounts/{id}/approve', [FundAccountController::class, 'approve']);
-            Route::post('/fund-accounts/{id}/lock', [FundAccountController::class, 'lock']);
+            // ADMIN - khoa tai khoan gay quy
+            Route::post('/fund-accounts/{id}/lock', [OrganizationController::class, 'lock']);
 
             // ADMIN - duyet chien dich
             Route::post('/campaigns/{id}/approve', [CampaignController::class, 'approveCampaign']);
