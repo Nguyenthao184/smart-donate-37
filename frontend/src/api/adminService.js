@@ -37,6 +37,12 @@ export const rejectOrganization = async (id) => {
   return res.data;
 };
 
+// ===== FUND ACCOUNTS =====
+export const lockFundAccount = async (id) => {
+  const res = await api.post(`/admin/fund-accounts/${id}/lock`);
+  return res.data;
+};
+
 // ===== POSTS =====
 export const getAdminPosts = async () => {
   const res = await api.get("/admin/posts");
@@ -66,6 +72,27 @@ export const approveCampaign = async (id) => {
 
 export const rejectCampaign = async (id) => {
   const res = await api.post(`/admin/campaigns/${id}/reject`);
+  return res.data;
+};
+
+// ===== FRAUD =====
+export const getFraudAlerts = async () => {
+  const res = await api.get("/admin/fraud-alerts");
+  return res.data;
+};
+
+export const updateFraudAlert = async (id, data) => {
+  const res = await api.post(`/admin/fraud-alerts/${id}`, data);
+  return res.data;
+};
+
+export const autoCheckFraud = async () => {
+  const res = await api.post("/admin/fraud-check/auto");
+  return res.data;
+};
+
+export const autoCheckCampaignsFraud = async () => {
+  const res = await api.post("/admin/fraud-check/campaigns/auto");
   return res.data;
 };
 

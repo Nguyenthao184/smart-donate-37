@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { notification } from "antd";
-import axiosClient from "../../../api/authService";
 import useAuthStore from "../../../store/authStore";
+import useProfile from "../../../hooks/useProfile";
 import banner from "../../../assets/canhbao.png";
 import Header from "../../../components/Header/index.jsx";
 import Footer from "../../../components/Footer/index.jsx";
@@ -13,45 +13,20 @@ export default function ProfilePage() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("history");
-  const [profile, setProfile] = useState(null);
-  const [posts, setPosts] = useState([]);
-  const [donations, setDonations] = useState([]);
   const [likedMap, setLikedMap] = useState({});
-  const [loading, setLoading] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
 
+  const {
+    profile,
+    donations,
+    myPosts,
+    loading,
+    handleUpdateProfile,
+    handleChangePassword,
+  } = useProfile();
+
   const handleRegisterOrg = () => navigate("/dk-to-chuc");
-
-  useEffect(() => {
-    const fetchAll = async () => {
-      try {
-        const res = await axiosClient.get("/user/profile");
-        setProfile(res.data);
-
-        try {
-          const resPosts = await axiosClient.get("/posts");
-          const allPosts = resPosts.data?.data?.data || resPosts.data?.data || [];
-          const myPosts = allPosts.filter((p) => p.nguoi_dung_id === user?.id);
-          setPosts(myPosts);
-        } catch (e) {
-          console.error("Lỗi lấy bài đăng:", e);
-        }
-
-        try {
-          const resDonate = await axiosClient.get("/donate/history");
-          setDonations(resDonate.data?.data || []);
-        } catch (e) {
-          console.error("Lỗi lấy lịch sử donate:", e);
-        }
-      } catch (e) {
-        console.error("Lỗi lấy profile:", e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchAll();
-  }, [user]);
 
   const profileUser = profile?.user;
   const toChuc = profileUser?.to_chuc;
@@ -82,7 +57,7 @@ export default function ProfilePage() {
     aiSuggestions: [],
   });
 
-  if (loading) {
+  if (loading && !profile) {
     return (
       <div className="profile-page profile-page--loading">
         <div className="profile-loading">
@@ -195,14 +170,12 @@ export default function ProfilePage() {
         <div className="profile-stats">
           <div className="profile-stats__item">
             <span>Tổng donate</span>
-            <strong>
-              {Number(profile?.tong_tien_ung_ho || 0).toLocaleString()} vnđ
-            </strong>
+            <strong>{Number(profile?.tong_tien_ung_ho || 0).toLocaleString()} vnđ</strong>
           </div>
           <div className="profile-stats__sep" />
           <div className="profile-stats__item">
             <span>Bài đăng</span>
-            <strong>{posts.length} bài</strong>
+            <strong>{myPosts.length} bài</strong>
           </div>
           <div className="profile-stats__sep" />
           <div className="profile-stats__item">
@@ -292,8 +265,8 @@ export default function ProfilePage() {
                   + Tạo bài đăng
                 </button>
               </div>
-              {posts.length > 0 ? (
-                posts.map((item) => (
+              {myPosts.length > 0 ? (
+                myPosts.map((item) => (
                   <PostCard
                     key={item.id}
                     post={toPostCard(item)}
@@ -341,11 +314,15 @@ export default function ProfilePage() {
             toChuc={toChuc}
             avatarUrl={avatarUrl}
             isOrganization={isOrganization}
+            onUpdateProfile={handleUpdateProfile}
             onClose={() => setShowEditModal(false)}
           />
         )}
         {showPasswordModal && (
-          <ChangePasswordModal onClose={() => setShowPasswordModal(false)} />
+          <ChangePasswordModal
+            onChangePassword={handleChangePassword}
+            onClose={() => setShowPasswordModal(false)}
+          />
         )}
       </div>
       <Footer />
@@ -353,7 +330,7 @@ export default function ProfilePage() {
   );
 }
 
-function EditProfileModal({ user, profileUser, toChuc, avatarUrl, isOrganization, onClose }) {
+function EditProfileModal({ user, profileUser, toChuc, avatarUrl, isOrganization, onUpdateProfile, onClose }) {
   const fileRef = useRef(null);
   const [avatarPreview, setAvatarPreview] = useState(avatarUrl || null);
   const [form, setForm] = useState({
@@ -373,18 +350,18 @@ function EditProfileModal({ user, profileUser, toChuc, avatarUrl, isOrganization
 
   const handleSubmit = async () => {
     setLoading(true);
-    try {
-      const formData = new FormData();
-      formData.append("ho_ten", form.ho_ten);
-      if (fileRef.current?.files[0]) formData.append("anh_dai_dien", fileRef.current.files[0]);
-      await axiosClient.post("/user/profile", formData, { headers: { "Content-Type": "multipart/form-data" } });
+    const formData = new FormData();
+    formData.append("ho_ten", form.ho_ten);
+    if (fileRef.current?.files[0]) formData.append("anh_dai_dien", fileRef.current.files[0]);
+
+    const { ok } = await onUpdateProfile(formData);
+    setLoading(false);
+
+    if (ok) {
       notification.success({ message: "Lưu thay đổi thành công!", placement: "topRight" });
       onClose();
-      window.location.reload();
-    } catch (e) {
+    } else {
       notification.error({ message: "Lưu thất bại, thử lại!", placement: "topRight" });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -473,7 +450,7 @@ function EditProfileModal({ user, profileUser, toChuc, avatarUrl, isOrganization
   );
 }
 
-function ChangePasswordModal({ onClose }) {
+function ChangePasswordModal({ onChangePassword, onClose }) {
   const [form, setForm] = useState({ old: "", new: "", confirm: "" });
   const [show, setShow] = useState({ old: false, new: false, confirm: false });
   const [loading, setLoading] = useState(false);
@@ -491,18 +468,18 @@ function ChangePasswordModal({ onClose }) {
       return;
     }
     setLoading(true);
-    try {
-      await axiosClient.post("/user/change-password", {
-        mat_khau_cu: form.old,
-        mat_khau_moi: form.new,
-        mat_khau_moi_confirmation: form.confirm,
-      });
+    const { ok, err } = await onChangePassword({
+      mat_khau_cu: form.old,
+      mat_khau_moi: form.new,
+      mat_khau_moi_confirmation: form.confirm,
+    });
+    setLoading(false);
+
+    if (ok) {
       notification.success({ message: "Đổi mật khẩu thành công!", placement: "topRight" });
       onClose();
-    } catch (e) {
-      notification.error({ message: e.response?.data?.message || "Đổi mật khẩu thất bại!", placement: "topRight" });
-    } finally {
-      setLoading(false);
+    } else {
+      notification.error({ message: err?.response?.data?.message || "Đổi mật khẩu thất bại!", placement: "topRight" });
     }
   };
 

@@ -7,7 +7,7 @@ import "./RegisterOrg.scss";
 
 const LOAI_HINH_OPTIONS = [
   {
-    value: "TO_CHUC_NHA_NUOC",
+    value: "NHA_NUOC", // Đã sửa lại đúng key BE yêu cầu
     label: "Tổ chức nhà nước",
     desc: "Cơ quan, đơn vị nhà nước",
     color: "#1890ff",
@@ -73,12 +73,19 @@ export default function RegisterOrg({ onClose }) {
   const loadingStatus = useOrganizationStore((s) => s.loadingStatus);
   const loadingRegister = useOrganizationStore((s) => s.loadingRegister);
   const fileRef = useRef(null);
+  
+  // Đã bổ sung các trường BE yêu cầu vào state form
   const [form, setForm] = useState({
     ten_to_chuc: "",
     ma_so_thue: "",
     nguoi_dai_dien: "",
     loai_hinh: "",
+    so_dien_thoai: "", 
+    email: "",         
+    dia_chi: "",       
+    mo_ta: "",         
   });
+  
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -105,21 +112,27 @@ export default function RegisterOrg({ onClose }) {
   }
 
   async function handleSubmit() {
+    // Validate thêm các trường mới
     if (
       !form.ten_to_chuc ||
       !form.ma_so_thue ||
       !form.nguoi_dai_dien ||
-      !form.loai_hinh
+      !form.loai_hinh ||
+      !form.so_dien_thoai ||
+      !form.dia_chi ||
+      !form.mo_ta
     ) {
       notification.warning({
-        title: "Vui lòng điền đầy đủ các trường bắt buộc!"
-      })
+        message: "Vui lòng điền đầy đủ các trường bắt buộc!",
+        placement: "topRight"
+      });
       return;
     }
     if (!file) {
       notification.warning({
-        title: "Vui lòng tải lên giấy phép hoạt động!"
-      })
+        message: "Vui lòng tải lên giấy phép hoạt động!",
+        placement: "topRight"
+      });
       return;
     }
     setLoading(true);
@@ -130,7 +143,8 @@ export default function RegisterOrg({ onClose }) {
         giay_phep: file,
       });
       notification.success({
-        title: "Đăng ký tổ chức thành công! Vui lòng chờ admin duyệt.",
+        message: "Đăng ký tổ chức thành công! Vui lòng chờ admin duyệt.",
+        placement: "topRight"
       });
       onClose();
     } catch (e) {
@@ -156,15 +170,21 @@ export default function RegisterOrg({ onClose }) {
 
           <div className="rom-modal__body">
             {status.trang_thai === "CHO_XU_LY" && (
-              <div>Hồ sơ đang chờ duyệt...</div>
+              <div style={{ padding: "20px 0", textAlign: "center", color: "#fa8c16", fontWeight: 500 }}>
+                ⏳ Hồ sơ của bạn đang được chờ admin duyệt...
+              </div>
             )}
 
             {status.trang_thai === "CHAP_NHAN" && (
-              <div>Tổ chức đã được duyệt</div>
+              <div style={{ padding: "20px 0", textAlign: "center", color: "#52c41a", fontWeight: 500 }}>
+                ✅ Tổ chức đã được duyệt thành công!
+              </div>
             )}
 
             {status.trang_thai === "TU_CHOI" && (
-              <div>Hồ sơ bị từ chối, vui lòng đăng ký lại</div>
+              <div style={{ padding: "20px 0", textAlign: "center", color: "#f5222d", fontWeight: 500 }}>
+                ❌ Hồ sơ bị từ chối, vui lòng kiểm tra và đăng ký lại.
+              </div>
             )}
           </div>
 
@@ -183,7 +203,7 @@ export default function RegisterOrg({ onClose }) {
       className="rom-overlay"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="rom-modal">
+      <div className="rom-modal" style={{ maxWidth: 600 }}>
         {/* Header */}
         <div className="rom-modal__header">
           <div className="rom-modal__header-left">
@@ -314,6 +334,62 @@ export default function RegisterOrg({ onClose }) {
                   placeholder="VD: Nguyễn Văn A"
                 />
               </div>
+            </div>
+
+            {/* CÁC TRƯỜNG THÊM MỚI Ở ĐÂY */}
+            <div className="rom-grid-2">
+              <div className="rom-field">
+                <label className="rom-field__label">
+                  Số điện thoại <span className="rom-required">*</span>
+                </label>
+                <input
+                  className="rom-field__input"
+                  name="so_dien_thoai"
+                  value={form.so_dien_thoai}
+                  onChange={handleChange}
+                  placeholder="VD: 0901234567"
+                />
+              </div>
+              <div className="rom-field">
+                <label className="rom-field__label">
+                  Email tổ chức
+                </label>
+                <input
+                  className="rom-field__input"
+                  name="email"
+                  value={form.email}
+                  onChange={handleChange}
+                  placeholder="VD: lienhe@tochuc.vn"
+                />
+              </div>
+            </div>
+
+            <div className="rom-field">
+              <label className="rom-field__label">
+                Địa chỉ <span className="rom-required">*</span>
+              </label>
+              <input
+                className="rom-field__input"
+                name="dia_chi"
+                value={form.dia_chi}
+                onChange={handleChange}
+                placeholder="VD: 123 Lê Lợi, Đà Nẵng"
+              />
+            </div>
+
+            <div className="rom-field">
+              <label className="rom-field__label">
+                Mô tả về tổ chức <span className="rom-required">*</span>
+              </label>
+              <textarea
+                className="rom-field__input"
+                name="mo_ta"
+                value={form.mo_ta}
+                onChange={handleChange}
+                placeholder="Giới thiệu ngắn gọn về tổ chức, mục tiêu hoạt động..."
+                rows={3}
+                style={{ resize: "vertical", padding: "12px 16px", minHeight: "80px", fontFamily: "inherit" }}
+              />
             </div>
           </div>
 

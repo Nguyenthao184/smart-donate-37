@@ -121,6 +121,14 @@ const useOrganizationStore = create((set, get) => ({
       formData.append("ma_so_thue", values.ma_so_thue);
       formData.append("nguoi_dai_dien", values.nguoi_dai_dien);
       formData.append("loai_hinh", values.loai_hinh);
+      
+      // ✅ ĐÃ THÊM CÁC TRƯỜNG BE YÊU CẦU Ở ĐÂY
+      formData.append("mo_ta", values.mo_ta);
+      formData.append("dia_chi", values.dia_chi);
+      formData.append("so_dien_thoai", values.so_dien_thoai);
+      if (values.email) {
+        formData.append("email", values.email); // Email có thể không bắt buộc nhưng FE có thì cứ gửi
+      }
 
       // ⚠️ file từ antd
       if (values.giay_phep) {

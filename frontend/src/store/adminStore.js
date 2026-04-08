@@ -9,25 +9,34 @@ import {
   rejectCampaign,
   approveOrganization,
   rejectOrganization,
+  lockFundAccount,
+  getFraudAlerts,
+  updateFraudAlert,
+  autoCheckFraud,
+  autoCheckCampaignsFraud,
 } from "../api/adminService";
 
 let usersPromise = null;
 let postsPromise = null;
 let campaignsPromise = null;
+let fraudPromise = null;
 
 const useAdminStore = create((set, get) => ({
   // ===== STATE =====
   users: [],
   posts: [],
   campaigns: [],
+  fraudAlerts: [],
 
   loadingUsers: false,
   loadingPosts: false,
   loadingCampaigns: false,
+  loadingFraud: false,
 
   isFetchedUsers: false,
   isFetchedPosts: false,
   isFetchedCampaigns: false,
+  isFetchedFraud: false,
 
   // ===== USERS =====
   fetchUsers: async () => {
@@ -167,6 +176,7 @@ const useAdminStore = create((set, get) => ({
     }
   },
 
+  // ===== ORGANIZATIONS =====
   handleApproveOrg: async (id) => {
     try {
       await approveOrganization(id);
@@ -183,6 +193,78 @@ const useAdminStore = create((set, get) => ({
       return true;
     } catch (err) {
       console.error("Lỗi từ chối tổ chức:", err);
+      return false;
+    }
+  },
+
+  // ===== FUND ACCOUNTS =====
+  handleLockFundAccount: async (id) => {
+    try {
+      await lockFundAccount(id);
+      return true;
+    } catch (err) {
+      console.error("Lỗi khóa tài khoản gây quỹ:", err);
+      return false;
+    }
+  },
+
+  // ===== FRAUD =====
+  fetchFraudAlerts: async () => {
+    if (get().isFetchedFraud) return;
+    if (fraudPromise) return fraudPromise;
+
+    set({ loadingFraud: true });
+
+    fraudPromise = (async () => {
+      try {
+        const res = await getFraudAlerts();
+        set({
+          fraudAlerts: res.data || [],
+          loadingFraud: false,
+          isFetchedFraud: true,
+        });
+      } catch (err) {
+        console.error("Lỗi fetch fraud alerts:", err);
+        set({ loadingFraud: false });
+      } finally {
+        fraudPromise = null;
+      }
+    })();
+
+    return fraudPromise;
+  },
+
+  handleUpdateFraudAlert: async (id, data) => {
+    try {
+      const res = await updateFraudAlert(id, data);
+      set({
+        fraudAlerts: get().fraudAlerts.map((a) =>
+          a.id === id ? { ...a, ...res.data } : a
+        ),
+      });
+      return true;
+    } catch (err) {
+      console.error("Lỗi cập nhật cảnh báo:", err);
+      return false;
+    }
+  },
+
+  handleAutoCheckFraud: async () => {
+    try {
+      await autoCheckFraud();
+      return true;
+    } catch (err) {
+      console.error("Lỗi kiểm tra gian lận:", err);
+      return false;
+    }
+  },
+
+  handleAutoCheckCampaignsFraud: async () => {
+    try {
+      await autoCheckCampaignsFraud();
+      return true;
+    } catch (err) {
+      console.error("Lỗi kiểm tra gian lận chiến dịch:", err);
       return false;
     }
   },
