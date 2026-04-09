@@ -22,6 +22,9 @@ export default function PostCard({ post, style }) {
 
   const isMyPost = user?.id === post.user?.id;
 
+  const images = post.images || [];
+  const imgCount = images.length;
+
   const handleChat = async (e) => {
     e.stopPropagation();
 
@@ -80,9 +83,20 @@ export default function PostCard({ post, style }) {
 
         {/* Body */}
         <div className="post-card__body">
-          {post.type === "cho" && post.image && (
-            <div className="post-card__img">
-              <img src={post.image} alt={post.title} />
+          {post.type === "cho" && imgCount > 0 && (
+            <div className={`post-card__img post-card__img--${imgCount}`}>
+              {images.slice(0, 4).map((img, idx) => (
+                <div key={idx} className="post-card__img-item">
+                  <img src={img} alt={`img-${idx}`} />
+
+                  {/* overlay nếu >4 */}
+                  {imgCount > 4 && idx === 3 && (
+                    <div className="post-card__img-overlay">
+                      +{imgCount - 4}
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           )}
           <div className="post-card__content">
@@ -95,7 +109,7 @@ export default function PostCard({ post, style }) {
                     className="post-card__icon-btn mess"
                     onClick={handleChat}
                   >
-                    <FiMessageCircle size={30} color="#fa4926" />
+                    <FiMessageCircle size={25} color="#fa4926" />
                   </button>
                 )}
 
@@ -103,7 +117,7 @@ export default function PostCard({ post, style }) {
                   className="post-card__icon-btn share"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <FiSend size={30} color="#1890ff" />
+                  <FiSend size={25} color="#1890ff" />
                 </button>
               </div>
               <span

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button, Pagination, Dropdown } from "antd";
 import {
@@ -19,72 +19,68 @@ const PAGE_SIZE = 8;
 
 const SORT_OPTIONS = [
   { key: "newest", label: "Mới nhất", icon: <FiChevronRight size={13} /> },
-  { key: "ending", label: "Sắp kết thúc", icon: <FiClock size={13} /> },
+  { key: "ending_soon", label: "Sắp kết thúc", icon: <FiClock size={13} /> },
   {
-    key: "complete",
+    key: "almost_done",
     label: "Sắp hoàn thành",
     icon: <FiTrendingUp size={13} />,
   },
 ];
 
-function sortCampaigns(list, sortKey) {
-  const cloned = [...list];
-  if (sortKey === "ending")
-    return cloned.sort((a, b) => a.daysLeft - b.daysLeft);
-  if (sortKey === "complete")
-    return cloned.sort((a, b) => b.raised / b.goal - a.raised / a.goal);
-  return cloned;
-}
-
 export default function CampaignList() {
   const location = useLocation();
   const navigate = useNavigate();
-  const campaigns = useCampaignStore((s) => s.campaigns);
   const { categories } = useCategories();
-  const queryCategory = Number(
-    new URLSearchParams(location.search).get("category") ?? 0,
+
+  const searchParams = useMemo(
+    () => new URLSearchParams(location.search),
+    [location.search],
   );
-  const [sortKey, setSortKey] = useState("newest");
-  const [isLoading, setIsLoading] = useState(false);
-  const [page, setPage] = useState(1);
+
+  const queryCategory = Number(searchParams.get("category") ?? 0);
+  const page = Number(searchParams.get("page") ?? 1);
+  const sortKey = searchParams.get("sort") ?? "newest";
+
+  const campaigns = useCampaignStore((s) => s.campaigns);
+  const pagination = useCampaignStore((s) => s.pagination);
+  const isLoading = useCampaignStore((s) => s.loading);
+  const fetchCampaigns = useCampaignStore((s) => s.fetchCampaigns);
 
   const allCategories = useMemo(
-    () => [
-      { id: 0, ten_danh_muc: "Tất cả", hinh_anh: tatca },
-      ...categories,
-    ],
+    () => [{ id: 0, ten_danh_muc: "Tất cả", hinh_anh: tatca }, ...categories],
     [categories],
   );
 
-  useEffect(() => {
-    let cancelled = false;
-    async function loadCampaigns() {
-      setIsLoading(true);
-      try {
-        if (queryCategory === 0) {
-          await useCampaignStore.getState().fetchByCategory(null);
-        } else {
-          await useCampaignStore.getState().fetchByCategory(queryCategory);
-        }
-      } finally {
-        if (!cancelled) setIsLoading(false);
+  const navigateWithParams = (newParams) => {
+    const params = new URLSearchParams(location.search);
+
+    Object.entries(newParams).forEach(([key, value]) => {
+      if (value === null || value === undefined || value === 0) {
+        params.delete(key);
+      } else {
+        params.set(key, value);
       }
+    });
+
+    navigate(`?${params.toString()}`);
+  };
+
+  const params = useMemo(() => {
+    const p = {
+      sort: sortKey,
+      page,
+    };
+
+    if (queryCategory !== 0) {
+      p.danh_muc_id = queryCategory;
     }
 
-    void loadCampaigns();
-    return () => {
-      cancelled = true;
-    };
-  }, [queryCategory]);
+    return p;
+  }, [sortKey, page, queryCategory]);
 
-  const filtered = useMemo(() => {
-    return sortCampaigns(campaigns, sortKey);
-  }, [campaigns, sortKey]);
-
-  const paginated = useMemo(() => {
-    const start = (page - 1) * PAGE_SIZE;
-    return filtered.slice(start, start + PAGE_SIZE);
-  }, [filtered, page]);
+  useEffect(() => {
+    fetchCampaigns(params);
+  }, [params]);
 
   const currentSort = SORT_OPTIONS.find((o) => o.key === sortKey);
 
@@ -98,24 +94,23 @@ export default function CampaignList() {
       ),
     })),
     onClick: ({ key }) => {
-      setSortKey(key);
-      setPage(1);
+      navigateWithParams({
+        sort: key,
+        page: 1,
+      });
     },
   };
 
   function handleCategoryChange(id) {
-    setPage(1);
-
-    if (id === 0) {
-      navigate("/chien-dich/danh-sach");
-    } else {
-      navigate(`/chien-dich/danh-sach?category=${id}`);
-    }
+    navigateWithParams({
+      category: id === 0 ? null : id,
+      page: 1,
+    });
   }
 
   return (
     <div className="cl-page">
-      {/* ── Sidebar ── */}
+      {/* Sidebar */}
       <aside className="cl-sidebar">
         <div className="cl-category-box">
           <div className="cl-category-header">
@@ -137,13 +132,12 @@ export default function CampaignList() {
         </div>
       </aside>
 
-      {/* ── Main ── */}
+      {/* Main */}
       <main key={queryCategory} className="cl-main">
-        {/* Toolbar */}
         <div className="cl-toolbar">
           <span className="cl-toolbar__count">
             <FiCheckCircle size={14} />
-            <strong>{filtered.length}</strong> chiến dịch
+            <strong>{pagination?.total ?? 0}</strong> chiến dịch
           </span>
 
           <Dropdown
@@ -165,9 +159,9 @@ export default function CampaignList() {
               <div key={i} className="cl-skeleton__item" />
             ))}
           </div>
-        ) : paginated.length > 0 ? (
+        ) : campaigns.length > 0 ? (
           <div className="cl-grid">
-            {paginated.map((c, i) => (
+            {campaigns.map((c, i) => (
               <div key={c.id} className="cl-grid__item">
                 <CampaignCard campaign={c} index={i} />
               </div>
@@ -180,16 +174,17 @@ export default function CampaignList() {
         )}
 
         {/* Pagination */}
-        {filtered.length > PAGE_SIZE && (
+        {pagination && pagination.total > PAGE_SIZE && (
           <div className="cl-pagination">
             <Pagination
-              current={page}
+              current={pagination.current_page || 1}
               pageSize={PAGE_SIZE}
-              total={filtered.length}
-              onChange={(p) => {
-                setPage(p);
-                window.scrollTo({ top: 0, behavior: "smooth" });
-              }}
+              total={pagination.total}
+              onChange={(p) =>
+                navigateWithParams({
+                  page: p,
+                })
+              }
               showSizeChanger={false}
             />
           </div>

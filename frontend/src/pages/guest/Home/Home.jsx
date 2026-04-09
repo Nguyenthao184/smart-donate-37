@@ -61,7 +61,7 @@ function CardCarousel({ children, className = "" }) {
 
 // ── Page ──────────────────────────────────────────────────────────────
 export default function HomePage() {
-  const { campaigns, loading } = useCampaigns();
+  const { featured, loading } = useCampaigns({ featured: true });
   const { organizations } = useOrganizations();
   const { categories } = useCategories();
   const navigate = useNavigate();
@@ -141,7 +141,7 @@ export default function HomePage() {
           </a>
         </div>
         <CardCarousel>
-          {campaigns.map((c, i) => (
+          {featured.map((c, i) => (
             <div key={c.id} className="home-carousel__slide">
               <CampaignCard
                 campaign={{

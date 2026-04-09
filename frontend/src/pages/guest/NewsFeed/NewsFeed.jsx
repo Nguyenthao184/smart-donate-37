@@ -4,61 +4,9 @@ import { Input } from "antd";
 import { FiSearch, FiGift, FiPackage, FiPlus } from "react-icons/fi";
 import PostCard from "../../../components/PostCard/index.jsx";
 import usePosts from "../../../hooks/usePosts";
+import useChatStore from "../../../store/chatStore";
+import useAuthStore from "../../../store/authStore";
 import "./NewsFeed.scss";
-
-// ── Mock chats ────────────────────────────────────────────────────────
-const MOCK_CHATS = [
-  {
-    id: 1,
-    name: "Trần Minh Hiếu",
-    avatar: "T",
-    color: "#ff4d4f",
-    time: "23 phút",
-    msg: "Mình có thể nhận được không ạ?",
-    unread: 2,
-    online: true,
-  },
-  {
-    id: 2,
-    name: "Phùng Khánh Linh",
-    avatar: "P",
-    color: "#fa8c16",
-    time: "1 giờ",
-    msg: "Cảm ơn bạn nhiều lắm 🙏",
-    unread: 1,
-    online: true,
-  },
-  {
-    id: 3,
-    name: "Phạm Thanh",
-    avatar: "P",
-    color: "#1890ff",
-    time: "2 giờ",
-    msg: "Đã xem",
-    unread: 0,
-    online: false,
-  },
-  {
-    id: 4,
-    name: "Nguyễn Lê",
-    avatar: "N",
-    color: "#52c41a",
-    time: "hôm qua",
-    msg: "Đã xem",
-    unread: 0,
-    online: false,
-  },
-  {
-    id: 5,
-    name: "Minh Anh",
-    avatar: "M",
-    color: "#eb2f96",
-    time: "hôm qua",
-    msg: "Cho mình xin địa chỉ nhé!",
-    unread: 1,
-    online: true,
-  },
-];
 
 const COMMUNITY_STATS = [
   { icon: "🛍️", value: 125, label: "đồ dùng đã được tặng" },
@@ -66,13 +14,25 @@ const COMMUNITY_STATS = [
   { icon: "📋", value: 25, label: "bài đăng tuần này" },
 ];
 
-// ── Main Component ────────────────────────────────────────────────────
 export default function NewsFeed() {
   const navigate = useNavigate();
   const [tab, setTab] = useState("cho");
   const [search, setSearch] = useState("");
 
-  // map FE → BE
+  // ── Auth ──────────────────────────────────────────────────────────
+  const user = useAuthStore((s) => s.user);
+  const isLoggedIn = !!user;
+
+  // ── Chat store ────────────────────────────────────────────────────
+  const { chats, fetchChats } = useChatStore();
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      fetchChats();
+    }
+  }, [isLoggedIn, fetchChats]);
+
+  // ── Posts ─────────────────────────────────────────────────────────
   const params = useMemo(
     () => ({
       loai_bai: tab.toUpperCase(),
@@ -102,7 +62,14 @@ export default function NewsFeed() {
     }),
     title: p.tieu_de,
     desc: p.mo_ta,
-    image: tab === "cho" ? p.hinh_anh_url : null,
+    images:
+    tab === "cho"
+      ? p.hinh_anh_urls?.length
+        ? p.hinh_anh_urls
+        : p.hinh_anh_url
+        ? [p.hinh_anh_url]
+        : []
+      : [],
     status: "con",
   }));
 
@@ -117,24 +84,25 @@ export default function NewsFeed() {
         loadMore();
       }
     };
-
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [hasMore, loading]);
+  }, [hasMore, loading, loadMore]);
 
-  const totalUnread = MOCK_CHATS.reduce((acc, c) => acc + c.unread, 0);
+  // ── Chat helpers ──────────────────────────────────────────────────
+  const totalUnread = chats.reduce((acc, c) => acc + (c.unread_count || 0), 0);
 
-  {
-    loading && posts.length === 0 && <div>Đang tải bài đăng...</div>;
-  }
+  const handleOpenChat = (conv) => {
+    navigate(`/chat?cid=${conv.cuoc_tro_chuyen_id}`);
+  };
 
   return (
+    <>
+
     <div className="nf-page">
       <div className="nf-layout">
-        {/* ── Feed (scrollable) ── */}
+        {/* ── Feed ── */}
         <div className="nf-feed-col">
           <div className="nf-feed">
-            {/* Toolbar */}
             <div className="nf-toolbar">
               <div className="nf-toolbar__tabs">
                 <button
@@ -166,7 +134,6 @@ export default function NewsFeed() {
               </button>
             </div>
 
-            {/* Posts */}
             <div className="nf-posts">
               {mappedPosts.map((post, i) => (
                 <PostCard
@@ -180,47 +147,104 @@ export default function NewsFeed() {
           </div>
         </div>
 
-        {/* ── Sidebar cố định ── */}
+        {/* ── Sidebar ── */}
         <aside className="nf-sidebar">
-          {/* ── Chat Panel cố định ── */}
-          <div className="nf-chat-panel">
-            {/* Header chat list */}
-            <div className="nf-chat-panel__header">
-              <div className="nf-chat-panel__header-left">
-                <span>💬</span>
-                <span className="nf-chat-panel__title">TRÒ CHUYỆN</span>
-                {totalUnread > 0 && (
-                  <span className="nf-chat-panel__badge">{totalUnread}</span>
+          {/* Chat Panel — chỉ hiện khi đã đăng nhập */}
+          {isLoggedIn && (
+            <div className="nf-chat-panel">
+              <div className="nf-chat-panel__header">
+                <div className="nf-chat-panel__header-left">
+                  <span>💬</span>
+                  <span className="nf-chat-panel__title">TRÒ CHUYỆN</span>
+                  {totalUnread > 0 && (
+                    <span className="nf-chat-panel__badge">{totalUnread}</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="nf-chat-list">
+                {chats.length === 0 ? (
+                  <div className="nf-chat-empty">
+                    Chưa có cuộc trò chuyện nào
+                  </div>
+                ) : (
+                  chats.map((conv) => {
+                    const hasUnread = (conv.unread_count || 0) > 0;
+                    const lastMsg = conv.tin_nhan_cuoi;
+                    const otherUser = conv.nguoi_kia;
+
+                    // Preview tin nhắn cuối
+                    let preview = "Chưa có tin nhắn";
+                    if (lastMsg) {
+                      if (lastMsg.loai_tin === "ANH") preview = "[Ảnh]";
+                      else if (lastMsg.loai_tin === "VIDEO")
+                        preview = "[Video]";
+                      else
+                        preview =
+                          lastMsg.noi_dung ||
+                          lastMsg.preview ||
+                          "Chưa có tin nhắn";
+                    }
+
+                    // Thời gian
+                    const timeStr = lastMsg?.created_at
+                      ? new Date(lastMsg.created_at).toLocaleTimeString(
+                          "vi-VN",
+                          {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          },
+                        )
+                      : "";
+
+                    return (
+                      <div
+                        key={conv.cuoc_tro_chuyen_id}
+                        className="nf-chat-item"
+                        onClick={() => handleOpenChat(conv)}
+                        style={{ cursor: "pointer" }}
+                      >
+                        <div
+                          className="nf-chat-item__avatar"
+                          style={{ background: "#1890ff" }}
+                        >
+                          {otherUser?.ho_ten?.charAt(0) || "?"}
+                        </div>
+
+                        <div className="nf-chat-item__info">
+                          <div className="nf-chat-item__name">
+                            {otherUser?.ho_ten || "Người dùng"}
+                          </div>
+                          <div
+                            className={`nf-chat-item__msg${hasUnread ? " unread" : ""}`}
+                            style={
+                              hasUnread
+                                ? { fontWeight: 700, color: "#111" }
+                                : {}
+                            }
+                          >
+                            {preview}
+                          </div>
+                        </div>
+
+                        <div className="nf-chat-item__right">
+                          <span className="nf-chat-item__time">{timeStr}</span>
+                          {hasUnread && (
+                            <span
+                              className="nf-chat-panel__badge"
+                              style={{ marginTop: 4 }}
+                            >
+                              {conv.unread_count}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
                 )}
               </div>
             </div>
-
-            {/* Danh sách chat */}
-            <div className="nf-chat-list">
-              {MOCK_CHATS.map((c) => (
-                <div key={c.id} className="nf-chat-item">
-                  <div
-                    className="nf-chat-item__avatar"
-                    style={{ background: c.color }}
-                  >
-                    {c.avatar}
-                    {c.online && <span className="nf-chat-item__online" />}
-                  </div>
-                  <div className="nf-chat-item__info">
-                    <div className="nf-chat-item__name">{c.name}</div>
-                    <div
-                      className={`nf-chat-item__msg${c.unread ? " unread" : ""}`}
-                    >
-                      {c.msg}
-                    </div>
-                  </div>
-                  <div className="nf-chat-item__right">
-                    <span className="nf-chat-item__time">{c.time}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          )}
 
           {/* Community stats */}
           <div className="nf-community-box">
@@ -245,5 +269,6 @@ export default function NewsFeed() {
         </aside>
       </div>
     </div>
+    </>
   );
 }

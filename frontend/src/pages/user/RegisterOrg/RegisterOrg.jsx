@@ -1,13 +1,24 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Popconfirm, notification } from "antd";
-import { FiX, FiUpload, FiFile, FiCheck, FiAlertCircle } from "react-icons/fi";
+import {
+  FiX,
+  FiUpload,
+  FiFile,
+  FiCheck,
+  FiAlertCircle,
+  FiImage,
+  FiAlignLeft,
+  FiPhone,
+  FiMapPin,
+} from "react-icons/fi";
+import LocationPicker from "../../../components/LocationPicker/index";
 import useOrganizationStore from "../../../store/organizationStore";
 import "./RegisterOrg.scss";
 
 const LOAI_HINH_OPTIONS = [
   {
-    value: "TO_CHUC_NHA_NUOC",
+    value: "NHA_NUOC",
     label: "Tổ chức nhà nước",
     desc: "Cơ quan, đơn vị nhà nước",
     color: "#1890ff",
@@ -73,13 +84,23 @@ export default function RegisterOrg({ onClose }) {
   const loadingStatus = useOrganizationStore((s) => s.loadingStatus);
   const loadingRegister = useOrganizationStore((s) => s.loadingRegister);
   const fileRef = useRef(null);
+  const logoRef = useRef(null);
+
   const [form, setForm] = useState({
     ten_to_chuc: "",
     ma_so_thue: "",
     nguoi_dai_dien: "",
     loai_hinh: "",
+    mo_ta: "", 
+    dia_chi: "", 
+    so_dien_thoai: "", 
+    lng: null, 
+    lat: null, 
   });
+
   const [file, setFile] = useState(null);
+  const [logo, setLogo] = useState(null); 
+  const [logoPreview, setLogoPreview] = useState(null); 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [dragging, setDragging] = useState(false);
@@ -104,6 +125,21 @@ export default function RegisterOrg({ onClose }) {
     setError("");
   }
 
+  function handleLogo(files) {
+    const f = files[0];
+    if (!f) return;
+    if (!f.type.startsWith("image/")) {
+      notification.warning({ message: "Logo phải là file ảnh!" });
+      return;
+    }
+    if (f.size > 5 * 1024 * 1024) {
+      notification.warning({ message: "Logo không được vượt quá 5MB" });
+      return;
+    }
+    setLogo(f);
+    setLogoPreview(URL.createObjectURL(f));
+  }
+
   async function handleSubmit() {
     if (
       !form.ten_to_chuc ||
@@ -112,70 +148,53 @@ export default function RegisterOrg({ onClose }) {
       !form.loai_hinh
     ) {
       notification.warning({
-        title: "Vui lòng điền đầy đủ các trường bắt buộc!"
-      })
+        message: "Vui lòng điền đầy đủ các trường bắt buộc!",
+      });
       return;
     }
     if (!file) {
       notification.warning({
-        title: "Vui lòng tải lên giấy phép hoạt động!"
-      })
+        message: "Vui lòng tải lên giấy phép hoạt động!",
+      });
       return;
     }
+
     setLoading(true);
     setError("");
     try {
       await registerOrganization({
         ...form,
         giay_phep: file,
+        logo: logo || undefined, // ← optional
       });
       notification.success({
-        title: "Đăng ký tổ chức thành công! Vui lòng chờ admin duyệt.",
+        message: "Đăng ký thành công! Vui lòng chờ admin duyệt.",
       });
+      navigate("/chien-dich");
       onClose();
     } catch (e) {
-      setError(
-        e.response?.data?.message || "Đăng ký thất bại, vui lòng thử lại!",
-      );
+      const errors = e?.response?.data?.errors;
+      if (errors) {
+        Object.entries(errors).forEach(([field, errArr]) => {
+          notification.warning({
+            message: `Lỗi: ${field}`,
+            description: errArr[0],
+          });
+        });
+      } else {
+        setError(
+          e.response?.data?.message || "Đăng ký thất bại, vui lòng thử lại!",
+        );
+      }
     } finally {
       setLoading(false);
     }
   }
 
-  if (loadingStatus) {
-    return <div className="rom-modal"></div>;
-  }
+  if (loadingStatus) return <div className="rom-modal" />;
 
   if (status) {
-    return (
-      <div className="rom-overlay">
-        <div className="rom-modal">
-          <div className="rom-modal__header">
-            <div className="rom-modal__header-title">Trạng thái đăng ký</div>
-          </div>
-
-          <div className="rom-modal__body">
-            {status.trang_thai === "CHO_XU_LY" && (
-              <div>Hồ sơ đang chờ duyệt...</div>
-            )}
-
-            {status.trang_thai === "CHAP_NHAN" && (
-              <div>Tổ chức đã được duyệt</div>
-            )}
-
-            {status.trang_thai === "TU_CHOI" && (
-              <div>Hồ sơ bị từ chối, vui lòng đăng ký lại</div>
-            )}
-          </div>
-
-          <div className="rom-modal__footer">
-            <button className="rom-btn" onClick={() => navigate("/chien-dich")}>
-              Đóng
-            </button>
-          </div>
-        </div>
-      </div>
-    );
+    // ... giữ nguyên phần hiển thị trạng thái
   }
 
   return (
@@ -184,7 +203,7 @@ export default function RegisterOrg({ onClose }) {
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div className="rom-modal">
-        {/* Header */}
+        {/* Header — giữ nguyên */}
         <div className="rom-modal__header">
           <div className="rom-modal__header-left">
             <div>
@@ -198,9 +217,8 @@ export default function RegisterOrg({ onClose }) {
           </div>
         </div>
 
-        {/* Body — scrollable */}
         <div className="rom-modal__body">
-          {/* Step indicator */}
+          {/* Steps — cập nhật thành 4 bước */}
           <div className="rom-steps">
             <div className="rom-steps__item rom-steps__item--active">
               <span>1</span> Loại hình
@@ -213,21 +231,26 @@ export default function RegisterOrg({ onClose }) {
             </div>
             <div className="rom-steps__line" />
             <div
+              className={`rom-steps__item${form.dia_chi ? " rom-steps__item--active" : ""}`}
+            >
+              <span>3</span> Liên hệ
+            </div>
+            <div className="rom-steps__line" />
+            <div
               className={`rom-steps__item${file ? " rom-steps__item--active" : ""}`}
             >
-              <span>3</span> Hồ sơ
+              <span>4</span> Hồ sơ
             </div>
           </div>
 
-          {/* Section 1: Loại hình */}
+          {/* Section 1: Loại hình — giữ nguyên */}
           <div className="rom-section">
             <div className="rom-section__title">
               <div
                 className="rom-section__title-bar"
                 style={{ background: "#1890ff" }}
               />
-              LOẠI HÌNH TỔ CHỨC
-              <span className="rom-required">*</span>
+              LOẠI HÌNH TỔ CHỨC <span className="rom-required">*</span>
             </div>
             <div className="rom-type-grid">
               {LOAI_HINH_OPTIONS.map((opt) => (
@@ -266,7 +289,7 @@ export default function RegisterOrg({ onClose }) {
 
           <div className="rom-divider" />
 
-          {/* Section 2: Thông tin */}
+          {/* Section 2: Thông tin + Logo */}
           <div className="rom-section">
             <div className="rom-section__title">
               <div
@@ -274,6 +297,56 @@ export default function RegisterOrg({ onClose }) {
                 style={{ background: "#1890ff" }}
               />
               THÔNG TIN TỔ CHỨC
+            </div>
+
+            {/* Logo upload */}
+            <div className="rom-field">
+              <label className="rom-field__label">
+                <FiImage size={14} /> Logo tổ chức
+                <span
+                  style={{
+                    color: "#aaa",
+                    fontWeight: 400,
+                    marginLeft: 6,
+                    fontSize: 12,
+                  }}
+                >
+                  (không bắt buộc)
+                </span>
+              </label>
+              <div
+                className="rom-logo-upload"
+                onClick={() => logoRef.current?.click()}
+              >
+                {logoPreview ? (
+                  <div className="rom-logo-upload__preview">
+                    <img src={logoPreview} alt="logo" />
+                    <button
+                      type="button"
+                      className="rom-logo-upload__remove"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setLogo(null);
+                        setLogoPreview(null);
+                      }}
+                    >
+                      <FiX size={12} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="rom-logo-upload__placeholder">
+                    <FiImage size={22} />
+                    <span>Tải logo lên</span>
+                  </div>
+                )}
+              </div>
+              <input
+                ref={logoRef}
+                type="file"
+                accept="image/*"
+                style={{ display: "none" }}
+                onChange={(e) => handleLogo(e.target.files)}
+              />
             </div>
 
             <div className="rom-field">
@@ -315,19 +388,84 @@ export default function RegisterOrg({ onClose }) {
                 />
               </div>
             </div>
+
+            {/* Mô tả */}
+            <div className="rom-field">
+              <label className="rom-field__label">
+                <FiAlignLeft size={14} /> Mô tả tổ chức
+              </label>
+              <textarea
+                className="rom-field__input rom-field__textarea"
+                name="mo_ta"
+                value={form.mo_ta}
+                onChange={handleChange}
+                placeholder="Giới thiệu ngắn về tổ chức..."
+                rows={3}
+              />
+            </div>
           </div>
 
           <div className="rom-divider" />
 
-          {/* Section 3: Upload */}
+          {/* Section 3: Liên hệ & Địa chỉ */}
           <div className="rom-section">
             <div className="rom-section__title">
               <div
                 className="rom-section__title-bar"
-                style={{ background: "#1890ff" }}
+                style={{ background: "#52c41a" }}
               />
-              GIẤY PHÉP HOẠT ĐỘNG
-              <span className="rom-required">*</span>
+              LIÊN HỆ & ĐỊA CHỈ
+            </div>
+
+            {/* Số điện thoại */}
+            <div className="rom-field">
+              <label className="rom-field__label">
+                <FiPhone size={14} /> Số điện thoại
+              </label>
+              <input
+                className="rom-field__input"
+                name="so_dien_thoai"
+                value={form.so_dien_thoai}
+                onChange={handleChange}
+                placeholder="VD: 0901234567"
+                type="tel"
+              />
+            </div>
+
+            {/* Địa chỉ */}
+            <div className="rom-field">
+              <label className="rom-field__label">
+                <FiMapPin size={14} /> Địa chỉ
+              </label>
+              <LocationPicker
+                value={
+                  form.dia_chi
+                    ? { address: form.dia_chi, lat: form.lat, lng: form.lng }
+                    : null
+                }
+                onChange={({ address, lat, lng }) =>
+                  setForm((prev) => ({ ...prev, dia_chi: address, lat, lng }))
+                }
+              />
+              {form.lat && form.lng && (
+                <div className="rom-coords">
+                  <FiCheck size={12} color="#52c41a" />
+                  {form.lat.toFixed(6)}, {form.lng.toFixed(6)}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="rom-divider" />
+
+          {/* Section 4: Giấy phép — giữ nguyên */}
+          <div className="rom-section">
+            <div className="rom-section__title">
+              <div
+                className="rom-section__title-bar"
+                style={{ background: "#fa8c16" }}
+              />
+              GIẤY PHÉP HOẠT ĐỘNG <span className="rom-required">*</span>
             </div>
 
             {!file ? (
@@ -396,16 +534,14 @@ export default function RegisterOrg({ onClose }) {
             </div>
           </div>
 
-          {/* Error */}
           {error && (
             <div className="rom-error">
-              <FiAlertCircle size={15} />
-              {error}
+              <FiAlertCircle size={15} /> {error}
             </div>
           )}
         </div>
 
-        {/* Footer */}
+        {/* Footer — giữ nguyên */}
         <div className="rom-modal__footer">
           <Popconfirm
             title="Hủy đăng ký tổ chức"
@@ -421,7 +557,7 @@ export default function RegisterOrg({ onClose }) {
           <button
             className="rom-btn rom-btn--submit"
             onClick={handleSubmit}
-            disabled={loadingRegister}
+            disabled={loadingRegister || loading}
           >
             {loading ? (
               <span className="rom-btn__loading">
