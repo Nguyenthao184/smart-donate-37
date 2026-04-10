@@ -90,11 +90,10 @@ Route::middleware('auth:sanctum')->group(function(){
         Route::get('/donate/history', [DonateController::class, 'donateHistory']);
     });
     
-    Route::middleware('role:TO_CHUC')->group(function(){
+    Route::middleware(['role:TO_CHUC','update.campaign'])->group(function(){
         //chiến dịch
         Route::post('/campaigns', [CampaignController::class, 'store']);
         Route::get('/campaigns/me', [CampaignController::class, 'myCampaigns']);
-        
    });
 
     // Feed - user và tổ chức: đăng/cập nhật/xóa 
@@ -125,8 +124,10 @@ Route::get('/organization', [OrganizationController::class, 'index']);
 Route::get('/organization/{id}', [OrganizationController::class, 'show']);
 
 //xem chiến dịch
-Route::get('/campaigns', [CampaignController::class, 'index']);
-Route::get('/campaigns/featured', [CampaignController::class, 'featured']);
-Route::get('/campaigns/{id}', [CampaignController::class, 'show']);
-
+Route::middleware('update.campaign')->group(function () {
+    Route::get('/campaigns', [CampaignController::class, 'index']);
+    Route::get('/campaigns/featured', [CampaignController::class, 'featured']);
+    Route::get('/campaigns/ending-soon', [CampaignController::class, 'endingSoon']);
+    Route::get('/campaigns/{id}', [CampaignController::class, 'show']);
+});
 Route::get('/vnpay/return', [DonateController::class, 'vnpayReturn']);

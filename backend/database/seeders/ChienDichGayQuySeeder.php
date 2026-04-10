@@ -226,8 +226,6 @@ class ChienDichGayQuySeeder extends Seeder
                     $mucTieu = rand(2000, 5000) * 1000000;
                 }
 
-                $ngayKetThuc = now()->addDays(rand(-10, 30));
-
                 $statuses = array_merge(
                     array_fill(0, 55, 'HOAT_DONG'),
                     array_fill(0, 10, 'TAM_DUNG'),
@@ -238,6 +236,43 @@ class ChienDichGayQuySeeder extends Seeder
                 );
 
                 $trangThai = $statuses[array_rand($statuses)];
+
+                switch ($trangThai) {
+                    case 'HOAT_DONG':
+                        // đang chạy → ngày kết thúc ở tương lai
+                        $ngayKetThuc = now()->addDays(rand(1, 30));
+                        break;
+
+                    case 'TAM_DUNG':
+                        // tạm dừng nhưng chưa hết hạn
+                        $ngayKetThuc = now()->addDays(rand(5, 20));
+                        break;
+
+                    case 'CHO_XU_LY':
+                        // mới tạo → còn hạn xa
+                        $ngayKetThuc = now()->addDays(rand(10, 40));
+                        break;
+
+                    case 'DA_KET_THUC':
+                        // đã kết thúc → ngày trong quá khứ
+                        $ngayKetThuc = now()->subDays(rand(1, 10));
+                        break;
+
+                    case 'HOAN_THANH':
+                        // hoàn thành sớm → vẫn là quá khứ
+                        $ngayKetThuc = now()->subDays(rand(1, 5));
+                        break;
+
+                    case 'TU_CHOI':
+                        // bị từ chối → có thể chưa tới hạn hoặc vừa tạo
+                        $ngayKetThuc = now()->addDays(rand(5, 15));
+                        break;
+
+                    default:
+                        $ngayKetThuc = now()->addDays(10);
+                        break;
+                }
+
                 $tenChienDich = $nameTemplates[$categoryName][$i] ?? "Chung tay vì cộng đồng";
 
                 $descriptions = [
