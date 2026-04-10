@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
             'role' => CheckRole::class,
+            'update.campaign' => \App\Http\Middleware\UpdateCampaignStatus::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

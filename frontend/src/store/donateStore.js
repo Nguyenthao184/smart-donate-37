@@ -22,13 +22,6 @@ const useDonateStore = create((set) => ({
           donateData: res,
           loading: false,
         });
-
-        // 👉 CASE VNPAY
-        if (res.type === "VNPAY") {
-          window.location.href = res.payment_url;
-        }
-
-        // 👉 CASE QR
         return res;
       } catch (err) {
         console.error("Lỗi donate:", err);

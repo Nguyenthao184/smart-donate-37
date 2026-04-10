@@ -26,6 +26,8 @@ class ChienDichGayQuy extends Model
         'so_tien_da_nhan',
         'ngay_ket_thuc',
         'vi_tri',
+        'lat',
+        'lng',
         'ma_noi_dung_ck',
         'trang_thai'
     ];

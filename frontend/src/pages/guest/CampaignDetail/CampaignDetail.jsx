@@ -32,7 +32,11 @@ mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
 export default function CampaignDetail() {
   const { id } = useParams();
   const location = useLocation();
-  const { campaigns: otherCampaigns, loading: loadingOther } = useCampaigns();
+  const { campaigns, loading } = useCampaigns({
+    params: { page: 1, limit: 8 },
+  });
+
+  const otherCampaigns = campaigns.filter((c) => c.id !== Number(id));
 
   const [campaign, setCampaign] = useState(null);
   const [mainImg, setMainImg] = useState(0);
@@ -52,22 +56,32 @@ export default function CampaignDetail() {
     if (!id) return;
     let cancelled = false;
     const loadCampaign = async () => {
+      // Nếu từ trang donate về → invalidate cache trước
+      if (location.state?.fromDonate) {
+        useCampaignStore.getState().invalidateCampaignDetail(id);
+      }
+
       const data = await useCampaignStore.getState().fetchCampaignDetail(id);
       if (cancelled || !data) return;
       setCampaign({
         id: data.id,
         title: data.ten_chien_dich,
         description: data.mo_ta,
+        category: data.ten_danh_muc,
         images: data.hinh_anh,
         codebank: data.ma_noi_dung_ck,
+        startday: data.ngay_bat_dau,
+        endday: data.ngay_ket_thuc,
         raised: Number(data.so_tien_da_nhan),
         goal: Number(data.muc_tieu_tien),
         daysLeft: data.so_ngay_con_lai,
         location: data.vi_tri,
         lat: data.lat,
         lng: data.lng,
+        status: data.trang_thai,
         total_donor: data.so_luot_ung_ho,
         org: {
+          id: data.to_chuc?.id,
           name: data.to_chuc?.ten_to_chuc,
           logo: data.to_chuc?.logo,
           description: data.to_chuc?.mo_ta ? [data.to_chuc.mo_ta] : [],
@@ -89,7 +103,7 @@ export default function CampaignDetail() {
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, location.state]);
 
   function handleCopy() {
     navigator.clipboard.writeText(campaign.codebank);
@@ -179,7 +193,14 @@ export default function CampaignDetail() {
               />
               <span>Email: {campaign.org.email}</span>
             </div>
-            <Button className="cd-org__more-btn">TÌM HIỂU THÊM</Button>
+            <Button
+              className="cd-org__more-btn"
+              onClick={() =>
+                navigate(`/chien-dich/to-chuc/chi-tiet/${campaign.org.id}`)
+              }
+            >
+              TÌM HIỂU THÊM
+            </Button>
           </div>
         </div>
       ),
@@ -196,7 +217,7 @@ export default function CampaignDetail() {
           <div className="cd-info__grid">
             <div className="cd-info__item">
               <span className="cd-info__label">Mã chuyển khoản</span>
-              <span className="cd-info__value">{campaign.target}</span>
+              <span className="cd-info__value">{campaign.codebank}</span>
             </div>
             <div className="cd-info__item">
               <span className="cd-info__label">Danh mục</span>
@@ -206,11 +227,11 @@ export default function CampaignDetail() {
             </div>
             <div className="cd-info__item">
               <span className="cd-info__label">Bắt đầu</span>
-              <span className="cd-info__value">{campaign.startDate}</span>
+              <span className="cd-info__value">{campaign.startday}</span>
             </div>
             <div className="cd-info__item">
               <span className="cd-info__label">Kết thúc</span>
-              <span className="cd-info__value">{campaign.endDate}</span>
+              <span className="cd-info__value">{campaign.endday}</span>
             </div>
           </div>
           <p className="cd-info__desc">{campaign.description}</p>
@@ -259,6 +280,19 @@ export default function CampaignDetail() {
       ),
     },
   ];
+
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case "HOAT_DONG":
+        return "Đang hoạt động";
+      case "DA_KET_THUC":
+        return "Đã kết thúc";
+      case "TAM_DUNG":
+        return "Tạm dừng";
+      default:
+        return "Không xác định";
+    }
+  };
 
   return (
     <div className="cd-page">
@@ -329,7 +363,9 @@ export default function CampaignDetail() {
             {/* Progress */}
             <div className="cd-stats__progress-wrap">
               <div className="cd-stats__progress-header">
-                <span className="cd-stats__progress-label">Tiến độ</span>
+                <span className="cd-stats__progress-label">
+                  {getStatusLabel(campaign.status)}
+                </span>
                 <span className="cd-stats__progress-pct">{percent}%</span>
               </div>
               <Progress
@@ -381,7 +417,9 @@ export default function CampaignDetail() {
               </div>
 
               <div className="cd-stats__bank-content">
-                <span className="cd-stats__bank-code">{copied ? "Đã sao chép!" : campaign.codebank}</span>
+                <span className="cd-stats__bank-code">
+                  {copied ? "Đã sao chép!" : campaign.codebank}
+                </span>
 
                 <button className="cd-stats__copy-btn" onClick={handleCopy}>
                   <FiCopy size={16} />
@@ -443,7 +481,7 @@ export default function CampaignDetail() {
       {/* ── Other campaigns ── */}
       <div className="cd-others">
         <h2 className="cd-others__title">CÁC CHIẾN DỊCH KHÁC</h2>
-        {loadingOther ? (
+        {loading ? (
           <div>Loading...</div>
         ) : (
           <div className="cd-others__carousel-wrap">

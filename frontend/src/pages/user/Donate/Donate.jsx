@@ -15,10 +15,10 @@ import { RiSparklingLine, RiQrCodeLine } from "react-icons/ri";
 import bank from "../../../assets/user/bank.png";
 import vnpay from "../../../assets/user/vnpay.jpg";
 import useDonateStore from "../../../store/donateStore";
+import useCampaignStore from "../../../store/campaignStore";
 import useUserStore from "../../../store/authStore";
 import "./Donate.scss";
 
-/* ─── Constants ─── */
 const PRESET_AMOUNTS = [50000, 100000, 200000, 500000, 1000000, 2000000];
 
 const STEPS = [
@@ -31,23 +31,11 @@ function formatVnd(n) {
   return Number(n).toLocaleString("vi-VN");
 }
 
-function generateTxCode(donor) {
-  const suffix = donor
-    ? donor
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^a-zA-Z0-9]/g, "")
-        .toUpperCase()
-        .slice(0, 8)
-    : "UOCMOCHOEM";
-  return "UH3AV" + suffix;
-}
-
-/* ─── Component ─── */
 export default function DonatePage() {
   const navigate = useNavigate();
   const { id } = useParams();
   const { handleDonate, handleConfirm, loading } = useDonateStore();
+  const campaignDetail = useCampaignStore((s) => s.campaignDetail[String(id)]);
   const { user } = useUserStore();
   const [step, setStep] = useState(1);
   const [payMethod, setPayMethod] = useState("qr");
@@ -57,11 +45,11 @@ export default function DonatePage() {
   const [errors, setErrors] = useState({});
   const [qrData, setQrData] = useState(null);
 
+  const campaignName = campaignDetail?.ten_chien_dich ?? "";
+  const orgName = campaignDetail?.to_chuc?.ten_to_chuc ?? "";
+
   const donor = user?.ho_ten || "";
 
-  const txCode = generateTxCode(donor);
-
-  /* ── helpers ── */
   function selectPreset(val) {
     setAmount(val);
     setCustomAmt(val.toLocaleString("vi-VN"));
@@ -92,7 +80,6 @@ export default function DonatePage() {
     // ===== STEP 2 =====
     if (step === 2) {
       if (!validateStep2()) return;
-
       setErrors({});
 
       try {
@@ -100,24 +87,21 @@ export default function DonatePage() {
           chien_dich_gay_quy_id: id,
           so_tien: amount,
           phuong_thuc_thanh_toan: payMethod,
+          noi_dung: message,
         });
 
-        // ===== QR =====
         if (res?.type === "QR") {
           setQrData(res.data);
-
           setStep(3);
         }
 
-        // ===== VNPAY =====
         if (res?.type === "VNPAY") {
-          notification.info({
-            message: "Đang chuyển sang VNPay",
-            description: "Vui lòng hoàn tất thanh toán",
-          });
-
-          // ⚠️ KHÔNG cần redirect ở đây
-          // store đã xử lý window.location.href rồi
+          const url = res.payment_url || res.data?.payment_url;
+          if (url) {
+            window.location.href = url;
+          } else {
+            notification.error({ message: "Không lấy được link VNPay" });
+          }
         }
       } catch (err) {
         notification.error({
@@ -133,12 +117,9 @@ export default function DonatePage() {
     if (!qrData) return;
 
     try {
-      await handleConfirm({
-        ung_ho_id: qrData.ung_ho_id,
-      });
-
+      await handleConfirm({ ung_ho_id: qrData.ung_ho_id });
       notification.success({
-        message: "Ủng hộ thành công 🎉",
+        message: "Ủng hộ thành công",
         description: "Cảm ơn bạn rất nhiều!",
       });
 
@@ -146,8 +127,18 @@ export default function DonatePage() {
         state: {
           amount,
           donor,
-          method: "qr",
-          ung_ho_id: qrData.ung_ho_id,
+          method: payMethod,
+          txId: qrData.ung_ho_id,
+          campaignId: Number(id),
+          campaignName,
+          orgName,
+          thoiGian:
+            new Date().toLocaleDateString("vi-VN") +
+            " - " +
+            new Date().toLocaleTimeString("vi-VN", {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
         },
       });
     } catch (err) {
@@ -163,11 +154,9 @@ export default function DonatePage() {
     setStep((s) => s - 1);
   }
 
-  /* ─── Render ─── */
   return (
     <div className="dp-page">
       <div className="dp-card">
-        {/* Hero */}
         <div className="dp-card__hero">
           <h1 className="dp-card__title">Quyên góp</h1>
           <p className="dp-card__sub">
@@ -202,7 +191,7 @@ export default function DonatePage() {
         </div>
 
         <div className="dp-body">
-          {/* ── Step 1: Chọn phương thức ── */}
+          {/* ── Step 1 ── */}
           {step === 1 && (
             <div className="dp-step dp-step--1">
               <div className="dp-section-label">
@@ -260,25 +249,24 @@ export default function DonatePage() {
               >
                 {payMethod === "qr" ? (
                   <>
-                    <RiQrCodeLine size={14} />
-                    Bạn sẽ quét QR ngân hàng ở bước cuối
+                    <RiQrCodeLine size={14} /> Bạn sẽ quét QR ngân hàng ở bước
+                    cuối
                   </>
                 ) : (
                   <>
-                    <FiExternalLink size={14} />
-                    Bạn sẽ được chuyển đến trang VNPay để thanh toán
+                    <FiExternalLink size={14} /> Bạn sẽ được chuyển đến trang
+                    VNPay để thanh toán
                   </>
                 )}
               </div>
             </div>
           )}
 
-          {/* ── Step 2: Nhập thông tin ── */}
+          {/* ── Step 2 ── */}
           {step === 2 && (
             <div className="dp-step dp-step--2">
               <div className="dp-section-label">Thông tin chuyển khoản</div>
 
-              {/* Presets */}
               <div className="dp-presets">
                 {PRESET_AMOUNTS.map((v) => (
                   <button
@@ -291,7 +279,6 @@ export default function DonatePage() {
                 ))}
               </div>
 
-              {/* Amount input */}
               <div className="dp-field">
                 <label className="dp-field__label">Số tiền quyên góp</label>
                 <div className="dp-field__wrap">
@@ -309,7 +296,6 @@ export default function DonatePage() {
                 )}
               </div>
 
-              {/* Donor name */}
               <div className="dp-field">
                 <label className="dp-field__label">
                   Tên người chuyển khoản
@@ -323,7 +309,6 @@ export default function DonatePage() {
                 )}
               </div>
 
-              {/* Message */}
               <div className="dp-field">
                 <label className="dp-field__label">
                   Nội dung chuyển khoản{" "}
@@ -340,14 +325,8 @@ export default function DonatePage() {
                     onChange={(e) => setMessage(e.target.value)}
                   />
                 </div>
-                {!message && donor && (
-                  <span className="dp-field__hint">
-                    Mã tự động: <strong>{txCode}</strong>
-                  </span>
-                )}
               </div>
 
-              {/* Preview */}
               {amount >= 10000 && (
                 <div className="dp-amount-preview">
                   <span>Bạn sẽ quyên góp</span>
@@ -357,7 +336,7 @@ export default function DonatePage() {
             </div>
           )}
 
-          {/* ── Step 3: QR ── */}
+          {/* ── Step 3: chỉ hiện với QR, VNPAY redirect thẳng ra ngoài ── */}
           {step === 3 && payMethod === "qr" && (
             <div className="dp-step dp-step--3">
               <div className="dp-confirm-header">
@@ -370,7 +349,6 @@ export default function DonatePage() {
               </div>
 
               <div className="dp-qr-layout">
-                {/* QR */}
                 <div className="dp-qr-box">
                   <img
                     src={qrData?.qr_code}
@@ -383,7 +361,6 @@ export default function DonatePage() {
                   </div>
                 </div>
 
-                {/* Bank info */}
                 <div className="dp-bank-info">
                   <div className="dp-bank-row">
                     <span className="dp-bank-row__label">Ngân hàng</span>
@@ -412,7 +389,9 @@ export default function DonatePage() {
                   <div className="dp-bank-row dp-bank-row--transfer">
                     <span className="dp-bank-row__label">Nội dung CK</span>
                     <span className="dp-bank-row__value">
-                      <span className="dp-tx-code">{message || txCode}</span>
+                      <span className="dp-tx-code">
+                        {message || qrData?.mo_ta}
+                      </span>
                     </span>
                   </div>
                 </div>

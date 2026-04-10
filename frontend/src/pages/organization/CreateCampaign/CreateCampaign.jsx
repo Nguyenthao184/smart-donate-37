@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
-import { Button, Input, Select, DatePicker, notification } from "antd";
+import { useNavigate } from "react-router-dom";
+import { Button, Input, DatePicker, notification } from "antd";
 import {
   FiChevronRight,
   FiChevronLeft,
@@ -12,49 +13,12 @@ import {
   FiMapPin,
   FiDollarSign,
 } from "react-icons/fi";
-import { GiKnifeFork } from "react-icons/gi";
-import { FaChildren, FaEarthEurope, FaPooStorm } from "react-icons/fa6";
-import { RiHandCoinLine } from "react-icons/ri";
-import { MdCastForEducation } from "react-icons/md";
 import LocationPicker from "../../../components/LocationPicker/index";
+import useCategories from "../../../hooks/useCategories"; // ← dùng hook categories có sẵn
+import useCampaignStore from "../../../store/campaignStore"; // ← gọi thẳng store
 import "./CreateCampaign.scss";
 
 const { TextArea } = Input;
-const { Option } = Select;
-
-const CATEGORIES = [
-  {
-    value: "thien-tai",
-    label: "Thiên tai",
-    icon: <FaPooStorm />,
-    color: "#FD4848",
-  },
-  {
-    value: "xoa-doi",
-    label: "Xóa đói",
-    icon: <GiKnifeFork />,
-    color: "#FDBE48",
-  },
-  {
-    value: "an-sinh",
-    label: "An sinh",
-    icon: <RiHandCoinLine />,
-    color: "#D9FD48",
-  },
-  { value: "tre-em", label: "Trẻ em", icon: <FaChildren />, color: "#48FDE8" },
-  {
-    value: "moi-truong",
-    label: "Môi trường",
-    icon: <FaEarthEurope />,
-    color: "#5AFD48",
-  },
-  {
-    value: "giao-duc",
-    label: "Giáo dục",
-    icon: <MdCastForEducation />,
-    color: "#FF9FE7",
-  },
-];
 
 const STEPS = [
   { id: 1, label: "Thông tin" },
@@ -62,25 +26,28 @@ const STEPS = [
 ];
 
 export default function CreateCampaign() {
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [images, setImages] = useState([]);
   const [previewImg, setPreviewImg] = useState(null);
   const fileRef = useRef(null);
 
-  // Form state
+  const { categories } = useCategories(); // ← categories từ API
+  const createCampaign = useCampaignStore((s) => s.createCampaign);
+  const loadingCreate = useCampaignStore((s) => s.loadingCreate);
+
   const [form, setForm] = useState({
-    name: "",
-    category: "",
-    description: "",
-    goal: "",
-    endDate: null,
-    location: {
-      address: "",
-      lat: null,
-      lng: null,
-    },
+    ten_chien_dich: "",
+    danh_muc_id: "",
+    mo_ta: "",
+    muc_tieu_tien: "",
+    ngay_ket_thuc: null,
+    vi_tri: "",
+    lat: null,
+    lng: null,
   });
 
+  // ── Images ──
   function handleFile(e) {
     const files = Array.from(e.target.files);
     const newImgs = files.map((f) => ({
@@ -95,14 +62,21 @@ export default function CreateCampaign() {
   function removeImage(idx) {
     setImages((prev) => {
       const next = prev.filter((_, i) => i !== idx);
-      if (previewImg === prev[idx].url) {
-        setPreviewImg(next[0]?.url ?? null);
-      }
+      if (previewImg === prev[idx].url) setPreviewImg(next[0]?.url ?? null);
       return next;
     });
   }
 
+  // ── Validate step 1 ──
   function handleNext() {
+    if (!form.ten_chien_dich.trim()) {
+      notification.warning({ message: "Vui lòng nhập tên chiến dịch!" });
+      return;
+    }
+    if (!form.danh_muc_id) {
+      notification.warning({ message: "Vui lòng chọn danh mục!" });
+      return;
+    }
     setStep(2);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -112,20 +86,67 @@ export default function CreateCampaign() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function handleSubmit() {
-    if (!form.location.lat) {
-      notification.error({
-        title: "Vui lòng chọn vị trí có trên bản đồ!",
-        placement: "topRight",
-      });
+  // ── Submit ──
+  async function handleSubmit() {
+    if (!form.muc_tieu_tien || Number(form.muc_tieu_tien) <= 0) {
+      notification.warning({ message: "Vui lòng nhập mục tiêu tiền hợp lệ!" });
+      return;
+    }
+    if (!form.ngay_ket_thuc) {
+      notification.warning({ message: "Vui lòng chọn ngày kết thúc!" });
+      return;
+    }
+    if (!form.lat || !form.lng) {
+      notification.warning({ message: "Vui lòng chọn vị trí trên bản đồ!" });
+      return;
+    }
+    if (images.length === 0) {
+      notification.warning({ message: "Vui lòng tải lên ít nhất 1 ảnh!" });
+      return;
     }
 
-    console.log(form);
+    const formData = new FormData();
+    formData.append("ten_chien_dich", form.ten_chien_dich);
+    formData.append("danh_muc_id", form.danh_muc_id);
+    formData.append("mo_ta", form.mo_ta);
+    formData.append("muc_tieu_tien", form.muc_tieu_tien);
+    formData.append("ngay_ket_thuc", form.ngay_ket_thuc.format("YYYY-MM-DD")); // dayjs từ DatePicker
+    formData.append("vi_tri", form.vi_tri);
+    formData.append("lat", form.lat);
+    formData.append("lng", form.lng);
+    images.forEach((img) => {
+      if (img.file) formData.append("hinh_anh[]", img.file);
+    });
+
+    try {
+      await createCampaign(formData);
+      notification.success({
+        message: "Tạo chiến dịch thành công! 🎉",
+        description: "Chiến dịch đang chờ admin xét duyệt.",
+      });
+      navigate("/chien-dich");
+    } catch (err) {
+      const errors = err?.response?.data?.errors;
+      const message = err?.response?.data?.message;
+      if (errors) {
+        Object.entries(errors).forEach(([field, errArr]) => {
+          notification.warning({
+            message: `Lỗi: ${field}`,
+            description: errArr[0],
+          });
+        });
+      } else if (message) {
+        notification.error({ message });
+      } else {
+        notification.error({
+          message: "Tạo chiến dịch thất bại, vui lòng thử lại!",
+        });
+      }
+    }
   }
 
   return (
     <div className="cc-page">
-      {/* ── Page title ── */}
       <div className="cc-page__header">
         <div className="cc-page__title-wrap">
           <span className="cc-page__title">Tạo Chiến Dịch Từ Thiện</span>
@@ -136,6 +157,7 @@ export default function CreateCampaign() {
         </p>
       </div>
 
+      {/* Stepper — giữ nguyên */}
       <div className="cc-stepper">
         <div className="cc-stepper__edge" />
         {STEPS.map((s, i) => (
@@ -163,7 +185,6 @@ export default function CreateCampaign() {
         <div className="cc-stepper__edge" />
       </div>
 
-      {/* ── Form card ── */}
       <div className="cc-card">
         <div className="cc-card__step-header">
           <span className="cc-card__step-num">Step {step}:</span>
@@ -183,45 +204,52 @@ export default function CreateCampaign() {
           <div className="cc-form cc-form--step1">
             <div className="cc-field">
               <label className="cc-field__label">
-                Tên chiến dịch
-                <span className="cc-field__required">*</span>
+                Tên chiến dịch <span className="cc-field__required">*</span>
               </label>
               <Input
                 className="cc-field__input"
                 placeholder="Nhập tên chiến dịch..."
-                value={form.name}
+                value={form.ten_chien_dich}
                 onChange={(e) =>
-                  setForm((p) => ({ ...p, name: e.target.value }))
+                  setForm((p) => ({ ...p, ten_chien_dich: e.target.value }))
                 }
                 prefix={<FiInfo size={15} className="cc-field__prefix-icon" />}
               />
             </div>
 
+            {/* Danh mục từ API — render dạng grid card như RegisterOrg */}
             <div className="cc-field">
               <label className="cc-field__label">
-                Danh mục
-                <span className="cc-field__required">*</span>
+                Danh mục <span className="cc-field__required">*</span>
               </label>
-              <Select
-                className="cc-field__select"
-                placeholder="Chọn danh mục"
-                value={form.category || undefined}
-                onChange={(v) => setForm((p) => ({ ...p, category: v }))}
-              >
-                {CATEGORIES.map((c) => (
-                  <Option key={c.value} value={c.value}>
-                    <span className="cc-select-option">
-                      <span
-                        className="cc-select-option__icon"
-                        style={{ background: c.color }}
-                      >
-                        {c.icon}
-                      </span>
-                      {c.label}
+              <div className="cc-category-grid">
+                {categories.map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    className={`cc-category-card${form.danh_muc_id === cat.id ? " active" : ""}`}
+                    onClick={() =>
+                      setForm((p) => ({ ...p, danh_muc_id: cat.id }))
+                    }
+                  >
+                    {cat.hinh_anh && (
+                      <img
+                        src={cat.hinh_anh}
+                        alt={cat.ten_danh_muc}
+                        className="cc-category-card__img"
+                      />
+                    )}
+                    <span className="cc-category-card__label">
+                      {cat.ten_danh_muc}
                     </span>
-                  </Option>
+                    {form.danh_muc_id === cat.id && (
+                      <div className="cc-category-card__check">
+                        <FiCheck size={10} color="#fff" />
+                      </div>
+                    )}
+                  </button>
                 ))}
-              </Select>
+              </div>
             </div>
 
             <div className="cc-field">
@@ -230,9 +258,9 @@ export default function CreateCampaign() {
                 className="cc-field__textarea"
                 placeholder="Mô tả chiến dịch..."
                 rows={4}
-                value={form.description}
+                value={form.mo_ta}
                 onChange={(e) =>
-                  setForm((p) => ({ ...p, description: e.target.value }))
+                  setForm((p) => ({ ...p, mo_ta: e.target.value }))
                 }
                 showCount
                 maxLength={500}
@@ -240,9 +268,10 @@ export default function CreateCampaign() {
             </div>
 
             <div className="cc-field">
-              <label className="cc-field__label">Upload hình ảnh</label>
-
-              {previewImg && (
+              <label className="cc-field__label">
+                Hình ảnh <span className="cc-field__required">*</span>
+              </label>
+              {previewImg ? (
                 <div className="cc-upload__preview">
                   <img src={previewImg} alt="preview" />
                   <div className="cc-upload__preview-thumbs">
@@ -260,7 +289,7 @@ export default function CreateCampaign() {
                             removeImage(i);
                           }}
                         >
-                          <FiX size={30} />
+                          <FiX size={12} />
                         </button>
                       </div>
                     ))}
@@ -272,9 +301,7 @@ export default function CreateCampaign() {
                     </div>
                   </div>
                 </div>
-              )}
-
-              {!previewImg && (
+              ) : (
                 <div
                   className="cc-upload__zone"
                   onClick={() => fileRef.current?.click()}
@@ -307,7 +334,6 @@ export default function CreateCampaign() {
                   </div>
                 </div>
               )}
-
               <input
                 ref={fileRef}
                 type="file"
@@ -336,56 +362,63 @@ export default function CreateCampaign() {
           <div className="cc-form cc-form--step2">
             <div className="cc-field">
               <label className="cc-field__label">
-                Mục tiêu cần đạt
-                <span className="cc-field__required">*</span>
+                Mục tiêu cần đạt <span className="cc-field__required">*</span>
               </label>
               <Input
                 className="cc-field__input"
                 placeholder="Nhập số tiền cần đạt..."
-                value={form.goal}
+                value={form.muc_tieu_tien}
                 onChange={(e) =>
-                  setForm((p) => ({ ...p, goal: e.target.value }))
+                  setForm((p) => ({
+                    ...p,
+                    muc_tieu_tien: e.target.value.replace(/\D/g, ""),
+                  }))
                 }
                 prefix={
                   <FiDollarSign size={15} className="cc-field__prefix-icon" />
                 }
                 suffix={<span className="cc-field__suffix">VNĐ</span>}
+                type="number"
+                min={1}
               />
-              {form.goal && (
+              {form.muc_tieu_tien && (
                 <div className="cc-field__hint">
-                  ≈{" "}
-                  {Number(form.goal.replace(/\D/g, "")).toLocaleString("vi-VN")}{" "}
-                  đồng
+                  ≈ {Number(form.muc_tieu_tien).toLocaleString("vi-VN")} đồng
                 </div>
               )}
             </div>
 
             <div className="cc-field">
               <label className="cc-field__label">
-                Thời gian kết thúc
-                <span className="cc-field__required">*</span>
+                Thời gian kết thúc <span className="cc-field__required">*</span>
               </label>
               <DatePicker
                 className="cc-field__datepicker"
                 placeholder="Chọn thời gian"
                 format="DD/MM/YYYY"
                 suffixIcon={<FiCalendar size={15} />}
-                onChange={(v) => setForm((p) => ({ ...p, endDate: v }))}
+                disabledDate={(d) => d && d.isBefore(new Date(), "day")} // ← không cho chọn ngày quá khứ
+                onChange={(v) => setForm((p) => ({ ...p, ngay_ket_thuc: v }))}
               />
             </div>
 
             <div className="cc-field">
-              <label className="cc-field__label">Vị trí chiến dịch</label>
-
+              <label className="cc-field__label">
+                <FiMapPin size={14} /> Vị trí chiến dịch{" "}
+                <span className="cc-field__required">*</span>
+              </label>
               <LocationPicker
-                value={form.location}
-                onChange={(val) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    location: val,
-                  }))
+                value={{ address: form.vi_tri, lat: form.lat, lng: form.lng }}
+                onChange={({ address, lat, lng }) =>
+                  setForm((p) => ({ ...p, vi_tri: address, lat, lng }))
                 }
               />
+              {form.lat && form.lng && (
+                <div className="cc-field__hint" style={{ color: "#52c41a" }}>
+                  <FiCheck size={12} /> Đã chọn: {form.lat.toFixed(5)},{" "}
+                  {form.lng.toFixed(5)}
+                </div>
+              )}
             </div>
 
             <div className="cc-form__actions cc-form__actions--split">
@@ -401,6 +434,8 @@ export default function CreateCampaign() {
                 size="large"
                 className="cc-btn cc-btn--finish"
                 onClick={handleSubmit}
+                loading={loadingCreate}
+                disabled={loadingCreate}
               >
                 Hoàn tất <FiChevronRight size={16} />
               </Button>

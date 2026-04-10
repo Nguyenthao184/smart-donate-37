@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom"; // ✅ thêm useNavigate
 import { FiImage, FiVideo, FiX } from "react-icons/fi";
 import { BASE_URL } from "../../../api/config";
 import Header from "../../../components/Header/index.jsx";
@@ -15,25 +15,19 @@ export default function ChatPage() {
     return `${BASE_URL}/${String(path).replace(/^\/+/, "")}`;
   };
 
-  const {
-    chats,
-    fetchChats,
-    messages,
-    fetchMessages,
-    sendMessage,
-    markAsRead,
-    appendIncomingMessage,
-    applySeenByEvent,
-  } = useChatStore();
+  const navigate = useNavigate(); // ✅ thêm
+  const { chats, messages, fetchMessages, sendMessage, markAsRead } =
+    useChatStore();
+  const setActiveChatId = useChatStore((s) => s.setActiveChatId);
+
   const [searchParams] = useSearchParams();
   const chatIdFromUrl = searchParams.get("cid");
 
-  // Sync URL → activeChatId không cần effect:
-  // Dùng derived value, nếu URL có cid thì ưu tiên, còn lại giữ state hiện tại
-  const cidFromUrl = chatIdFromUrl ? Number(chatIdFromUrl) : null;
-  const [manualChatId, setManualChatId] = useState(cidFromUrl);
-  const activeChatId = cidFromUrl ?? manualChatId;
+  // ✅ Chỉ dùng URL làm source of truth — bỏ manualChatId
+  const activeChatId = chatIdFromUrl ? Number(chatIdFromUrl) : null;
+
   const [newMessage, setNewMessage] = useState("");
+  const [previewMedia, setPreviewMedia] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [isOtherTyping, setIsOtherTyping] = useState(false);
   const [search, setSearch] = useState("");
@@ -59,62 +53,52 @@ export default function ChatPage() {
     return null;
   }, [selectedFile]);
 
-  // Tạo object URL trực tiếp — không cần state/effect
-  // Cleanup được xử lý bằng useEffect riêng chỉ để revoke
   const selectedFilePreviewUrl = useMemo(
     () => (selectedFile ? URL.createObjectURL(selectedFile) : ""),
     [selectedFile],
   );
+
   useEffect(() => {
     return () => {
       if (selectedFilePreviewUrl) URL.revokeObjectURL(selectedFilePreviewUrl);
     };
   }, [selectedFilePreviewUrl]);
 
-  const handleSelectChat = async (conv) => {
-    const chatId = conv.cuoc_tro_chuyen_id;
-    if (activeChatId === chatId) return;
-
-    setManualChatId(chatId);
-
-    if (!messages[chatId]) {
-      await fetchMessages(chatId);
-    }
-    await markAsRead(chatId);
-
-    if (window.innerWidth <= 768) setShowSidebar(false);
-  };
-
+  // ✅ Cleanup activeChatId trong store khi rời ChatPage
   useEffect(() => {
-    fetchChats();
-  }, [fetchChats]);
+    return () => setActiveChatId(null);
+  }, []);
 
+  // ✅ Sync store activeChatId + fetch + markAsRead khi URL thay đổi
+  useEffect(() => {
+    if (!activeChatId) {
+      setActiveChatId(null);
+      return;
+    }
+    setActiveChatId(activeChatId);
+    const load = async () => {
+      await fetchMessages(activeChatId);
+      await markAsRead(activeChatId);
+    };
+    void load();
+  }, [activeChatId]);
+
+  // ✅ Typing indicator — chỉ giữ whisper, bỏ TinNhanMoi/TinNhanDaXem
   useEffect(() => {
     if (!activeChatId) return;
 
     const channel = echo.private(`cuoc-tro-chuyen.${activeChatId}`);
     channelRef.current = channel;
 
-    channel.listen("TinNhanMoi", (e) => {
-      appendIncomingMessage(activeChatId, e);
-      if (Number(e?.nguoi_gui_id) !== myUserId) {
-        void markAsRead(activeChatId);
-      }
-    });
-
-    channel.listen("TinNhanDaXem", (e) => {
-      applySeenByEvent(activeChatId, e.tin_nhan_ids);
-    });
-
     channel.listenForWhisper("typing", (payload) => {
       const senderId = Number(payload?.user_id || 0);
       if (!senderId || senderId === myUserId) return;
-
       setIsOtherTyping(!!payload?.is_typing);
       if (typingHideTimerRef.current) clearTimeout(typingHideTimerRef.current);
-      typingHideTimerRef.current = setTimeout(() => {
-        setIsOtherTyping(false);
-      }, 1500);
+      typingHideTimerRef.current = setTimeout(
+        () => setIsOtherTyping(false),
+        1500,
+      );
     });
 
     return () => {
@@ -122,40 +106,8 @@ export default function ChatPage() {
       setIsOtherTyping(false);
       if (typingStopTimerRef.current) clearTimeout(typingStopTimerRef.current);
       if (typingHideTimerRef.current) clearTimeout(typingHideTimerRef.current);
-      echo.leave(`private-cuoc-tro-chuyen.${activeChatId}`);
     };
-  }, [
-    activeChatId,
-    appendIncomingMessage,
-    applySeenByEvent,
-    fetchMessages,
-    markAsRead,
-    myUserId,
-  ]);
-
-  useEffect(() => {
-    if (!activeChatId) return;
-
-    const load = async () => {
-      await fetchMessages(activeChatId);
-      await markAsRead(activeChatId);
-    };
-
-    void load();
-  }, [activeChatId, fetchMessages, markAsRead]);
-
-  // FIX 3 (Giảm độ trễ gửi tin): Tăng interval polling lên để không tranh chấp
-  // với optimistic update. Polling 2s quá thường — sau khi gửi, fetchMessages
-  // ngay lập tức ghi đè state trước khi appendIncomingMessage xử lý xong.
-  useEffect(() => {
-    if (!activeChatId) return;
-    const id = setInterval(() => {
-      void fetchMessages(activeChatId);
-      void fetchChats();
-    }, 8000); // Tăng từ 2s lên 8s — socket đã xử lý realtime
-
-    return () => clearInterval(id);
-  }, [activeChatId, fetchMessages, fetchChats]);
+  }, [activeChatId, myUserId]);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -165,15 +117,28 @@ export default function ChatPage() {
     scrollToBottom();
   }, [chatMessages, scrollToBottom]);
 
+  // ✅ Dùng navigate thay vì setManualChatId
+  const handleSelectChat = async (conv) => {
+    const chatId = conv.cuoc_tro_chuyen_id;
+    if (activeChatId === chatId) return;
+
+    navigate(`/chat?cid=${chatId}`, { replace: true });
+
+    if (!messages[chatId]) {
+      await fetchMessages(chatId);
+    }
+    await markAsRead(chatId);
+
+    if (window.innerWidth <= 768) setShowSidebar(false);
+  };
+
   const handleSend = async () => {
     if (!activeChatId) return;
-
     const text = newMessage.trim();
     const hasText = !!text;
     const hasFile = !!selectedFile;
     if (!hasText && !hasFile) return;
 
-    // FIX 3: Reset UI ngay lập tức trước khi await để không cảm thấy lag
     setNewMessage("");
     setSelectedFile(null);
     emitTyping(false);
@@ -183,18 +148,13 @@ export default function ChatPage() {
         console.error("Chỉ hỗ trợ gửi ảnh hoặc video");
         return;
       }
-
       const form = new FormData();
       form.append("file", selectedFile);
       form.append("loai_tin", selectedFileType);
       if (hasText) form.append("noi_dung", text);
-
       await sendMessage(activeChatId, form);
     } else {
-      await sendMessage(activeChatId, {
-        noi_dung: text,
-        loai_tin: "VAN_BAN",
-      });
+      await sendMessage(activeChatId, { noi_dung: text, loai_tin: "VAN_BAN" });
     }
   };
 
@@ -221,6 +181,7 @@ export default function ChatPage() {
     <>
       <Header />
       <div className="chat-page">
+        {/* ── Sidebar ─────────────────────────────────────────────────────── */}
         <div
           className={`chat-sidebar ${showSidebar ? "" : "chat-sidebar--hidden"}`}
         >
@@ -230,6 +191,7 @@ export default function ChatPage() {
               {chats.length} cuộc trò chuyện
             </span>
           </div>
+
           <div className="chat-sidebar__search">
             <svg
               width="14"
@@ -248,19 +210,30 @@ export default function ChatPage() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
+
           <div className="chat-sidebar__list">
             {filteredConvs.map((conv) => (
               <div
                 key={conv.cuoc_tro_chuyen_id}
-                className={`chat-conv ${
-                  activeChatId === conv.cuoc_tro_chuyen_id
-                    ? "chat-conv--active"
-                    : ""
-                }`}
+                className={`chat-conv ${activeChatId === conv.cuoc_tro_chuyen_id ? "chat-conv--active" : ""}`}
                 onClick={() => handleSelectChat(conv)}
               >
+                {/* ✅ Avatar: ảnh nếu có, chữ cái nếu không */}
                 <div className="chat-conv__avatar">
-                  {conv.nguoi_kia?.ho_ten?.charAt(0)}
+                  {conv.nguoi_kia?.avatar_url ? (
+                    <img
+                      src={conv.nguoi_kia.avatar_url}
+                      alt={conv.nguoi_kia.ho_ten}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        borderRadius: "50%",
+                      }}
+                    />
+                  ) : (
+                    conv.nguoi_kia?.ho_ten?.charAt(0)?.toUpperCase() || "?"
+                  )}
                 </div>
 
                 <div className="chat-conv__info">
@@ -279,9 +252,12 @@ export default function ChatPage() {
                         : ""}
                     </span>
                   </div>
-
-                  <p className="chat-conv__msg">
-                    {conv.tin_nhan_cuoi?.preview || "Chưa có tin nhắn"}
+                  <p
+                    className={`chat-conv__msg ${conv.unread_count > 0 ? "chat-conv__msg--unread" : ""}`}
+                  >
+                    {conv.tin_nhan_cuoi
+                      ? `${Number(conv.tin_nhan_cuoi.nguoi_gui_id) === myUserId ? "Bạn: " : ""}${conv.tin_nhan_cuoi.preview || conv.tin_nhan_cuoi.noi_dung || ""}`
+                      : "Chưa có tin nhắn"}
                   </p>
                 </div>
 
@@ -293,12 +269,13 @@ export default function ChatPage() {
           </div>
         </div>
 
+        {/* ── Main ────────────────────────────────────────────────────────── */}
         <div
           className={`chat-main ${!showSidebar ? "" : "chat-main--hidden-mobile"}`}
         >
           {activeChatId ? (
             <>
-              {/* HEADER */}
+              {/* Header */}
               <div className="chat-main__header">
                 <button
                   className="chat-main__back"
@@ -306,81 +283,109 @@ export default function ChatPage() {
                 >
                   ←
                 </button>
-
                 <div className="chat-main__user">
+                  {/* ✅ Avatar header */}
                   {activeChat?.nguoi_kia?.avatar_url ? (
                     <img
-                      src={activeChat?.nguoi_kia?.avatar_url}
-                      alt={activeChat?.nguoi_kia?.ho_ten}
+                      src={activeChat.nguoi_kia.avatar_url}
+                      alt={activeChat.nguoi_kia.ho_ten}
                       className="chat-main__avatar"
                     />
                   ) : (
                     <div className="chat-main__avatar chat-main__avatar--fallback">
-                      {activeChat?.nguoi_kia?.ho_ten?.charAt(0) || "U"}
+                      {activeChat?.nguoi_kia?.ho_ten
+                        ?.charAt(0)
+                        ?.toUpperCase() || "?"}
                     </div>
                   )}
-                  <div className="chat-main__name">
-                    {activeChat?.nguoi_kia?.ho_ten || "Đang tải cuộc trò chuyện..."}
+                  <div>
+                    <div className="chat-main__name">
+                      {activeChat?.nguoi_kia?.ho_ten ||
+                        "Đang tải cuộc trò chuyện..."}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* MESSAGES */}
+              {/* Messages */}
               <div className="chat-main__messages">
                 {chatMessages.map((msg) => (
                   <div
                     key={msg.id}
-                    className={`chat-msg ${
-                      Number(msg.nguoi_gui_id) === myUserId
-                        ? "chat-msg--me"
-                        : "chat-msg--them"
-                    }`}
+                    className={`chat-msg ${Number(msg.nguoi_gui_id) === myUserId ? "chat-msg--me" : "chat-msg--them"}`}
                   >
                     <div
-                      className={`chat-msg__bubble ${
-                        msg.loai_tin === "ANH" || msg.loai_tin === "VIDEO"
-                          ? "chat-msg__bubble--media"
-                          : ""
-                      }`}
+                      className={`chat-msg__bubble ${msg.loai_tin === "ANH" || msg.loai_tin === "VIDEO" ? "chat-msg__bubble--media" : ""}`}
                     >
                       {msg.loai_tin === "ANH" ? (
-                        <img src={toMediaUrl(msg.tep_dinh_kem)} width={250} />
+                        <img
+                          src={toMediaUrl(msg.tep_dinh_kem)}
+                          width={300}
+                          style={{
+                            borderRadius: 12,
+                            display: "block",
+                            cursor: "pointer",
+                          }}
+                          onClick={() =>
+                            setPreviewMedia({
+                              type: "ANH",
+                              url: toMediaUrl(msg.tep_dinh_kem),
+                            })
+                          }
+                        />
                       ) : msg.loai_tin === "VIDEO" ? (
-                        <video src={toMediaUrl(msg.tep_dinh_kem)} width={250} controls />
+                        <video
+                          src={toMediaUrl(msg.tep_dinh_kem)}
+                          width={300}
+                          controls
+                          style={{
+                            borderRadius: 12,
+                            display: "block",
+                            cursor: "pointer",
+                          }}
+                          onClick={() =>
+                            setPreviewMedia({
+                              type: "VIDEO",
+                              url: toMediaUrl(msg.tep_dinh_kem),
+                            })
+                          }
+                        />
                       ) : (
                         msg.noi_dung
                       )}
                     </div>
-
                     <div className="chat-msg__time">
                       {new Date(msg.created_at).toLocaleTimeString("vi-VN", {
                         hour: "2-digit",
                         minute: "2-digit",
                       })}
                     </div>
-
                     {Number(msg.nguoi_gui_id) === myUserId && msg.da_xem && (
-                      <div className="chat-msg__seen">Đã xem ✓✓</div>
+                      <div className="chat-msg__seen">Đã xem ✓</div>
                     )}
                   </div>
                 ))}
 
+                {/* ✅ Typing indicator với 3 chấm nhảy */}
                 {isOtherTyping && (
-                  <div className="chat-typing">Đang nhập...</div>
+                  <div className="chat-typing">
+                    <span />
+                    <span />
+                    <span />
+                  </div>
                 )}
 
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* INPUT */}
+              {/* Input */}
               <div className="chat-main__input">
                 <input
                   ref={fileInputRef}
                   type="file"
                   className="chat-main__file-hidden"
                   onChange={(e) => {
-                    const file = e.target.files?.[0] || null;
-                    setSelectedFile(file);
+                    setSelectedFile(e.target.files?.[0] || null);
                     e.target.value = "";
                   }}
                 />
@@ -390,7 +395,7 @@ export default function ChatPage() {
                   onClick={() => handlePickFile("image/*")}
                   title="Gửi ảnh"
                 >
-                  <FiImage size={18} />
+                  <FiImage size={17} />
                 </button>
                 <button
                   type="button"
@@ -398,24 +403,24 @@ export default function ChatPage() {
                   onClick={() => handlePickFile("video/*")}
                   title="Gửi video"
                 >
-                  <FiVideo size={18} />
+                  <FiVideo size={17} />
                 </button>
                 <input
                   value={newMessage}
                   onChange={(e) => {
                     const value = e.target.value;
                     setNewMessage(value);
-
                     const now = Date.now();
                     if (now - whisperCooldownRef.current > 400) {
                       emitTyping(true);
                       whisperCooldownRef.current = now;
                     }
-
-                    if (typingStopTimerRef.current) clearTimeout(typingStopTimerRef.current);
-                    typingStopTimerRef.current = setTimeout(() => {
-                      emitTyping(false);
-                    }, 900);
+                    if (typingStopTimerRef.current)
+                      clearTimeout(typingStopTimerRef.current);
+                    typingStopTimerRef.current = setTimeout(
+                      () => emitTyping(false),
+                      900,
+                    );
                   }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
@@ -425,16 +430,22 @@ export default function ChatPage() {
                   }}
                   placeholder="Nhập tin nhắn..."
                 />
-
-                <button type="button" className="chat-main__send" onClick={handleSend}>
-                  Gửi
-                </button>
+                <button
+                  type="button"
+                  className="chat-main__send"
+                  onClick={handleSend}
+                  title="Gửi"
+                />
               </div>
+
               {selectedFile && (
                 <div className="chat-main__file-preview">
                   <div className="chat-main__file-preview-media">
                     {selectedFileType === "ANH" ? (
-                      <img src={selectedFilePreviewUrl} alt={selectedFile.name} />
+                      <img
+                        src={selectedFilePreviewUrl}
+                        alt={selectedFile.name}
+                      />
                     ) : selectedFileType === "VIDEO" ? (
                       <video src={selectedFilePreviewUrl} controls muted />
                     ) : null}
@@ -458,6 +469,20 @@ export default function ChatPage() {
           )}
         </div>
       </div>
+      {previewMedia && (
+        <div className="chat-preview" onClick={() => setPreviewMedia(null)}>
+          <div
+            className="chat-preview__content"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {previewMedia.type === "ANH" ? (
+              <img src={previewMedia.url} />
+            ) : (
+              <video src={previewMedia.url} controls autoPlay />
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }

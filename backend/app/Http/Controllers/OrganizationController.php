@@ -53,6 +53,14 @@ class OrganizationController extends Controller
                 'logo' => $logoPath,
             ]);
 
+            $org->giay_phep = $org->giay_phep 
+                ? asset('storage/' . $org->giay_phep) 
+                : null;
+
+            $org->logo = $org->logo 
+                ? asset('storage/' . $org->logo) 
+                : null;
+
             DB::commit();
 
             return response()->json([
@@ -69,7 +77,22 @@ class OrganizationController extends Controller
     // USER xem trạng thái
     public function status()
     {
-        return XacMinhToChuc::where('nguoi_dung_id', auth()->id())->latest()->first();
+        $data = XacMinhToChuc::where('nguoi_dung_id', auth()->id())
+            ->latest()
+            ->first();
+
+        if ($data && $data->giay_phep) {
+            $data->giay_phep = asset('storage/' . $data->giay_phep);
+        }
+
+
+        if ($data && $data->logo) {
+            $data->logo = asset('storage/' . $data->logo);
+        }
+
+        return response()->json([
+            'xac_minh' => $data
+        ]);
     }
 
     // ADMIN duyệt tổ chức và tạo tài khoản gây quỹ

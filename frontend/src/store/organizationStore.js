@@ -117,20 +117,30 @@ const useOrganizationStore = create((set, get) => ({
     try {
       const formData = new FormData();
 
-      formData.append("ten_to_chuc", values.ten_to_chuc);
-      formData.append("ma_so_thue", values.ma_so_thue);
-      formData.append("nguoi_dai_dien", values.nguoi_dai_dien);
-      formData.append("loai_hinh", values.loai_hinh);
-      
-      // ✅ ĐÃ THÊM CÁC TRƯỜNG BE YÊU CẦU Ở ĐÂY
-      formData.append("mo_ta", values.mo_ta);
-      formData.append("dia_chi", values.dia_chi);
-      formData.append("so_dien_thoai", values.so_dien_thoai);
-      if (values.email) {
-        formData.append("email", values.email); // Email có thể không bắt buộc nhưng FE có thì cứ gửi
-      }
+      // Các field text — append nếu có giá trị
+      const textFields = [
+        "ten_to_chuc",
+        "ma_so_thue",
+        "nguoi_dai_dien",
+        "loai_hinh",
+        "mo_ta",
+        "dia_chi",
+        "so_dien_thoai",
+        "lat",
+        "lng",
+      ];
 
-      // ⚠️ file từ antd
+      textFields.forEach((key) => {
+        if (
+          values[key] !== undefined &&
+          values[key] !== null &&
+          values[key] !== ""
+        ) {
+          formData.append(key, values[key]);
+        }
+      });
+
+      // Giấy phép — bắt buộc
       if (values.giay_phep) {
         formData.append(
           "giay_phep",
@@ -138,11 +148,14 @@ const useOrganizationStore = create((set, get) => ({
         );
       }
 
+      // Logo — optional
+      if (values.logo) {
+        formData.append("logo", values.logo.originFileObj || values.logo);
+      }
+
       const res = await registerOrganization(formData);
 
-      // ✅ sau khi đăng ký → fetch lại status
       await get().fetchOrganizationStatus();
-
       set({ loadingRegister: false });
 
       return res.data;

@@ -1,5 +1,5 @@
-import { useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useRef, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button, Progress, Carousel } from "antd";
 import {
   FiChevronRight,
@@ -22,6 +22,7 @@ import useCampaigns from "../../../hooks/useCampaigns";
 import useCategories from "../../../hooks/useCategories";
 import useOrganizations from "../../../hooks/useOrganizations";
 import useCampaignStore from "../../../store/campaignStore.js";
+import useOrganizationStore from "../../../store/organizationStore";
 import useAuthStore from "../../../store/authStore";
 import "./Campaign.scss";
 
@@ -37,29 +38,55 @@ export default function Campaign() {
   const carouselRef = useRef(null);
   const orgCarouselRef = useRef(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const { featured, campaigns, loading: campLoading } = useCampaigns();
+  const {
+    featured,
+    loading: campLoading
+  } = useCampaigns({ featured: true });
   const { categories } = useCategories();
   const { organizations } = useOrganizations();
+  const endingCampaigns = useCampaignStore((s) => s.endingCampaigns);
+  const fetchEndingCampaigns = useCampaignStore((s) => s.fetchEndingCampaigns);
+
   const roles = useAuthStore((s) => s.roles);
-
   const isOrganization = roles.includes("TO_CHUC");
+  const isUser = roles.includes("NGUOI_DUNG");
 
-  const activeCampaigns = campaigns.filter((c) => c.trang_thai === "HOAT_DONG");
-  const endingCampaigns = activeCampaigns
-    .sort((a, b) => a.so_ngay_con_lai - b.so_ngay_con_lai)
-    .slice(0, 3);
+  const organizationStatus = useOrganizationStore((s) => s.organizationStatus);
+  const fetchOrganizationStatus = useOrganizationStore(
+    (s) => s.fetchOrganizationStatus,
+  );
+
+  const refreshCampaignData = useCampaignStore((s) => s.refreshCampaignData);
+
+  useEffect(() => {
+    if (location.state?.refresh) {
+      refreshCampaignData(); // ← thay fetchFeatured() + fetchEndingCampaigns()
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state]);
+
+  useEffect(() => {
+    fetchEndingCampaigns();
+  }, []);
+
+  useEffect(() => {
+    if (isUser && !isOrganization) {
+      fetchOrganizationStatus();
+    }
+  }, [isUser, isOrganization]);
 
   function handleCategoryClick(cat) {
-    const { fetchByCategory } = useCampaignStore.getState();
+    const params = new URLSearchParams();
 
-    if (cat.id === 0) {
-      fetchByCategory(null);
-      navigate("/chien-dich/danh-sach");
-    } else {
-      fetchByCategory(cat.id);
-      navigate(`/chien-dich/danh-sach?category=${cat.id}`);
+    if (cat.id !== 0) {
+      params.set("category", cat.id);
     }
+
+    params.set("page", 1); // reset page
+
+    navigate(`/chien-dich/danh-sach?${params.toString()}`);
   }
 
   const handleClick = (campaign) => {
@@ -67,14 +94,160 @@ export default function Campaign() {
     navigate(`/chien-dich/chi-tiet/${id}`);
   };
 
-  const handleRegisterOrg = () => {
-    navigate("/dk-to-chuc");
+  const renderCTA = () => {
+    // TH1: Đã là tổ chức → CTA tạo chiến dịch
+    if (isOrganization) {
+      return (
+        <div className="sidebar__cta-box sidebar__cta-box--org">
+          <div className="sidebar__cta-banner">
+            <img
+              src="https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?q=80&w=400&auto=format&fit=crop"
+              alt="campaign"
+            />
+            <div className="sidebar__cta-banner-overlay">
+              <span>🎯 Tạo chiến dịch gây quỹ</span>
+            </div>
+          </div>
+          <h3 className="sidebar__cta-title">TẠO CHIẾN DỊCH MỚI</h3>
+          <p className="sidebar__cta-desc">
+            Bạn đã được xác minh là tổ chức từ thiện. Hãy tạo chiến dịch để kêu
+            gọi sự ủng hộ từ cộng đồng!
+          </p>
+          <div className="sidebar__cta-divider" />
+          <ul className="sidebar__cta-features">
+            <li>
+              <FiCheckCircle size={14} /> Đăng chiến dịch gây quỹ
+            </li>
+            <li>
+              <FiCheckCircle size={14} /> Theo dõi tiến độ real-time
+            </li>
+            <li>
+              <FiCheckCircle size={14} /> Báo cáo minh bạch
+            </li>
+          </ul>
+          <div className="sidebar__cta-trust">
+            <FiAward size={13} />
+            <span>
+              Tổ chức đã được <strong>xác minh</strong>
+            </span>
+          </div>
+          <Button
+            className="sidebar__cta-btn"
+            type="primary"
+            block
+            onClick={() => navigate("/chien-dich/tao-moi")}
+            style={{ background: "#52c41a", borderColor: "#52c41a" }}
+          >
+            TẠO CHIẾN DỊCH NGAY
+          </Button>
+        </div>
+      );
+    }
+
+    // TH2: Đã đăng ký (có status) → hiện trạng thái, bấm → navigate sang trang đăng ký để xem
+    if (organizationStatus) {
+      const statusConfig = {
+        CHO_XU_LY: {
+          title: "ĐANG CHỜ XÉT DUYỆT",
+          desc: "Hồ sơ của bạn đã được gửi và đang chờ admin xét duyệt. Chúng tôi sẽ thông báo khi có kết quả.",
+          btnStyle: { background: "#fa8c16", borderColor: "#fa8c16" },
+          badgeColor: "#fa8c16",
+        },
+        CHAP_NHAN: {
+          title: "ĐÃ ĐƯỢC DUYỆT",
+          desc: "Tổ chức của bạn đã được xác minh thành công!",
+          btnStyle: { background: "#52c41a", borderColor: "#52c41a" },
+          badgeColor: "#52c41a",
+        },
+        TU_CHOI: {
+          title: "HỒ SƠ BỊ TỪ CHỐI",
+          desc: "Hồ sơ của bạn bị từ chối. Vui lòng kiểm tra lại và đăng ký lại.",
+          btnStyle: { background: "#ff4d4f", borderColor: "#ff4d4f" },
+          badgeColor: "#ff4d4f",
+        },
+      };
+
+      const cfg =
+        statusConfig[organizationStatus.trang_thai] || statusConfig.CHO_XU_LY;
+
+      return (
+        <div className="sidebar__cta-box">
+          <div className="sidebar__cta-star">{cfg.icon}</div>
+          <div
+            className="sidebar__cta-status-badge"
+            style={{
+              background: `${cfg.badgeColor}15`,
+              color: cfg.badgeColor,
+              borderColor: `${cfg.badgeColor}30`,
+            }}
+          >
+            {cfg.title}
+          </div>
+          <p className="sidebar__cta-desc" style={{ marginTop: 12 }}>
+            {cfg.desc}
+          </p>
+          {organizationStatus.ten_to_chuc && (
+            <div className="sidebar__cta-org-name">
+              🏢 {organizationStatus.ten_to_chuc}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // TH3: User thường, chưa đăng ký → CTA đăng ký, navigate sang trang
+    return (
+      <div className="sidebar__cta-box">
+        <div className="sidebar__cta-star">✨</div>
+        <div className="sidebar__cta-banner">
+          <img
+            src="https://images.unsplash.com/photo-1593113598332-cd288d649433?q=80&w=400&auto=format&fit=crop"
+            alt="volunteer"
+          />
+          <div className="sidebar__cta-banner-overlay">
+            <span>🤝 Cùng nhau lan tỏa yêu thương</span>
+          </div>
+        </div>
+        <h3 className="sidebar__cta-title">TRỞ THÀNH TỔ CHỨC TỪ THIỆN</h3>
+        <p className="sidebar__cta-desc">
+          Nếu bạn là tổ chức, doanh nghiệp hoặc nhóm thiện nguyện, hãy đăng ký
+          xác minh để tạo và quản lý chiến dịch gây quỹ
+        </p>
+        <div className="sidebar__cta-divider" />
+        <ul className="sidebar__cta-features">
+          <li>
+            <FiCheckCircle size={14} /> Tạo chiến dịch gây quỹ
+          </li>
+          <li>
+            <FiCheckCircle size={14} /> Quản lý đóng góp minh bạch
+          </li>
+          <li>
+            <FiCheckCircle size={14} /> Nhận hỗ trợ từ cộng đồng
+          </li>
+        </ul>
+        <div className="sidebar__cta-trust">
+          <FiAward size={13} />
+          <span>
+            Đã xác minh bởi <strong>Bộ Công Thương</strong>
+          </span>
+        </div>
+        <Button
+          className="sidebar__cta-btn"
+          type="primary"
+          danger
+          block
+          onClick={() => navigate("/dk-to-chuc")} // ← navigate sang trang
+        >
+          ĐĂNG KÝ XÁC MINH
+        </Button>
+      </div>
+    );
   };
 
   if (campLoading) {
     return (
       <div className="campaign-page">
-        <p>Đang tải dữ liệu...</p>
+        <p>Đang tải chiến dịch...</p>
       </div>
     );
   }
@@ -110,60 +283,7 @@ export default function Campaign() {
         </div>
 
         {/* CTA Box */}
-        {!isOrganization && (
-          <div className="sidebar__cta-box">
-            <div className="sidebar__cta-star">✨</div>
-
-            {/* Thêm illustration banner */}
-            <div className="sidebar__cta-banner">
-              <img
-                src="https://images.unsplash.com/photo-1593113598332-cd288d649433?q=80&w=400&auto=format&fit=crop"
-                alt="volunteer"
-              />
-              <div className="sidebar__cta-banner-overlay">
-                <span>🤝 Cùng nhau lan tỏa yêu thương</span>
-              </div>
-            </div>
-
-            <h3 className="sidebar__cta-title">TRỞ THÀNH TỔ CHỨC TỪ THIỆN</h3>
-            <p className="sidebar__cta-desc">
-              Nếu bạn là tổ chức, doanh nghiệp hoặc nhóm thiện nguyện, hãy đăng
-              ký xác minh để tạo và quản lý chiến dịch gây quỹ
-            </p>
-
-            <div className="sidebar__cta-divider" />
-
-            <ul className="sidebar__cta-features">
-              <li>
-                <FiCheckCircle size={14} /> Tạo chiến dịch gây quỹ
-              </li>
-              <li>
-                <FiCheckCircle size={14} /> Quản lý đóng góp minh bạch
-              </li>
-              <li>
-                <FiCheckCircle size={14} /> Nhận hỗ trợ từ cộng đồng
-              </li>
-            </ul>
-
-            {/* Thêm trust line */}
-            <div className="sidebar__cta-trust">
-              <FiAward size={13} />
-              <span>
-                Đã xác minh bởi <strong>Bộ Công Thương</strong>
-              </span>
-            </div>
-
-            <Button
-              className="sidebar__cta-btn"
-              type="primary"
-              danger
-              block
-              onClick={handleRegisterOrg}
-            >
-              ĐĂNG KÝ XÁC MINH
-            </Button>
-          </div>
-        )}
+        {renderCTA()}
       </aside>
 
       {/* ── Main ── */}

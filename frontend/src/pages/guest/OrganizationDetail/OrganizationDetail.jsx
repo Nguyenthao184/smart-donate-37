@@ -77,19 +77,19 @@ export default function OrganizationDetail() {
       };
     }
     
-    if (c.trang_thai === "TU_CHOI") {
+    if (c.trang_thai === "KET_THUC") {
       return {
         type: "danger",
         icon: <FiInfo size={14} />,
-        label: "Từ chối",
+        label: "Kết thúc",
       };
     }
 
     // fallback (tránh crash)
     return {
-      type: "default",
+      type: "danger",
       icon: <FiInfo size={14} />,
-      label: "Không xác định",
+      label: "Chờ duyệt",
     };
   };
 

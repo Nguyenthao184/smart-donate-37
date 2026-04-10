@@ -81,6 +81,10 @@ class CampaignController extends Controller
             $images[] = $path;
         }
 
+        $images = collect($images)->map(function ($img) {
+            return asset('storage/' . $img);
+        });
+
         // 6. Tạo mã chuyển tiền UNIQUE
         do {
             $maCK = 'CT' . strtoupper(\Illuminate\Support\Str::random(8));
@@ -94,7 +98,7 @@ class CampaignController extends Controller
 
             'ten_chien_dich' => $request->ten_chien_dich,
             'mo_ta' => $request->mo_ta,
-            'hinh_anh' => json_encode($images),
+            'hinh_anh' => $images,
 
             'muc_tieu_tien' => $request->muc_tieu_tien,
             'so_tien_da_nhan' => 0,
@@ -129,22 +133,19 @@ class CampaignController extends Controller
             $query->where('danh_muc_id', $request->danh_muc_id);
         }
 
-        $sort = $request->sort ?? 'newest';
-
-        switch ($sort) {
-
-            case 'ending_soon':
-                $query->orderBy('ngay_ket_thuc', 'asc');
-                break;
-
-            case 'almost_done':
-                $query->orderByRaw('(so_tien_da_nhan / NULLIF(muc_tieu_tien, 0)) DESC');
-                break;
-
-            default:
-                $query->latest(); // = orderBy created_at DESC
-                break;
+        if ($request->trang_thai) {
+            $query->where('trang_thai', $request->trang_thai);
         }
+
+        $query->orderByRaw("
+            CASE 
+                WHEN trang_thai = 'HOAT_DONG' THEN 1
+                WHEN trang_thai = 'HOAN_THANH' THEN 2
+                WHEN trang_thai = 'TAM_DUNG' THEN 3
+                WHEN trang_thai = 'DA_KET_THUC' THEN 4
+                ELSE 5
+            END
+        ");
 
         $campaigns = $query->paginate(8);
 
@@ -179,21 +180,20 @@ class CampaignController extends Controller
         }
 
         //  sort 
-        $sort = $request->sort ?? 'newest';
-
-        switch ($sort) {
-            case 'ending_soon':
-                $query->orderBy('ngay_ket_thuc', 'asc');
-                break;
-
-            case 'almost_done':
-                $query->orderByRaw('(so_tien_da_nhan / NULLIF(muc_tieu_tien, 0)) DESC');
-                break;
-
-            default:
-                $query->latest();
-                break;
+        if ($request->trang_thai) {
+            $query->where('trang_thai', $request->trang_thai);
         }
+
+        $query->orderByRaw("
+            CASE 
+                WHEN trang_thai = 'CHO_XU_LY' THEN 1
+                WHEN trang_thai = 'HOAT_DONG' THEN 2
+                WHEN trang_thai = 'TAM_DUNG' THEN 3
+                WHEN trang_thai = 'HOAN_THANH' THEN 4
+                WHEN trang_thai = 'DA_KET_THUC' THEN 5
+                ELSE 6
+            END
+        ");
 
         $campaigns = $query->paginate(8);
 
@@ -257,6 +257,7 @@ class CampaignController extends Controller
             'ten_chien_dich' => $chienDich->ten_chien_dich,
             'mo_ta' => $chienDich->mo_ta,
             'ten_danh_muc' => $chienDich->danhMuc->ten_danh_muc ?? null,
+            'trang_thai' => $chienDich->trang_thai,
 
 
             'hinh_anh' => $images,
@@ -275,6 +276,7 @@ class CampaignController extends Controller
             'lng' => $chienDich->lng,
 
             'to_chuc' => [
+                'id' => $chienDich->toChuc->id ?? null,
                 'ten_to_chuc' => $chienDich->toChuc->ten_to_chuc ?? null,
                 'logo' => $chienDich->toChuc->logo ? asset('storage/' . $chienDich->toChuc->logo) : null,
                 'mo_ta' => $chienDich->toChuc->mo_ta ?? null,
@@ -327,7 +329,7 @@ class CampaignController extends Controller
             ->whereColumn('so_tien_da_nhan', '<', 'muc_tieu_tien') // chưa đạt target
             ->orderByRaw('(so_tien_da_nhan / NULLIF(muc_tieu_tien, 0)) DESC')
             ->orderByDesc('ung_hos_count')
-            ->limit(6)
+            ->limit(10)
             ->get();
 
         $campaigns->transform(fn($item) => $this->formatCampaign($item));
@@ -381,5 +383,20 @@ class CampaignController extends Controller
             });
 
         return response()->json($danhMucs);
+    }
+
+    public function endingSoon()
+    {
+        $campaigns = ChienDichGayQuy::with(['toChuc', 'danhMuc'])
+            ->where('trang_thai', 'HOAT_DONG') // chỉ lấy đang hoạt động
+            ->whereDate('ngay_ket_thuc', '>', now()) // chưa hết hạn
+            ->orderBy('ngay_ket_thuc', 'asc') // sắp hết hạn lên đầu
+            ->limit(5)
+            ->get();
+
+        // format lại cho FE
+        $campaigns = $campaigns->map(fn($item) => $this->formatCampaign($item));
+
+        return response()->json($campaigns);
     }
 }

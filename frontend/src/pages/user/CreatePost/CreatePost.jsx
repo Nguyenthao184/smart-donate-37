@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Input, Button, notification, Popconfirm} from "antd";
+import { Input, Button, notification, Popconfirm } from "antd";
 import {
   FiX,
   FiUpload,
@@ -25,7 +25,7 @@ export default function CreatePost() {
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
   const [location, setLocation] = useState("");
-  const [quantity, setQuantity] = useState(0);
+  const [quantity, setQuantity] = useState(""); 
   const [images, setImages] = useState([]);
   const [preview, setPreview] = useState(null);
   const [dragging, setDragging] = useState(false);
@@ -37,7 +37,6 @@ export default function CreatePost() {
       url: URL.createObjectURL(f),
       name: f.name,
     }));
-
     setImages((prev) => [...prev, ...newImgs]);
     if (!preview && newImgs.length) setPreview(newImgs[0].url);
   }
@@ -52,47 +51,43 @@ export default function CreatePost() {
     }
 
     const formData = new FormData();
-
     formData.append("tieu_de", title);
     formData.append("mo_ta", desc);
     formData.append("loai_bai", type === "cho" ? "CHO" : "NHAN");
     formData.append("dia_diem", location);
-    formData.append("so_luong", quantity);
+    formData.append("so_luong", quantity === "" ? 1 : Number(quantity)); // ← ép number, fallback 1
 
-    if (images[0]?.file) {
-      formData.append("hinh_anh", images[0].file);
-    }
+    // ← gửi tất cả ảnh, không bắt buộc phải có
+    images.forEach((img) => {
+      if (img.file) formData.append("hinh_anh[]", img.file);
+    });
 
     try {
       const res = await createPost(formData);
-
       if (res) {
         notification.success({
-          message: "Thành công 🎉",
+          message: "Thành công",
           description: "Bài đăng của bạn đã được tạo!",
         });
-
-        setTimeout(() => {
-          navigate("/bang-tin");
-        }, 1200);
+        setTimeout(() => navigate("/bang-tin"), 1200);
       }
     } catch (err) {
       console.error(err);
-
-      // 🔥 Lấy lỗi từ BE (Laravel validate)
       const errors = err?.response?.data?.errors;
+      const message = err?.response?.data?.message;
 
       if (errors) {
-        Object.values(errors).forEach((errArr) => {
+        // ← dùng đúng field name và message từ BE
+        Object.entries(errors).forEach(([field, errArr]) => {
           notification.warning({
-            message: "Vui lòng nhập số lượng",
+            message: `Lỗi: ${field}`,
             description: errArr[0],
           });
         });
+      } else if (message) {
+        notification.error({ message });
       } else {
-        notification.error({
-          message: err?.response?.data?.message,
-        });
+        notification.error({ message: "Có lỗi xảy ra, vui lòng thử lại" });
       }
     }
   };
@@ -108,7 +103,6 @@ export default function CreatePost() {
   return (
     <div className="cp-overlay">
       <div className="cp-modal">
-        {/* Header */}
         <div className="cp-modal__header">
           <div className="cp-modal__title">
             <span className="cp-modal__title-icon">🪄</span>
@@ -157,14 +151,25 @@ export default function CreatePost() {
             />
           </div>
 
-          {/* Hình ảnh */}
+          {/* Hình ảnh — chỉ cho tab "cho", không bắt buộc */}
           {type === "cho" && (
             <div className="cp-field">
               <label className="cp-field__label">
                 <FiImage size={14} /> Hình ảnh
+                <span
+                  style={{
+                    fontWeight: 400,
+                    color: "#aaa",
+                    marginLeft: 6,
+                    fontSize: 12,
+                  }}
+                >
+                  (không bắt buộc)
+                </span>
               </label>
 
               {images.length === 0 ? (
+                // ← Zone upload khi chưa có ảnh nào
                 <div
                   className={`cp-upload__zone${dragging ? " dragging" : ""}`}
                   onClick={() => fileRef.current?.click()}
@@ -184,10 +189,11 @@ export default function CreatePost() {
                   </div>
                   <span className="cp-upload__zone-text">Tải ảnh lên</span>
                   <span className="cp-upload__zone-hint">
-                    Kéo thả hoặc click để chọn
+                    Kéo thả hoặc click để chọn • Có thể chọn nhiều ảnh
                   </span>
                 </div>
               ) : (
+                // ← Preview khi đã có ít nhất 1 ảnh
                 <div className="cp-upload__preview">
                   <div className="cp-upload__preview-main">
                     <img src={preview} alt="preview" />
@@ -204,9 +210,7 @@ export default function CreatePost() {
                     {images.map((img, i) => (
                       <div
                         key={i}
-                        className={`cp-upload__thumb${
-                          preview === img.url ? " active" : ""
-                        }`}
+                        className={`cp-upload__thumb${preview === img.url ? " active" : ""}`}
                         onClick={() => setPreview(img.url)}
                       >
                         <img src={img.url} alt={img.name} />
@@ -269,7 +273,7 @@ export default function CreatePost() {
               </label>
               <Input
                 className="cp-field-inline__input"
-                placeholder="Phường/Xã, Quận/Huyện, Tỉnh/Thành..."
+                placeholder="Phường/Xã, Quận/Huyện..."
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
               />
@@ -285,7 +289,7 @@ export default function CreatePost() {
                 className="cp-field-inline__input"
                 placeholder="Nhập số lượng..."
                 value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
+                onChange={(e) => setQuantity(e.target.value)} // ← giữ string, ép khi submit
                 type="number"
                 min={1}
               />
@@ -293,7 +297,6 @@ export default function CreatePost() {
           </div>
         </div>
 
-        {/* Footer */}
         <div className="cp-modal__footer">
           <Popconfirm
             title="Hủy bài đăng"
