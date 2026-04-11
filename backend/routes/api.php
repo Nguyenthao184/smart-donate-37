@@ -16,9 +16,12 @@ use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\TroChuyenController;
 
 Route::post('/register', [AuthController::class,'register']);
+Route::get('/verify-register', [AuthController::class, 'verifyRegister']);
 Route::post('/login', [AuthController::class,'login']);
 Route::get('/auth/google', [GoogleController::class, 'redirect']);
 Route::get('/auth/google/callback', [GoogleController::class, 'callback']);
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
 // Feed - guest có thể xem danh sách/chi tiết
 Route::get('/posts', [PostController::class, 'index']);
@@ -117,7 +120,6 @@ Route::middleware('auth:sanctum')->group(function(){
        
     });
 });
-
 
 //xem tổ chức
 Route::get('/organization', [OrganizationController::class, 'index']);
