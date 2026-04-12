@@ -320,6 +320,7 @@ export default function ProfilePage() {
         )}
         {showPasswordModal && (
           <ChangePasswordModal
+            profileUser={profileUser}
             onChangePassword={handleChangePassword}
             onClose={() => setShowPasswordModal(false)}
           />
@@ -450,7 +451,10 @@ function EditProfileModal({ user, profileUser, toChuc, avatarUrl, isOrganization
   );
 }
 
-function ChangePasswordModal({ onChangePassword, onClose }) {
+function ChangePasswordModal({ profileUser, onChangePassword, onClose }) {
+  // Check nếu là Google user (chưa có mật khẩu)
+  const isGoogleUser = !!profileUser?.google_id;
+
   const [form, setForm] = useState({ old: "", new: "", confirm: "" });
   const [show, setShow] = useState({ old: false, new: false, confirm: false });
   const [loading, setLoading] = useState(false);
@@ -459,27 +463,56 @@ function ChangePasswordModal({ onChangePassword, onClose }) {
   const toggleShow = (field) => setShow({ ...show, [field]: !show[field] });
 
   const handleSubmit = async () => {
-    if (!form.old || !form.new || !form.confirm) {
-      notification.warning({ message: "Vui lòng điền đầy đủ!", placement: "topRight" });
-      return;
+    // Validate
+    if (isGoogleUser) {
+      if (!form.new || !form.confirm) {
+        notification.warning({ message: "Vui lòng điền đầy đủ!", placement: "topRight" });
+        return;
+      }
+    } else {
+      if (!form.old || !form.new || !form.confirm) {
+        notification.warning({ message: "Vui lòng điền đầy đủ!", placement: "topRight" });
+        return;
+      }
     }
+
     if (form.new !== form.confirm) {
       notification.warning({ message: "Mật khẩu mới không khớp!", placement: "topRight" });
       return;
     }
+
+    if (form.new.length < 6) {
+      notification.warning({ message: "Mật khẩu phải có ít nhất 6 ký tự!", placement: "topRight" });
+      return;
+    }
+
     setLoading(true);
-    const { ok, err } = await onChangePassword({
-      mat_khau_cu: form.old,
-      mat_khau_moi: form.new,
-      mat_khau_moi_confirmation: form.confirm,
-    });
+
+    const payload = isGoogleUser
+      ? {
+          new_password: form.new,
+          new_password_confirmation: form.confirm,
+        }
+      : {
+          current_password: form.old,
+          new_password: form.new,
+          new_password_confirmation: form.confirm,
+        };
+
+    const { ok, err } = await onChangePassword(payload);
     setLoading(false);
 
     if (ok) {
-      notification.success({ message: "Đổi mật khẩu thành công!", placement: "topRight" });
+      notification.success({
+        message: isGoogleUser ? "Tạo mật khẩu thành công!" : "Đổi mật khẩu thành công!",
+        placement: "topRight"
+      });
       onClose();
     } else {
-      notification.error({ message: err?.response?.data?.message || "Đổi mật khẩu thất bại!", placement: "topRight" });
+      notification.error({
+        message: err?.response?.data?.message || (isGoogleUser ? "Tạo mật khẩu thất bại!" : "Đổi mật khẩu thất bại!"),
+        placement: "topRight"
+      });
     }
   };
 
@@ -495,27 +528,61 @@ function ChangePasswordModal({ onChangePassword, onClose }) {
     </svg>
   );
 
+  const themeColor = isGoogleUser ? "#f59e0b" : "#E24B4A";
+  const themeBgLight = isGoogleUser ? "#fef3c7" : "#fff0f0";
+
+  const fields = isGoogleUser
+    ? [
+        { label: "Mật khẩu mới", name: "new" },
+        { label: "Xác nhận mật khẩu", name: "confirm" },
+      ]
+    : [
+        { label: "Mật khẩu hiện tại", name: "old" },
+        { label: "Mật khẩu mới", name: "new" },
+        { label: "Xác nhận mật khẩu", name: "confirm" },
+      ];
+
   return (
     <div className="ep-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="ep-modal" style={{ maxWidth: 420 }}>
-        <div className="ep-modal__header" style={{ background: "#E24B4A" }}>
-          <span>Đổi mật khẩu</span>
+        <div className="ep-modal__header" style={{ background: themeColor }}>
+          <span>{isGoogleUser ? "Tạo mật khẩu" : "Đổi mật khẩu"}</span>
           <button className="ep-modal__close" onClick={onClose}>✕</button>
         </div>
         <div className="ep-modal__body">
           <div style={{ textAlign: "center", padding: "8px 0 4px" }}>
-            <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#fff0f0", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 10px" }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#E24B4A" strokeWidth="2">
+            <div style={{ width: 56, height: 56, borderRadius: "50%", background: themeBgLight, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 10px" }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={themeColor} strokeWidth="2">
                 <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
               </svg>
             </div>
-            <p style={{ fontSize: 13, color: "#888", margin: 0 }}>Nhập mật khẩu cũ và mật khẩu mới để thay đổi</p>
+            <p style={{ fontSize: 13, color: "#888", margin: 0 }}>
+              {isGoogleUser
+                ? "Bạn đăng nhập bằng Google"
+                : "Nhập mật khẩu cũ và mật khẩu mới để thay đổi"}
+            </p>
           </div>
-          {[
-            { label: "Mật khẩu cũ", name: "old" },
-            { label: "Mật khẩu mới", name: "new" },
-            { label: "Xác nhận mật khẩu", name: "confirm" },
-          ].map((f) => (
+
+          {isGoogleUser && (
+            <div style={{
+              background: "#fef3c7",
+              borderRadius: 8,
+              padding: "12px 14px",
+              margin: "12px 0",
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 10
+            }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#92400e" strokeWidth="2" style={{ flexShrink: 0, marginTop: 1 }}>
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              <p style={{ fontSize: 13, color: "#92400e", margin: 0, lineHeight: 1.5 }}>
+                Bạn chưa có mật khẩu. Hãy tạo mật khẩu để có thể đăng nhập bằng email.
+              </p>
+            </div>
+          )}
+
+          {fields.map((f) => (
             <div key={f.name} className="ep-field" style={{ width: "100%" }}>
               <label>{f.label} <span className="ep-required">*</span></label>
               <div style={{ position: "relative" }}>
@@ -538,8 +605,8 @@ function ChangePasswordModal({ onChangePassword, onClose }) {
         </div>
         <div className="ep-modal__footer">
           <button className="ep-footer-btn ep-footer-btn--cancel" onClick={onClose}>Hủy</button>
-          <button className="ep-footer-btn" style={{ background: "#E24B4A", color: "#fff" }} onClick={handleSubmit} disabled={loading}>
-            {loading ? "Đang xử lý..." : "Đổi mật khẩu"}
+          <button className="ep-footer-btn" style={{ background: themeColor, color: "#fff" }} onClick={handleSubmit} disabled={loading}>
+            {loading ? "Đang xử lý..." : (isGoogleUser ? "Tạo mật khẩu" : "Đổi mật khẩu")}
           </button>
         </div>
       </div>

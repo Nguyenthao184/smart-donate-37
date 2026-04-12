@@ -14,12 +14,17 @@ import {
   updateFraudAlert,
   autoCheckFraud,
   autoCheckCampaignsFraud,
+  getDashboardSummary,
+  getDashboardFeatured,
+  getDashboardFundraising,
+  getDashboardActivities,
 } from "../api/adminService";
 
 let usersPromise = null;
 let postsPromise = null;
 let campaignsPromise = null;
 let fraudPromise = null;
+let dashboardPromise = null;
 
 const useAdminStore = create((set, get) => ({
   // ===== STATE =====
@@ -28,15 +33,23 @@ const useAdminStore = create((set, get) => ({
   campaigns: [],
   fraudAlerts: [],
 
+  // Dashboard state
+  dashboardSummary: null,
+  dashboardFeatured: [],
+  dashboardFundraising: null,
+  dashboardActivities: [],
+
   loadingUsers: false,
   loadingPosts: false,
   loadingCampaigns: false,
   loadingFraud: false,
+  loadingDashboard: false,
 
   isFetchedUsers: false,
   isFetchedPosts: false,
   isFetchedCampaigns: false,
   isFetchedFraud: false,
+  isFetchedDashboard: false,
 
   // ===== USERS =====
   fetchUsers: async () => {
@@ -267,6 +280,46 @@ const useAdminStore = create((set, get) => ({
       console.error("Lỗi kiểm tra gian lận chiến dịch:", err);
       return false;
     }
+  },
+
+  // ===== DASHBOARD =====
+  fetchDashboard: async () => {
+    if (get().isFetchedDashboard) return;
+    if (dashboardPromise) return dashboardPromise;
+
+    set({ loadingDashboard: true });
+
+    dashboardPromise = (async () => {
+      try {
+        const [summary, featured, fundraising, activities] = await Promise.all([
+          getDashboardSummary(),
+          getDashboardFeatured(),
+          getDashboardFundraising(),
+          getDashboardActivities(),
+        ]);
+
+        set({
+          dashboardSummary: summary.data || summary,
+          dashboardFeatured: featured.data || featured,
+          dashboardFundraising: fundraising.data || fundraising,
+          dashboardActivities: activities.data || activities,
+          loadingDashboard: false,
+          isFetchedDashboard: true,
+        });
+      } catch (err) {
+        console.error("Lỗi fetch dashboard:", err);
+        set({ loadingDashboard: false });
+      } finally {
+        dashboardPromise = null;
+      }
+    })();
+
+    return dashboardPromise;
+  },
+
+  refreshDashboard: async () => {
+    set({ isFetchedDashboard: false });
+    return get().fetchDashboard();
   },
 }));
 

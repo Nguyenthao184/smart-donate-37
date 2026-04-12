@@ -20,7 +20,7 @@ export default function Register() {
     try {
       setLoading(true);
 
-      await registerAPI({
+      const res = await registerAPI({
         ho_ten: values.ho_ten,
         email: values.e_m,
         password: values.m_k,
@@ -29,12 +29,14 @@ export default function Register() {
 
       notification.success({
         message: "Đăng ký thành công!",
+        description: res.message || "Vui lòng kiểm tra email để xác minh tài khoản",
+        duration: 5,
       });
 
-      // delay nhẹ để thấy notification
+      // delay lâu hơn để user đọc thông báo
       setTimeout(() => {
         navigate("/dang-nhap");
-      }, 1000);
+      }, 3000);
     } catch (err) {
       notification.error({
         message: "Đăng ký thất bại!",
@@ -92,7 +94,6 @@ export default function Register() {
               <Form.Item
                 name="e_m"
                 label="Email"
-
                 rules={[
                   { required: true, message: "Vui lòng nhập email!" },
                   { type: "email", message: "Email không hợp lệ!" },
