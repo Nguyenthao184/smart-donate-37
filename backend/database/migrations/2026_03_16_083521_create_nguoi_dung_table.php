@@ -14,10 +14,11 @@ return new class extends Migration
     {
         Schema::create('nguoi_dung', function (Blueprint $table) {
             $table->id();
+            $table->string('google_id')->nullable()->unique();
             $table->string('ho_ten');
             $table->string('ten_tai_khoan')->unique();
             $table->string('email')->unique();
-            $table->string('mat_khau');
+            $table->string('mat_khau')->nullable();
             $table->string('anh_dai_dien')->nullable();
             $table->enum('trang_thai',['HOAT_DONG','BI_CAM'])->default('HOAT_DONG');
             $table->timestamps();

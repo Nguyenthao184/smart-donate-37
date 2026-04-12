@@ -17,7 +17,7 @@ class ChangePasswordRequest extends FormRequest
     protected function prepareForValidation()
     {
         $this->merge([
-            'current_password' => trim($this->current_password),
+            'current_password' => $this->current_password ? trim($this->current_password) : null,
             'new_password' => trim($this->new_password),
             'confirm_password' => trim($this->confirm_password),
         ]);
@@ -25,9 +25,11 @@ class ChangePasswordRequest extends FormRequest
 
     public function rules(): array
     {
+        $user = Auth::user();
+
         return [
             'current_password' => [
-                'required'
+                $user && $user->mat_khau ? 'required' : 'nullable'
             ],
 
             'new_password' => [

@@ -123,6 +123,17 @@ class UserProfileController extends Controller
     {
         $user = Auth::user();
 
+        // Trường hợp user đăng nhập Google (chưa có mật khẩu)
+        if (!$user->mat_khau) {
+            $user->update([
+                'mat_khau' => Hash::make($request->new_password)
+            ]);
+
+            return response()->json([
+                'message' => 'Tạo mật khẩu thành công'
+            ]);
+        }
+
         // kiểm tra mật khẩu hiện tại
         if (!Hash::check($request->current_password, $user->mat_khau)) {
             return response()->json([

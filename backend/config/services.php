@@ -41,14 +41,6 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URI'),
     ],
 
-    // 'vnpay' => [
-    //     // trim: copy/paste từ cổng VNPay dễ dính khoảng trắng/đầu dòng → sai chữ ký
-    //     'tmn_code' => trim((string) env('VNP_TMNCODE')),
-    //     'hash_secret' => trim((string) env('VNP_HASH_SECRET')),
-    //     'url' => env('VNP_URL', 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html'),
-    //     'return_url' => trim((string) env('VNP_RETURN_URL', '')),
-    // ],
-
     'vnpay' => [
         'tmn_code'    => env('VNP_TMNCODE'),
         'hash_secret' => env('VNP_HASH_SECRET'),
