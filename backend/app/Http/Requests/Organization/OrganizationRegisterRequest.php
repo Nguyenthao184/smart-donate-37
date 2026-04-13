@@ -45,8 +45,14 @@ class OrganizationRegisterRequest extends FormRequest
                 'regex:/^[\pL\s]+$/u'
             ],
             
-            'giay_phep' => 'required|file|mimes:pdf,jpg,jpeg,png|max:2048',
+            'giay_phep' => 'required|file|mimes:pdf,jpg,jpeg,png',
             'loai_hinh' => 'required|in:NHA_NUOC,QUY_TU_THIEN,DOANH_NGHIEP',
+            'mo_ta' => 'required|string|max:1000',
+            'dia_chi' => 'required|string|max:255',
+            'so_dien_thoai' => [
+                'required',
+                'regex:/^(0[3|5|7|8|9])[0-9]{8}$/'
+            ],
         ];
     }
 
@@ -70,10 +76,18 @@ class OrganizationRegisterRequest extends FormRequest
             'giay_phep.required' => 'Vui lòng cung cấp giấy phép',
             'giay_phep.file' => 'Giấy phép phải là một tệp tin',
             'giay_phep.mimes' => 'Giấy phép phải là file PDF, JPG hoặc PNG',
-            'giay_phep.max' => 'Kích thước file giấy phép không được vượt quá 2MB',
 
             'loai_hinh.required' => 'Vui lòng chọn loại hình tổ chức',
             'loai_hinh.in' => 'Loại hình tổ chức không hợp lệ',
+
+            'mo_ta.required' => 'Vui lòng nhập mô tả về tổ chức',
+            'mo_ta.string' => 'Mô tả phải là chuỗi ký tự',
+            'mo_ta.max' => 'Mô tả không được vượt quá 1000 ký tự',
+            'dia_chi.required' => 'Địa chỉ không được để trống',
+            'dia_chi.string' => 'Địa chỉ phải là chuỗi ký tự',
+            'dia_chi.max' => 'Địa chỉ không được vượt quá 255 ký tự',
+            'so_dien_thoai.required' => 'Số điện thoại không được để trống',
+            'so_dien_thoai.regex' => 'Số điện thoại không hợp lệ (phải là số điện thoại Việt Nam bắt đầu bằng 0 và có 10 chữ số)'
         ];
     }
 

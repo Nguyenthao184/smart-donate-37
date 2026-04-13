@@ -1,33 +1,45 @@
-import api from "./authService"; 
+import api from "./authService";
 
-// danh sách campaign
-export const getCampaigns = async () => {
-  const res = await api.get(`/campaigns`);
-  return res.data;
+// Danh sách campaign — nhận mọi params: keyword, danh_muc_id, sort, page
+export const getCampaigns = async (params = {}) => {
+  const res = await api.get(`/campaigns`, { params });
+  return res.data; // Laravel paginate object: { data, current_page, last_page, total, per_page }
 };
 
-// campaign nổi bật
+// Campaign nổi bật
 export const getFeaturedCampaigns = async () => {
   const res = await api.get(`/campaigns/featured`);
-  return res.data;
+  return res.data; // mảng thuần
 };
 
-// chi tiết campaign
+// Chi tiết campaign
 export const getCampaignDetail = async (id) => {
   const res = await api.get(`/campaigns/${id}`);
   return res.data;
 };
 
-// danh mục campaign
+// Danh mục
 export const getCategories = async () => {
   const res = await api.get(`/categories`);
   return res.data;
 };
 
-// danh sách campaign theo danh mục
-export const getCampaignsByCategory = async (categoryId) => {
-  const res = await api.get(
-    `/campaigns?danh_muc_id=${categoryId}`
-  );
+export const getEndingCampaigns = async () => {
+  const res = await api.get("/campaigns", {
+    params: {
+      sort: "ending_soon",
+      limit: 3,
+    },
+  });
+  return res.data;
+};
+
+// Tạo chiến dịch — gửi FormData vì có file ảnh
+export const createCampaign = async (formData) => {
+  const res = await api.post("/campaigns", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
   return res.data;
 };

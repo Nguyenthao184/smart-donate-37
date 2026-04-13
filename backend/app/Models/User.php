@@ -14,6 +14,7 @@ class User extends Authenticatable
     protected $table = 'nguoi_dung';
 
     protected $fillable = [
+        'google_id',
         'ho_ten',
         'ten_tai_khoan',
         'email',

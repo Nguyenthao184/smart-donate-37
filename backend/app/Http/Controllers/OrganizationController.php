@@ -10,19 +10,34 @@ use App\Http\Requests\Organization\OrganizationRegisterRequest;
 use Illuminate\Support\Facades\DB;
 use App\Notifications\ApprovalNotification;
 use App\Services\ApprovalService;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
+use Endroid\QrCode\Builder\Builder;
+use Endroid\QrCode\Writer\PngWriter;
+use Endroid\QrCode\Encoding\Encoding;
+use App\Models\ChienDichGayQuy;
 
 class OrganizationController extends Controller
 {
-    // USER đăng ký
+    // USER đăng ký tổ chức
     public function register(OrganizationRegisterRequest $request)
     {
         DB::beginTransaction();
 
         try {
             // upload file
-            $path = null;
-            if ($request->hasFile('giay_phep')) {
-                $path = $request->file('giay_phep')->store('giay_phep', 'public');
+            $file = $request->file('giay_phep');
+            if (!$file) {
+                return response()->json([
+                    'error' => 'Không nhận được file'
+                ], 400);
+            }
+            $path = $file->store('giay_phep', 'public');
+
+            // upload logo
+            $logoPath = null;
+            if ($request->hasFile('logo')) {
+                $logoPath = $request->file('logo')->store('logos', 'public');
             }
 
             $org = XacMinhToChuc::create([
@@ -32,7 +47,19 @@ class OrganizationController extends Controller
                 'nguoi_dai_dien' => $request->nguoi_dai_dien,
                 'giay_phep' => $path,
                 'loai_hinh' => $request->loai_hinh,
+                'mo_ta' => $request->mo_ta,
+                'dia_chi' => $request->dia_chi,
+                'so_dien_thoai' => $request->so_dien_thoai,
+                'logo' => $logoPath,
             ]);
+
+            $org->giay_phep = $org->giay_phep 
+                ? asset('storage/' . $org->giay_phep) 
+                : null;
+
+            $org->logo = $org->logo 
+                ? asset('storage/' . $org->logo) 
+                : null;
 
             DB::commit();
 
@@ -50,10 +77,25 @@ class OrganizationController extends Controller
     // USER xem trạng thái
     public function status()
     {
-        return XacMinhToChuc::where('nguoi_dung_id', auth()->id())->latest()->first();
+        $data = XacMinhToChuc::where('nguoi_dung_id', auth()->id())
+            ->latest()
+            ->first();
+
+        if ($data && $data->giay_phep) {
+            $data->giay_phep = asset('storage/' . $data->giay_phep);
+        }
+
+
+        if ($data && $data->logo) {
+            $data->logo = asset('storage/' . $data->logo);
+        }
+
+        return response()->json([
+            'xac_minh' => $data
+        ]);
     }
 
-    // ADMIN duyệt
+    // ADMIN duyệt tổ chức và tạo tài khoản gây quỹ
     public function approve($id)
     {
         DB::beginTransaction();
@@ -76,34 +118,77 @@ class OrganizationController extends Controller
             ]);
 
             // nâng quyền user thành tổ chức
-            DB::table('nguoi_dung_vai_tro')->insert([
+            DB::table('nguoi_dung_vai_tro')->updateOrInsert([
                 'nguoi_dung_id' => $org->nguoi_dung_id,
                 'vai_tro_id' => 3, 
             ]);
 
-            ToChuc::updateOrCreate(
+            $toChuc = ToChuc::updateOrCreate(
                 ['nguoi_dung_id' => $org->nguoi_dung_id],
                 [
                     'xac_minh_to_chuc_id' => $org->id,
                     'ten_to_chuc' => $org->ten_to_chuc,
                     'email' => $org->user->email,
-                    'trang_thai' => 'HOAT_DONG'
+                    'trang_thai' => 'HOAT_DONG',
+                    'mo_ta' => $org->mo_ta,
+                    'dia_chi' => $org->dia_chi,
+                    'so_dien_thoai' => $org->so_dien_thoai,
+                    'logo' => $org->logo,
                 ]
             );
 
+            $exists = TaiKhoanGayQuy::where('to_chuc_id', $toChuc->id)
+                ->whereIn('trang_thai', ['CHO_DUYET', 'HOAT_DONG'])
+                ->exists();
+
+            if (!$exists) {
+
+                // fake MB account
+                $mb = $this->fakeMBBank($toChuc->ten_to_chuc, $org->user);
+
+                // nội dung QR
+                $qrContent = json_encode([
+                    'bank' => $mb['ngan_hang'],
+                    'account' => $mb['so_tai_khoan'],
+                    'name' => $mb['chu_tai_khoan']
+                ]);
+
+                // tạo QR
+                $result = Builder::create()
+                    ->writer(new PngWriter())
+                    ->data($qrContent)
+                    ->size(300)
+                    ->margin(10)
+                    ->build();
+
+                $fileName = 'qr_' . time() . '_' . Str::random(5) . '.png';
+
+                Storage::disk('public')->put($fileName, $result->getString());
+
+                // tạo tài khoản gây quỹ
+                TaiKhoanGayQuy::create([
+                    'to_chuc_id' => $toChuc->id,
+                    'ten_quy' => "Quỹ {$toChuc->ten_to_chuc}",
+                    'ngan_hang' => $mb['ngan_hang'],
+                    'so_tai_khoan' => $mb['so_tai_khoan'],
+                    'chu_tai_khoan' => $mb['chu_tai_khoan'],
+                    'ma_yeu_cau_mb' => $mb['request_id'],
+                    'so_du' => 0,
+                    'trang_thai' => 'HOAT_DONG',
+                    'qr_code' => 'storage/' . $fileName
+                ]);
+            }
 
             DB::commit();
 
-            // Gửi notification
-            $user = $org->user;
-            $user->notify(
-                new ApprovalNotification('approve', 'Tổ chức')
+            // notification
+            $org->user->notify(
+                new ApprovalNotification('approve', 'Tổ chức & tài khoản gây quỹ')
             );
 
             return response()->json([
-                'message' => 'Duyệt tổ chức thành công'
+                'message' => 'Duyệt tổ chức thành công và đã tạo tài khoản gây quỹ'
             ]);
-
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -113,7 +198,7 @@ class OrganizationController extends Controller
         }
     }
 
-    // ADMIN từ chối
+    // ADMIN từ chối tổ chức
     public function reject(Request $request, $id)
     {
         $request->validate([
@@ -148,6 +233,18 @@ class OrganizationController extends Controller
             'message' => 'Đã từ chối',
             'ly_do' => $request->ly_do
         ]);
+    }
+
+    //danh sách tổ chức admin
+    public function adminIndex(Request $request)
+    {
+        $query = XacMinhToChuc::with('user');
+
+        if ($request->trang_thai) {
+            $query->where('trang_thai', $request->trang_thai);
+        }
+
+        return $query->latest()->get();
     }
 
     // Danh sách tổ chức
@@ -187,7 +284,7 @@ class OrganizationController extends Controller
         $query->orderByDesc('tong_gay_quy')
             ->orderByDesc('to_chuc.created_at');
 
-        $orgs = $query->paginate(7);
+        $orgs = $query->paginate(8);
 
         // Tổng tổ chức
         $totalAll = ToChuc::count();
@@ -328,5 +425,78 @@ class OrganizationController extends Controller
             'tong_chien_dich' => $tongChienDich,
             'tong_luot_ung_ho' => $tongLuotUngHo,
         ]);
+    }
+
+    // Admin khóa tài khoản gây quỹ của tổ chức (và tạm dừng chiến dịch)
+    public function lock(Request $request, $id, ApprovalService $service)
+    {
+        $request->validate([
+            'ly_do' => 'required|string|max:255'
+        ]);
+
+        $tk = TaiKhoanGayQuy::findOrFail($id);
+
+        if ($tk->trang_thai === 'KHOA') {
+            return response()->json([
+                'message' => 'Tài khoản đã bị khóa trước đó'
+            ], 400);
+        }
+
+        $service->lock($tk, 'KHOA');
+
+        ChienDichGayQuy::where('to_chuc_id', $tk->to_chuc_id)
+            ->where('trang_thai', 'HOAT_DONG')
+            ->update([
+                'trang_thai' => 'TAM_DUNG'
+            ]);
+
+        // gửi notification
+        $user = $tk->toChuc->user;
+
+        $user->notify(
+            new ApprovalNotification(
+                'lock',
+                'Tài khoản gây quỹ',
+                $request->ly_do
+            )
+        );
+
+        return response()->json([
+            'message' => 'Đã khóa tài khoản',
+            'ly_do' => $request->ly_do
+        ]);
+    }
+
+    // FAKE MBBANK SERVICE
+    private function fakeMBBank($tenQuy, $user)
+    {
+        return [
+            'so_tai_khoan' => rand(1000000000,9999999999),
+            'chu_tai_khoan' => strtoupper($this->removeVietnameseAccents($tenQuy)),
+            'ngan_hang' => 'MB Bank',
+            'request_id' => 'MB_'.rand(1000,9999)
+        ];
+    }
+
+    private function removeVietnameseAccents($str) {
+        $str = mb_strtolower($str, 'UTF-8');
+
+        $accents = [
+            'a' => ['à','á','ạ','ả','ã','â','ầ','ấ','ậ','ẩ','ẫ','ă','ằ','ắ','ặ','ẳ','ẵ'],
+            'e' => ['è','é','ẹ','ẻ','ẽ','ê','ề','ế','ệ','ể','ễ'],
+            'i' => ['ì','í','ị','ỉ','ĩ'],
+            'o' => ['ò','ó','ọ','ỏ','õ','ô','ồ','ố','ộ','ổ','ỗ','ơ','ờ','ớ','ợ','ở','ỡ'],
+            'u' => ['ù','ú','ụ','ủ','ũ','ư','ừ','ứ','ự','ử','ữ'],
+            'y' => ['ỳ','ý','ỵ','ỷ','ỹ'],
+            'd' => ['đ']
+        ];
+
+        foreach ($accents as $nonAccent => $accentChars) {
+            foreach ($accentChars as $accent) {
+                $str = str_replace($accent, $nonAccent, $str);
+            }
+        }
+
+        return $str;
     }
 }

@@ -2,15 +2,14 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Broadcast;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\OrganizationController;
-use App\Http\Controllers\FundAccountController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\CampaignController;
 use App\Http\Controllers\DonateController;
-
 use App\Http\Controllers\FraudController;
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\AdminDashboardController;
@@ -19,9 +18,12 @@ use App\Http\Controllers\PostCommentController;
 use App\Http\Controllers\PostReportController;
 
 Route::post('/register', [AuthController::class,'register']);
+Route::get('/verify-register', [AuthController::class, 'verifyRegister']);
 Route::post('/login', [AuthController::class,'login']);
 Route::get('/auth/google', [GoogleController::class, 'redirect']);
 Route::get('/auth/google/callback', [GoogleController::class, 'callback']);
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
 // Feed - guest có thể xem danh sách/chi tiết
 Route::get('/posts', [PostController::class, 'index']);
@@ -34,6 +36,9 @@ Route::get('/categories', [CampaignController::class, 'getDanhMuc']);
 Route::middleware('auth:sanctum')->group(function(){
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout',[AuthController::class,'logout']);
+    Route::post('/broadcasting/auth', function (Request $request) {
+        return Broadcast::auth($request);
+    });
 
     Route::post('/posts/{id}/like', [PostController::class, 'toggleLike'])->whereNumber('id');
     Route::post('/posts/{id}/comments', [PostCommentController::class, 'store'])->whereNumber('id');
@@ -65,9 +70,8 @@ Route::middleware('auth:sanctum')->group(function(){
             Route::post('/organization/{id}/approve', [OrganizationController::class, 'approve']);
             Route::post('/organization/{id}/reject', [OrganizationController::class, 'reject']);
 
-            // ADMIN - duyet tai khoan gay quy
-            Route::post('/fund-accounts/{id}/approve', [FundAccountController::class, 'approve']);
-            Route::post('/fund-accounts/{id}/lock', [FundAccountController::class, 'lock']);
+            // ADMIN - khoa tai khoan gay quy
+            Route::post('/fund-accounts/{id}/lock', [OrganizationController::class, 'lock']);
 
             // ADMIN - duyet chien dich
             Route::post('/campaigns/{id}/approve', [CampaignController::class, 'approveCampaign']);
@@ -102,15 +106,10 @@ Route::middleware('auth:sanctum')->group(function(){
         Route::get('/donate/history', [DonateController::class, 'donateHistory']);
     });
     
-    Route::middleware('role:TO_CHUC')->group(function(){
-        //tài khoản gây quỹ       
-        Route::post('/fund-accounts', [FundAccountController::class, 'store']);
-        Route::get('/fund-accounts/me', [FundAccountController::class, 'me']);
-
+    Route::middleware(['role:TO_CHUC','update.campaign'])->group(function(){
         //chiến dịch
         Route::post('/campaigns', [CampaignController::class, 'store']);
         Route::get('/campaigns/me', [CampaignController::class, 'myCampaigns']);
-        
    });
 
     // Feed - user và tổ chức: đăng/cập nhật/xóa 
@@ -139,14 +138,15 @@ Route::middleware('auth:sanctum')->group(function(){
     });
 });
 
-
 //xem tổ chức
 Route::get('/organization', [OrganizationController::class, 'index']);
 Route::get('/organization/{id}', [OrganizationController::class, 'show']);
 
 //xem chiến dịch
-Route::get('/campaigns', [CampaignController::class, 'index']);
-Route::get('/campaigns/featured', [CampaignController::class, 'featured']);
-Route::get('/campaigns/{id}', [CampaignController::class, 'show']);
-
+Route::middleware('update.campaign')->group(function () {
+    Route::get('/campaigns', [CampaignController::class, 'index']);
+    Route::get('/campaigns/featured', [CampaignController::class, 'featured']);
+    Route::get('/campaigns/ending-soon', [CampaignController::class, 'endingSoon']);
+    Route::get('/campaigns/{id}', [CampaignController::class, 'show']);
+});
 Route::get('/vnpay/return', [DonateController::class, 'vnpayReturn']);

@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   FiMapPin,
   FiClock,
@@ -44,7 +45,9 @@ export default function PostDetailModal({ post, visible, onClose }) {
     return "post-detail-modal__images--grid"; // 4+
   };
 
-  return (
+  if (!visible || !post) return null;
+
+  return createPortal(
     <div className="post-detail-modal__overlay" onClick={onClose}>
       <div
         className={`post-detail-modal${hasAiSuggestions ? " post-detail-modal--ai" : ""}`}
@@ -80,33 +83,35 @@ export default function PostDetailModal({ post, visible, onClose }) {
                 <span className="post-detail-modal__location">
                   <FiMapPin size={12} /> {post.location}
                 </span>
-                <span className="post-detail-modal__time">
-                  <FiClock size={12} /> {post.time}
-                </span>
               </div>
             </div>
-            <span
-              className={`post-detail-modal__status-tag post-detail-modal__status-tag--${post.status}`}
-            >
-              {post.status === "con" ? (
-                post.type === "cho" ? (
-                  <>
-                    <FaGift style={{ marginRight: 5 }} />
-                    Còn tặng
-                  </>
+            <div >
+              <span
+                className={`post-detail-modal__status-tag post-detail-modal__status-tag--${post.status}`}
+              >
+                {post.status === "con" ? (
+                  post.type === "cho" ? (
+                    <>
+                      <FaGift style={{ marginRight: 5 }} />
+                      Còn tặng
+                    </>
+                  ) : (
+                    <>
+                      <FaInbox style={{ marginRight: 5 }} />
+                      Còn nhận
+                    </>
+                  )
                 ) : (
                   <>
-                    <FaInbox style={{ marginRight: 5 }} />
-                    Còn nhận
+                    <FaCheckCircle style={{ marginRight: 5 }} />
+                    Đã xong
                   </>
-                )
-              ) : (
-                <>
-                  <FaCheckCircle style={{ marginRight: 5 }} />
-                  Đã xong
-                </>
-              )}
-            </span>
+                )}
+              </span>
+              <span className="post-detail-modal__time">
+                <FiClock size={12} /> {post.time}
+              </span>
+            </div>
           </div>
 
           {/* Title */}
@@ -140,18 +145,6 @@ export default function PostDetailModal({ post, visible, onClose }) {
               ))}
             </div>
           )}
-
-          {/* Actions */}
-          <div className="post-detail-modal__actions">
-            <button className="post-detail-modal__action-btn post-detail-modal__action-btn--message">
-              <FiMessageCircle size={20} />
-              <span>Nhắn tin</span>
-            </button>
-            <button className="post-detail-modal__action-btn post-detail-modal__action-btn--share">
-              <FiSend size={20} />
-              <span>Chia sẻ</span>
-            </button>
-          </div>
 
           {/* AI Suggestions */}
           {hasAiSuggestions && (
@@ -201,7 +194,20 @@ export default function PostDetailModal({ post, visible, onClose }) {
             </>
           )}
         </div>
+
+        {/* Actions */}
+        <div className="post-detail-modal__footer">
+          <button className="post-detail-modal__action-btn post-detail-modal__action-btn--message">
+            <FiMessageCircle size={20} />
+            <span>Nhắn tin</span>
+          </button>
+          <button className="post-detail-modal__action-btn post-detail-modal__action-btn--share">
+            <FiSend size={20} />
+            <span>Chia sẻ</span>
+          </button>
+        </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

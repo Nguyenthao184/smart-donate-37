@@ -6,11 +6,13 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import RequiredLoginModal from "../../components/Required/index";
 import useAuthStore from "../../store/authStore";
 import { logoutAPI } from "../../api/authService";
+import useChatStore from "../../store/chatStore";
 import "./styles.scss";
 
-export default function Header({ notificationsCount = 2, messagesCount = 3 }) {
+export default function Header({ notificationsCount = 2 }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const totalUnread = useChatStore((s) => s.totalUnread);
   const [openLoginModal, setOpenLoginModal] = useState(false);
   const { user, token } = useAuthStore();
   const isLoggedIn = !!token;
@@ -150,8 +152,9 @@ export default function Header({ notificationsCount = 2, messagesCount = 3 }) {
                 type="button"
                 className="app-header__iconBtn"
                 aria-label="Tin nhắn"
+                onClick={() => navigate("/chat", { replace: true })}
               >
-                <Badge count={messagesCount} size="small" offset={[0, 4]}>
+                <Badge count={totalUnread} size="small" offset={[0, 4]}>
                   <FiMessageCircle size={22} />
                 </Badge>
               </button>

@@ -24,11 +24,25 @@ class UserProfileController extends Controller
             ->where('nguoi_dung_id', $user->id)
             ->sum('so_tien');
         
+        $user = $user->fresh()->load('toChuc');
+
+        $user->anh_dai_dien = $user->anh_dai_dien
+            ? asset('storage/' . $user->anh_dai_dien)
+            : null;
+
+        if ($user->toChuc) {
+            $user->toChuc->logo = $user->toChuc->logo
+                ? asset('storage/' . $user->toChuc->logo)
+                : null;
+        }
+
+        $taiKhoan = optional($user->toChuc)->taiKhoanGayQuy;
+        if ($taiKhoan && $taiKhoan->qr_code) {
+            $taiKhoan->qr_code = asset($taiKhoan->qr_code);
+        }
+
         return response()->json([
             'user' => $user,
-            'avatar_url' => $user->anh_dai_dien
-                ? asset('storage/' . $user->anh_dai_dien)
-                : null,
             'tong_tien_ung_ho' => $tongTienUngHo,
         ]);
     }
@@ -86,14 +100,21 @@ class UserProfileController extends Controller
             }
         }
 
-        /**
-         * ========================
-         * RESPONSE
-         * ========================
-         */
+        $user = $user->fresh()->load('toChuc');
+
+        $user->anh_dai_dien = $user->anh_dai_dien
+            ? asset('storage/' . $user->anh_dai_dien)
+            : null;
+
+        if ($user->toChuc) {
+            $user->toChuc->logo = $user->toChuc->logo
+                ? asset('storage/' . $user->toChuc->logo)
+                : null;
+        }
+
         return response()->json([
             'message' => 'Cập nhật profile thành công',
-            'user' => $user->fresh()->load('toChuc')
+            'user' => $user
         ]);
     }
 
@@ -101,6 +122,17 @@ class UserProfileController extends Controller
     public function changePassword(ChangePasswordRequest $request)
     {
         $user = Auth::user();
+
+        // Trường hợp user đăng nhập Google (chưa có mật khẩu)
+        if (!$user->mat_khau) {
+            $user->update([
+                'mat_khau' => Hash::make($request->new_password)
+            ]);
+
+            return response()->json([
+                'message' => 'Tạo mật khẩu thành công'
+            ]);
+        }
 
         // kiểm tra mật khẩu hiện tại
         if (!Hash::check($request->current_password, $user->mat_khau)) {

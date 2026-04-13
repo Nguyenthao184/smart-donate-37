@@ -15,8 +15,8 @@ function clampPercent(value) {
 export default function CampaignCard({ campaign }) {
   const [imgLoaded, setImgLoaded] = useState(false);
   const navigate = useNavigate();
-  const goal = Number(campaign.muc_tieu_tien ?? 0);
-  const raised = Number(campaign.so_tien_da_nhan ?? 0);
+  const goal = Number(campaign.muc_tieu_tien) || 0;
+  const raised = Number(campaign.so_tien_da_nhan) || 0;
   const percent = clampPercent(goal > 0 ? (raised / goal) * 100 : 0);
 
   const isNear = campaign.so_ngay_con_lai <= 3;
@@ -29,7 +29,7 @@ export default function CampaignCard({ campaign }) {
     <Card
       className={`campaign-card fade-load ${imgLoaded ? "loaded" : ""}`}
       variant="borderless"
-      onClick={handleClick} 
+      onClick={handleClick}
     >
       {/* ── Cover ── */}
       <div className="campaign-card__cover">
