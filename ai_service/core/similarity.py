@@ -19,9 +19,9 @@ except Exception:  # pragma: no cover
 def get_semantic_model() -> Optional["SentenceTransformer"]:
     """
     Tải mô hình ngữ nghĩa một lần mỗi tiến trình.
-    Hỗ trợ:
+    Hỗ trợ (mặc định keepitreal/vietnamese-sbert; đổi qua SEMANTIC_MODEL_NAME):
+    - keepitreal/vietnamese-sbert
     - sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
-    - keepitreal/vietnamese-sbert (cấu hình qua SEMANTIC_MODEL_NAME)
     """
     if SentenceTransformer is None:
         return None

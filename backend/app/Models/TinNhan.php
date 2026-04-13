@@ -15,11 +15,13 @@ class TinNhan extends Model
         'noi_dung',
         'loai_tin',
         'da_xem',
+        'da_thu_hoi',
         'tep_dinh_kem',
     ];
 
     protected $casts = [
         'da_xem' => 'boolean',
+        'da_thu_hoi' => 'boolean',
     ];
 
     public function cuocTroChuyen(): BelongsTo

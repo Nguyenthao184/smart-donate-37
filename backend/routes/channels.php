@@ -20,6 +20,6 @@ Broadcast::channel('cuoc-tro-chuyen.{cuocTroChuyenId}', function ($user, int $cu
     //return true;
 });
 
-Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
+Broadcast::channel('User.{id}', function ($user, $id) {
     return (int) $user->id === (int) $id;
 });

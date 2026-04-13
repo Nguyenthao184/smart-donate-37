@@ -210,6 +210,8 @@ class AdminDashboardController extends Controller
     {
         $limit = (int) $request->query('limit', 10);
         $limit = max(1, min($limit, 50));
+        // Lấy đủ bản ghi mỗi loại để sau khi ưu tiên 1 dòng/loại vẫn còn dữ liệu lấp chỗ trống.
+        $fetchLimit = min(50, max($limit * 3, 20));
 
         $alerts = DB::table('canh_bao_gian_lan as cb')
             ->leftJoin('nguoi_dung as nd', 'nd.id', '=', 'cb.nguoi_dung_id')
@@ -222,11 +224,12 @@ class AdminDashboardController extends Controller
                 'nd.ho_ten as user_name',
             ])
             ->orderByDesc('cb.created_at')
-            ->limit($limit)
+            ->limit($fetchLimit)
             ->get()
             ->map(function ($r) {
                 return [
                     'type' => 'fraud_alert',
+                    'source_id' => (int) $r->id,
                     'title' => 'Cảnh báo gian lận',
                     'detail' => trim((string) ($r->loai_gian_lan ?? '')),
                     'user' => $r->user_name,
@@ -247,7 +250,7 @@ class AdminDashboardController extends Controller
                 'nd.ho_ten as user_name',
             ])
             ->orderByDesc(DB::raw('COALESCE(xmtc.duyet_luc, xmtc.created_at)'))
-            ->limit($limit)
+            ->limit($fetchLimit)
             ->get()
             ->map(function ($r) {
                 $t = $r->duyet_luc ?? $r->created_at;
@@ -256,6 +259,7 @@ class AdminDashboardController extends Controller
                     : 'Đăng ký tổ chức';
                 return [
                     'type' => 'organization',
+                    'source_id' => (int) $r->id,
                     'title' => $label,
                     'detail' => $r->ten_to_chuc,
                     'user' => $r->user_name,
@@ -273,11 +277,12 @@ class AdminDashboardController extends Controller
                 'nd.ho_ten as user_name',
             ])
             ->orderByDesc('bd.created_at')
-            ->limit($limit)
+            ->limit($fetchLimit)
             ->get()
             ->map(function ($r) {
                 return [
                     'type' => 'post',
+                    'source_id' => (int) $r->id,
                     'title' => 'Bài đăng mới',
                     'detail' => $r->tieu_de,
                     'user' => $r->user_name,
@@ -296,11 +301,12 @@ class AdminDashboardController extends Controller
                 'cd.ten_chien_dich',
             ])
             ->orderByDesc('uh.created_at')
-            ->limit($limit)
+            ->limit($fetchLimit)
             ->get()
             ->map(function ($r) {
                 return [
                     'type' => 'donation',
+                    'source_id' => (int) $r->id,
                     'title' => 'Ủng hộ mới',
                     'detail' => $r->ten_chien_dich,
                     'user' => $r->user_name,
@@ -309,21 +315,65 @@ class AdminDashboardController extends Controller
                 ];
             });
 
-        $merged = collect()
+        $fingerprint = static function (array $item): string {
+            $type = (string) ($item['type'] ?? '');
+            $sid = (string) ($item['source_id'] ?? '');
+
+            return $type . ':' . $sid;
+        };
+
+        // Quota: mỗi loại tối thiểu 1 dòng (bản mới nhất của loại đó), nếu loại không có dữ liệu thì bỏ qua.
+        $streams = [$alerts, $orgApprovals, $posts, $donations];
+        $quotaPicks = collect();
+        foreach ($streams as $stream) {
+            // $first = $stream->first();
+            // if ($first !== null) {
+            //     $quotaPicks->push($first);
+            // }
+            $topItems = $stream->take(2);
+            foreach ($topItems as $item) {
+                $quotaPicks->push($item);
+            }
+        }
+        $quotaPicks = $quotaPicks
+            ->sortByDesc(function (array $item) {
+                return (string) ($item['time'] ?? '');
+            })
+            ->values();
+
+        $pickedKeys = $quotaPicks->map($fingerprint)->all();
+        $all = collect()
             ->merge($alerts)
             ->merge($orgApprovals)
             ->merge($posts)
             ->merge($donations)
+            ->unique($fingerprint)
             ->sortByDesc(function (array $item) {
                 return (string) ($item['time'] ?? '');
             })
-            ->values()
-            ->take($limit)
             ->values();
 
+        $merged = collect();
+        foreach ($quotaPicks as $row) {
+            if ($merged->count() >= $limit) {
+                break;
+            }
+            $merged->push($row);
+        }
+        foreach ($all as $row) {
+            if ($merged->count() >= $limit) {
+                break;
+            }
+            $key = $fingerprint($row);
+            if (in_array($key, $pickedKeys, true)) {
+                continue;
+            }
+            $merged->push($row);
+            $pickedKeys[] = $key;
+        }
+
         return response()->json([
-            'data' => $merged,
+            'data' => $merged->values(),
         ]);
     }
 }
-

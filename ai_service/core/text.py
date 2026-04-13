@@ -142,6 +142,93 @@ def _contains_any(text: str, keywords: List[str]) -> bool:
     return any(k in text for k in keywords)
 
 
+def _fold_vn_d(text: str) -> str:
+    """Chuẩn hóa chữ đ/Đ → d để khớp cụm mùa sau bước bỏ dấu."""
+    return text.replace("\u0111", "d").replace("\u0110", "d")
+
+
+def _has_clothes_context(text: str) -> bool:
+    """Có tín hiệu quần áo (tránh chỉ dựa substring 'ao' quá ngắn)."""
+    if "clothes" in extract_intents(text):
+        return True
+    return _contains_any(
+        text,
+        [
+            "quan ao",
+            "do mac",
+            "ao khoac",
+            "quan jean",
+            "ao am",
+            "ao thun",
+            "vay ",
+            " chan ",
+            " chan",
+            " man ",
+            " man",
+            "giay ",
+            " dep ",
+            " dep",
+        ],
+    )
+
+
+def _clothes_season_winter(text: str) -> bool:
+    t = _fold_vn_d(text)
+    return _contains_any(
+        t,
+        [
+            "mua dong",
+            "dong lanh",
+            "ret muot",
+            "lanh gia",
+            "ao am",
+            "chan am",
+            "quan len",
+            "non len",
+            "khan len",
+            "giu am",
+            "ao long",
+            "lot am",
+        ],
+    )
+
+
+def _clothes_season_summer(text: str) -> bool:
+    t = _fold_vn_d(text)
+    return _contains_any(
+        t,
+        [
+            "mua he",
+            "mua ha",
+            "quan dui",
+            "quan short",
+            "vay he",
+            "ao thun mong",
+            "non rong",
+            "dep tong",
+            "ong rong",
+        ],
+    )
+
+
+def should_reject_clothes_season_mismatch(target_text: str, cand_text: str) -> bool:
+    """
+    Loại khi một bài nói rõ quần áo mùa đông và bài kia rõ mùa hè (embedding thường vẫn rất giống).
+    Chỉ kích hoạt khi cả hai bên đều có ngữ cảnh quần áo.
+    """
+    if not (_has_clothes_context(target_text) and _has_clothes_context(cand_text)):
+        return False
+    tw = _clothes_season_winter(target_text)
+    ts = _clothes_season_summer(target_text)
+    cw = _clothes_season_winter(cand_text)
+    cs = _clothes_season_summer(cand_text)
+    if tw and cs:
+        return True
+    if ts and cw:
+        return True
+    return False
+
+
 def is_cross_domain_hard_reject(target_text: str, cand_text: str) -> bool:
     """
     Loại cứng các cặp lệch miền rõ ràng.

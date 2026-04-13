@@ -18,8 +18,8 @@ return new class extends Migration
             $table->enum('loai_bai', ['CHO', 'NHAN']);
 
             $table->string('tieu_de', 255);
-            $table->string('mo_ta', 255);
-            $table->string('hinh_anh', 255)->nullable();
+            $table->text('mo_ta');
+            $table->json('hinh_anh')->nullable();
             $table->string('dia_diem', 255);
             $table->integer('so_luong');
 

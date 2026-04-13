@@ -13,6 +13,7 @@ class ThanhVienTroChuyen extends Model
         'cuoc_tro_chuyen_id',
         'nguoi_dung_id',
         'lan_cuoi_xem_luc',
+        'sau_tin_nhan_id',
     ];
 
     protected $casts = [

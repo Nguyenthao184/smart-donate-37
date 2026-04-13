@@ -30,5 +30,20 @@ class BaiDang extends Model
     {
         return $this->belongsTo(User::class, 'nguoi_dung_id');
     }
+
+    public function thichs()
+    {
+        return $this->hasMany(ThichBaiDang::class, 'bai_dang_id');
+    }
+
+    public function binhLuans()
+    {
+        return $this->hasMany(BinhLuanBaiDang::class, 'bai_dang_id');
+    }
+
+    public function baoCaos()
+    {
+        return $this->hasMany(BaoCaoBaiDang::class, 'bai_dang_id');
+    }
 }
 

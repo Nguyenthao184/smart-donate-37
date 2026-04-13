@@ -46,4 +46,19 @@ class User extends Authenticatable
     {
         return $this->hasOne(ToChuc::class, 'nguoi_dung_id');
     }
+
+    public function thichBaiDangs()
+    {
+        return $this->hasMany(ThichBaiDang::class, 'nguoi_dung_id');
+    }
+
+    public function binhLuanBaiDangs()
+    {
+        return $this->hasMany(BinhLuanBaiDang::class, 'nguoi_dung_id');
+    }
+
+    public function baoCaoBaiDangs()
+    {
+        return $this->hasMany(BaoCaoBaiDang::class, 'nguoi_to_cao_id');
+    }
 }

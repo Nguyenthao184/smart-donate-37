@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Events\TinNhanMoi;
 use App\Events\TinNhanDaXem;
+use App\Events\TinNhanBiThuHoi;
+use App\Events\TinNhanBiXoaHet;
 use App\Models\CuocTroChuyen;
 use App\Models\ThanhVienTroChuyen;
 use App\Models\TinNhan;
@@ -86,6 +88,7 @@ class TroChuyenController extends Controller
     /**
      * GET /api/tro-chuyen
      * Danh sách cuộc trò chuyện 1:1 của user hiện tại.
+     * Trả thêm total_unread: tổng số tin nhắn chưa đọc (cộng mọi cuộc).
      */
     public function danhSach()
     {
@@ -98,7 +101,10 @@ class TroChuyenController extends Controller
             ->all();
 
         if (!$cuocIds) {
-            return response()->json(['data' => []]);
+            return response()->json([
+                'data' => [],
+                'total_unread' => 0,
+            ]);
         }
 
         $cuocs = CuocTroChuyen::query()
@@ -109,7 +115,6 @@ class TroChuyenController extends Controller
         // Với 1:1, người còn lại suy từ khóa_1_1 (minId_maxId).
         $otherIds = [];
         $otherIdByConv = [];
-        $lastMsgIds = [];
         $convIds = [];
         foreach ($cuocs as $c) {
             $convIds[] = (int) $c->id;
@@ -124,22 +129,21 @@ class TroChuyenController extends Controller
             if ($otherId) {
                 $otherIds[] = $otherId;
             }
-            if (!empty($c->tin_nhan_cuoi_id)) {
-                $lastMsgIds[] = (int) $c->tin_nhan_cuoi_id;
-            }
         }
         $otherIds = array_values(array_unique(array_filter($otherIds)));
-        $lastMsgIds = array_values(array_unique(array_filter($lastMsgIds)));
 
         $users = $otherIds
             ? User::query()->whereIn('id', $otherIds)->get()->keyBy('id')
             : collect();
 
-        $lastMsgs = $lastMsgIds
-            ? TinNhan::query()->whereIn('id', $lastMsgIds)->get()->keyBy('id')
-            : collect();
+        $tvRows = ThanhVienTroChuyen::query()
+            ->where('nguoi_dung_id', $userId)
+            ->whereIn('cuoc_tro_chuyen_id', $convIds)
+            ->get()
+            ->keyBy(fn ($r) => (int) $r->cuoc_tro_chuyen_id);
 
         // Unread count: tin nhắn của người kia, created_at > lan_cuoi_xem_luc (nếu null -> tính tất cả)
+        // + chỉ tính tin còn hiện với user (sau sau_tin_nhan_id nếu đã "xóa lịch sử" phía mình)
         $unreadMap = [];
         if ($convIds) {
             $unreadRows = DB::table('tin_nhan as tn')
@@ -150,8 +154,15 @@ class TroChuyenController extends Controller
                 ->whereIn('tn.cuoc_tro_chuyen_id', $convIds)
                 ->where('tn.nguoi_gui_id', '!=', $userId)
                 ->where(function ($q) {
+                    $q->whereNull('tv.sau_tin_nhan_id')
+                        ->orWhereRaw('tn.id > tv.sau_tin_nhan_id');
+                })
+                ->where(function ($q) {
                     $q->whereNull('tv.lan_cuoi_xem_luc')
                         ->orWhereColumn('tn.created_at', '>', 'tv.lan_cuoi_xem_luc');
+                })
+                ->where(function ($q) {
+                    $q->whereNull('tn.da_thu_hoi')->orWhere('tn.da_thu_hoi', false);
                 })
                 ->groupBy('tn.cuoc_tro_chuyen_id')
                 ->selectRaw('tn.cuoc_tro_chuyen_id as cid, COUNT(*) as c')
@@ -161,6 +172,8 @@ class TroChuyenController extends Controller
                 $unreadMap[(int) $r->cid] = (int) $r->c;
             }
         }
+
+        $totalUnread = array_sum($unreadMap);
 
         $rows = [];
         foreach ($cuocs as $c) {
@@ -174,12 +187,20 @@ class TroChuyenController extends Controller
             }
 
             $last = null;
-            $lastMsg = (!empty($c->tin_nhan_cuoi_id) && isset($lastMsgs[(int) $c->tin_nhan_cuoi_id]))
-                ? $lastMsgs[(int) $c->tin_nhan_cuoi_id]
-                : null;
+            $tvMem = $tvRows[$cid] ?? null;
+            $sauTin = $tvMem?->sau_tin_nhan_id;
+            $lastQ = TinNhan::query()
+                ->where('cuoc_tro_chuyen_id', $cid)
+                ->orderByDesc('id');
+            if ($sauTin !== null) {
+                $lastQ->where('id', '>', (int) $sauTin);
+            }
+            $lastMsg = $lastQ->first();
             if ($lastMsg) {
                 $preview = $lastMsg->noi_dung;
-                if ($lastMsg->loai_tin === 'ANH') {
+                if ($lastMsg->da_thu_hoi) {
+                    $preview = '[Đã thu hồi]';
+                } elseif ($lastMsg->loai_tin === 'ANH') {
                     $preview = '[Ảnh]';
                 } elseif ($lastMsg->loai_tin === 'VIDEO') {
                     $preview = '[Video]';
@@ -190,6 +211,7 @@ class TroChuyenController extends Controller
                     'loai_tin' => (string) $lastMsg->loai_tin,
                     'noi_dung' => $lastMsg->noi_dung,
                     'tep_dinh_kem' => $lastMsg->tep_dinh_kem,
+                    'da_thu_hoi' => (bool) $lastMsg->da_thu_hoi,
                     'preview' => $preview,
                     'created_at' => $lastMsg->created_at?->toIso8601String(),
                     'nguoi_gui_id' => (int) $lastMsg->nguoi_gui_id,
@@ -210,7 +232,10 @@ class TroChuyenController extends Controller
             ];
         }
 
-        return response()->json(['data' => $rows]);
+        return response()->json([
+            'data' => $rows,
+            'total_unread' => $totalUnread,
+        ]);
     }
 
     /**
@@ -234,9 +259,18 @@ class TroChuyenController extends Controller
         $beforeId = $request->query('before_id');
         $beforeId = is_numeric($beforeId) ? (int)$beforeId : null;
 
+        $sauTin = ThanhVienTroChuyen::query()
+            ->where('cuoc_tro_chuyen_id', $id)
+            ->where('nguoi_dung_id', $userId)
+            ->value('sau_tin_nhan_id');
+        $sauTin = $sauTin !== null ? (int) $sauTin : null;
+
         $q = TinNhan::query()
             ->where('cuoc_tro_chuyen_id', $id)
             ->orderByDesc('id');
+        if ($sauTin !== null) {
+            $q->where('id', '>', $sauTin);
+        }
         if ($beforeId !== null) {
             $q->where('id', '<', $beforeId);
         }
@@ -338,6 +372,100 @@ class TroChuyenController extends Controller
     }
 
     /**
+     * POST /api/tro-chuyen/{id}/tin-nhan/{tinNhanId}
+     * Thu hồi tin do mình gửi: cả hai phía thấy placeholder, file đính kèm xóa khỏi storage.
+     */
+    public function xoaTinNhan(int $id, int $tinNhanId)
+    {
+        $userId = (int) Auth::id();
+
+        $isMember = ThanhVienTroChuyen::query()
+            ->where('cuoc_tro_chuyen_id', $id)
+            ->where('nguoi_dung_id', $userId)
+            ->exists();
+
+        if (!$isMember) {
+            return response()->json(['message' => 'Bạn không có quyền thao tác cuộc trò chuyện này.'], 403);
+        }
+
+        $tin = TinNhan::query()
+            ->where('cuoc_tro_chuyen_id', $id)
+            ->where('id', $tinNhanId)
+            ->first();
+
+        if (!$tin) {
+            return response()->json(['message' => 'Không tìm thấy tin nhắn.'], 404);
+        }
+
+        if ((int) $tin->nguoi_gui_id !== $userId) {
+            return response()->json(['message' => 'Chỉ có thể thu hồi tin nhắn do bạn gửi.'], 403);
+        }
+
+        if ($tin->da_thu_hoi) {
+            return response()->json(['message' => 'Tin nhắn đã được thu hồi trước đó.'], 422);
+        }
+
+        $tep = $tin->tep_dinh_kem;
+        if (is_string($tep) && $tep !== '') {
+            $tep = ltrim($tep, '/');
+            if (str_starts_with($tep, 'storage/')) {
+                $rel = substr($tep, strlen('storage/'));
+                Storage::disk('public')->delete($rel);
+            }
+        }
+
+        $tin->update([
+            'da_thu_hoi' => true,
+            'noi_dung' => null,
+            'tep_dinh_kem' => null,
+            'loai_tin' => 'VAN_BAN',
+        ]);
+
+        event(new TinNhanBiThuHoi(
+            cuoc_tro_chuyen_id: (int) $id,
+            tin_nhan_id: $tinNhanId,
+            nguoi_gui_id: $userId,
+        ));
+
+        return response()->json(['message' => 'Đã thu hồi tin nhắn.']);
+    }
+
+    /**
+     * DELETE /api/tro-chuyen/{id}/tin-nhan
+     * Ẩn toàn bộ lịch sử phía user hiện tại (tin vẫn còn DB — người kia vẫn xem được).
+     */
+    public function xoaHetTinNhan(int $id)
+    {
+        $userId = (int) Auth::id();
+
+        $tv = ThanhVienTroChuyen::query()
+            ->where('cuoc_tro_chuyen_id', $id)
+            ->where('nguoi_dung_id', $userId)
+            ->first();
+
+        if (!$tv) {
+            return response()->json(['message' => 'Bạn không có quyền thao tác cuộc trò chuyện này.'], 403);
+        }
+
+        $maxId = TinNhan::query()
+            ->where('cuoc_tro_chuyen_id', $id)
+            ->max('id');
+        $moc = (int) ($maxId ?? 0);
+
+        $tv->update(['sau_tin_nhan_id' => $moc]);
+
+        event(new TinNhanBiXoaHet(
+            cuoc_tro_chuyen_id: (int) $id,
+            nguoi_dung_id: $userId,
+        ));
+
+        return response()->json([
+            'message' => 'Đã xóa lịch sử trò chuyện phía bạn. Người kia vẫn thấy tin cũ.',
+            'sau_tin_nhan_id' => $moc,
+        ]);
+    }
+
+    /**
      * POST /api/tro-chuyen/{id}/da-xem
      * Đánh dấu các tin nhắn của người kia là đã xem (1:1).
      */
@@ -354,13 +482,24 @@ class TroChuyenController extends Controller
             return response()->json(['message' => 'Bạn không có quyền thao tác cuộc trò chuyện này.'], 403);
         }
 
+        $sauTin = ThanhVienTroChuyen::query()
+            ->where('cuoc_tro_chuyen_id', $id)
+            ->where('nguoi_dung_id', $userId)
+            ->value('sau_tin_nhan_id');
+        $sauTin = $sauTin !== null ? (int) $sauTin : null;
+
         // Chỉ lấy các tin nhắn "chưa xem" để có thể báo realtime đúng danh sách message.
-        $tinNhanIds = TinNhan::query()
+        $tinNhanQuery = TinNhan::query()
             ->where('cuoc_tro_chuyen_id', $id)
             ->where('nguoi_gui_id', '!=', $userId)
             ->where('da_xem', false)
-            ->pluck('id')
-            ->all();
+            ->where(function ($q) {
+                $q->whereNull('da_thu_hoi')->orWhere('da_thu_hoi', false);
+            });
+        if ($sauTin !== null) {
+            $tinNhanQuery->where('id', '>', $sauTin);
+        }
+        $tinNhanIds = $tinNhanQuery->pluck('id')->all();
 
         if (!empty($tinNhanIds)) {
             TinNhan::query()

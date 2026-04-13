@@ -13,6 +13,9 @@ use App\Services\AiMatchingService;
 use App\Services\GeocodingService;
 use App\Services\DanhMucSuggestionService;
 use App\Models\DanhMucBaiDang;
+use App\Models\ThichBaiDang;
+use App\Models\User;
+use App\Notifications\BaiDangDuocThichNotification;
 use Illuminate\Support\Facades\DB;
 
 class PostController extends Controller
@@ -39,6 +42,8 @@ class PostController extends Controller
         $query = BaiDang::query()
             ->with(['nguoiDung'])
             ->orderByDesc('created_at');
+
+        $this->applyPostLikeAggregates($query);
 
         // Lọc theo bán kính dựa trên lat/lng (chuẩn hơn "LIKE location")
         if ($radiusKm !== null && $radiusKm > 0 && $lat !== null && $lng !== null) {
@@ -83,6 +88,8 @@ class PostController extends Controller
 
             unset($post->nguoiDung);
 
+            $this->decoratePostLikeFields($post);
+
             return $post;
         });
 
@@ -94,7 +101,9 @@ class PostController extends Controller
  
     public function show(int $id)
     {
-        $post = BaiDang::with(['nguoiDung'])->findOrFail($id);
+        $query = BaiDang::query()->with(['nguoiDung']);
+        $this->applyPostLikeAggregates($query);
+        $post = $query->findOrFail($id);
 
         $post->avatar_url = $post->nguoiDung && $post->nguoiDung->anh_dai_dien
             ? asset('storage/' . $post->nguoiDung->anh_dai_dien)
@@ -102,6 +111,9 @@ class PostController extends Controller
         $paths = is_array($post->hinh_anh) ? $post->hinh_anh : [];
         $post->hinh_anh_urls = array_values(array_map(static fn ($p) => asset('storage/' . $p), $paths));
         $post->hinh_anh_url = $post->hinh_anh_urls[0] ?? null; // backward compatible
+
+        $this->decoratePostLikeFields($post);
+
         return response()->json([
             'data' => $post
         ]);
@@ -134,6 +146,8 @@ class PostController extends Controller
             ->where('nguoi_dung_id', $userId)
             ->orderByDesc('created_at');
 
+        $this->applyPostLikeAggregates($query);
+
         if (in_array($loaiBai, ['CHO', 'NHAN'], true)) {
             $query->where('loai_bai', $loaiBai);
         }
@@ -156,11 +170,62 @@ class PostController extends Controller
             $post->nguoi_dung_ten = $post->nguoiDung?->ho_ten;
             unset($post->nguoiDung);
 
+            $this->decoratePostLikeFields($post);
+
             return $post;
         });
 
         return response()->json([
             'data' => $posts,
+        ]);
+    }
+
+    /**
+     * POST /api/posts/{id}/like
+     * Bật/tắt tim bài đăng (mỗi user một lần / bài).
+     */
+    public function toggleLike(int $id)
+    {
+        $userId = (int) Auth::id();
+        $post = BaiDang::query()->findOrFail($id);
+
+        $existing = ThichBaiDang::query()
+            ->where('bai_dang_id', $id)
+            ->where('nguoi_dung_id', $userId)
+            ->first();
+
+        if ($existing) {
+            $existing->delete();
+            $liked = false;
+        } else {
+            ThichBaiDang::query()->create([
+                'bai_dang_id' => $id,
+                'nguoi_dung_id' => $userId,
+            ]);
+            $liked = true;
+
+            $chuBaiId = (int) $post->nguoi_dung_id;
+            if ($chuBaiId !== $userId) {
+                $chuBai = User::query()->find($chuBaiId);
+                $nguoiThich = Auth::user();
+                if ($chuBai && $nguoiThich) {
+                    $chuBai->notify(new BaiDangDuocThichNotification(
+                        bai_dang_id: $id,
+                        nguoi_thich_id: $userId,
+                        nguoi_thich_ten: (string) ($nguoiThich->ho_ten ?? 'Người dùng'),
+                        tieu_de_bai: $post->tieu_de,
+                    ));
+                }
+            }
+        }
+
+        $soLuotThich = ThichBaiDang::query()->where('bai_dang_id', $id)->count();
+
+        return response()->json([
+            'data' => [
+                'liked' => $liked,
+                'so_luot_thich' => $soLuotThich,
+            ],
         ]);
     }
 
@@ -595,6 +660,30 @@ class PostController extends Controller
         }
 
         return $map;
+    }
+
+    private function applyPostLikeAggregates($query): void
+    {
+        $query->withCount([
+            'thichs as so_luot_thich',
+            'binhLuans as so_binh_luan',
+        ]);
+        if (Auth::check()) {
+            $uid = (int) Auth::id();
+            $query->withExists(['thichs as da_thich' => function ($q) use ($uid) {
+                $q->where('nguoi_dung_id', $uid);
+            }]);
+        }
+    }
+
+    private function decoratePostLikeFields(BaiDang $post): void
+    {
+        $post->setAttribute('so_luot_thich', (int) ($post->getAttribute('so_luot_thich') ?? 0));
+        $post->setAttribute('so_binh_luan', (int) ($post->getAttribute('so_binh_luan') ?? 0));
+        $post->setAttribute(
+            'da_thich',
+            Auth::check() ? (bool) $post->getAttribute('da_thich') : false
+        );
     }
 
     /**

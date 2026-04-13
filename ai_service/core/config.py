@@ -11,7 +11,7 @@ def _env_bool(name: str, default: str = "0") -> bool:
 # ---------------------------
 SEMANTIC_MODEL_NAME = os.getenv(
     "SEMANTIC_MODEL_NAME",
-    "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+    "keepitreal/vietnamese-sbert",
 ).strip()
 
 MIN_SIM_STRICT = float(os.getenv("MIN_SIM_STRICT", "0.48"))

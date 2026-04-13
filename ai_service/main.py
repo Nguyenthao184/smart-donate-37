@@ -185,6 +185,9 @@ def matches(req: MatchRequest) -> List[MatchResponseItem]:
         if core_text.is_cross_domain_hard_reject(target_text, cand_text):
             continue
 
+        if core_text.should_reject_clothes_season_mismatch(target_text, cand_text):
+            continue
+
         if match_sim < min_sim_cut:
             continue
         if match_sim < rel_floor:

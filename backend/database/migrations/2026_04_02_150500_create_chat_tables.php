@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -37,6 +38,7 @@ return new class extends Migration
                 $table->unsignedBigInteger('cuoc_tro_chuyen_id');
                 $table->unsignedBigInteger('nguoi_dung_id');
                 $table->timestamp('lan_cuoi_xem_luc')->nullable();
+                $table->unsignedBigInteger('sau_tin_nhan_id')->nullable();
                 $table->timestamps();
 
                 $table->unique(['cuoc_tro_chuyen_id', 'nguoi_dung_id'], 'tvttc_unique');
@@ -46,6 +48,9 @@ return new class extends Migration
             Schema::table('thanh_vien_tro_chuyen', function (Blueprint $table) {
                 if (!Schema::hasColumn('thanh_vien_tro_chuyen', 'lan_cuoi_xem_luc')) {
                     $table->timestamp('lan_cuoi_xem_luc')->nullable();
+                }
+                if (!Schema::hasColumn('thanh_vien_tro_chuyen', 'sau_tin_nhan_id')) {
+                    $table->unsignedBigInteger('sau_tin_nhan_id')->nullable()->after('lan_cuoi_xem_luc');
                 }
                 if (!Schema::hasColumn('thanh_vien_tro_chuyen', 'updated_at')) {
                     $table->timestamps();
@@ -60,9 +65,10 @@ return new class extends Migration
                 $table->unsignedBigInteger('cuoc_tro_chuyen_id');
                 $table->unsignedBigInteger('nguoi_gui_id');
                 $table->text('noi_dung')->nullable();
-                $table->enum('loai_tin', ['VAN_BAN', 'ANH'])->default('VAN_BAN');
+                $table->enum('loai_tin', ['VAN_BAN', 'ANH', 'VIDEO'])->default('VAN_BAN');
                 // boolean OK cho chat 1:1, nhưng vẫn giữ lan_cuoi_xem_luc để tính unread chuẩn.
                 $table->boolean('da_xem')->default(false);
+                $table->boolean('da_thu_hoi')->default(false);
                 $table->string('tep_dinh_kem')->nullable();
                 $table->timestamps();
 
@@ -71,6 +77,9 @@ return new class extends Migration
             });
         } else {
             Schema::table('tin_nhan', function (Blueprint $table) {
+                if (!Schema::hasColumn('tin_nhan', 'da_thu_hoi')) {
+                    $table->boolean('da_thu_hoi')->default(false);
+                }
                 if (!Schema::hasColumn('tin_nhan', 'tep_dinh_kem')) {
                     $table->string('tep_dinh_kem')->nullable();
                 }
@@ -78,6 +87,9 @@ return new class extends Migration
                     $table->timestamps();
                 }
             });
+            if (Schema::hasTable('tin_nhan') && Schema::getConnection()->getDriverName() === 'mysql') {
+                DB::statement("ALTER TABLE `tin_nhan` MODIFY `loai_tin` ENUM('VAN_BAN','ANH','VIDEO') NOT NULL DEFAULT 'VAN_BAN'");
+            }
         }
     }
 
