@@ -13,6 +13,7 @@ class BinhLuanBaiDang extends Model
         'bai_dang_id',
         'nguoi_dung_id',
         'noi_dung',
+        'id_cha',
     ];
 
     public function baiDang(): BelongsTo
@@ -23,5 +24,13 @@ class BinhLuanBaiDang extends Model
     public function nguoiDung(): BelongsTo
     {
         return $this->belongsTo(User::class, 'nguoi_dung_id');
+    }public function replies()
+    {
+        return $this->hasMany(BinhLuanBaiDang::class, 'id_cha');
+    }
+    
+    public function parent()
+    {
+        return $this->belongsTo(BinhLuanBaiDang::class, 'id_cha');
     }
 }

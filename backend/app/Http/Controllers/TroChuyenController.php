@@ -8,6 +8,7 @@ use App\Events\TinNhanBiThuHoi;
 use App\Events\TinNhanBiXoaHet;
 use App\Models\CuocTroChuyen;
 use App\Models\ThanhVienTroChuyen;
+use App\Events\ConversationListUpdated;
 use App\Models\TinNhan;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -70,6 +71,10 @@ class TroChuyenController extends Controller
                         'updated_at' => now(),
                     ],
                 ]);
+                event(new ConversationListUpdated(
+                    cuoc_tro_chuyen_id: (int)$cuoc->id,
+                    nguoi_nhan_id: $nguoiNhanId
+                ));
             }
 
             DB::commit();
@@ -173,7 +178,7 @@ class TroChuyenController extends Controller
             }
         }
 
-        $totalUnread = array_sum($unreadMap);
+        $totalUnread =  count(array_filter($unreadMap, fn($c) => $c > 0));;
 
         $rows = [];
         foreach ($cuocs as $c) {
