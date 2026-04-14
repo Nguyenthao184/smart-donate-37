@@ -2,6 +2,9 @@ import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "antd";
 import { FiSearch, FiGift, FiPackage, FiPlus } from "react-icons/fi";
+import { BsBagHeartFill } from "react-icons/bs";
+import { FaPeopleCarry } from "react-icons/fa";
+import { MdFeed } from "react-icons/md";
 import PostCard from "../../../components/PostCard/index.jsx";
 import usePosts from "../../../hooks/usePosts";
 import useChatStore from "../../../store/chatStore";
@@ -9,9 +12,9 @@ import useAuthStore from "../../../store/authStore";
 import "./NewsFeed.scss";
 
 const COMMUNITY_STATS = [
-  { icon: "🛍️", value: 125, label: "đồ dùng đã được tặng" },
-  { icon: "🤝", value: 82, label: "người đã nhận hỗ trợ" },
-  { icon: "📋", value: 25, label: "bài đăng tuần này" },
+  { icon: <BsBagHeartFill size={20} color="#ff4d4f"/>, value: 125, label: "đồ dùng đã được tặng" },
+  { icon: <FaPeopleCarry size={20} color="#fa8c16"/>, value: 82, label: "người đã nhận hỗ trợ" },
+  { icon: <MdFeed size={20} color="#52c41a"/>, value: 25, label: "bài đăng tuần này" },
 ];
 
 export default function NewsFeed() {
@@ -53,6 +56,8 @@ export default function NewsFeed() {
       month: "2-digit",
       year: "numeric",
     }),
+    likeCount: p.so_luot_thich || 0,
+    commentCount: p.so_binh_luan || 0,
     title: p.tieu_de,
     desc: p.mo_ta,
     images:
@@ -143,7 +148,6 @@ export default function NewsFeed() {
               <div className="nf-chat-panel">
                 <div className="nf-chat-panel__header">
                   <div className="nf-chat-panel__header-left">
-                    <span>💬</span>
                     <span className="nf-chat-panel__title">TRÒ CHUYỆN</span>
                     {totalUnread > 0 && (
                       <span className="nf-chat-panel__badge">
@@ -229,14 +233,6 @@ export default function NewsFeed() {
                             <span className="nf-chat-item__time">
                               {timeStr}
                             </span>
-                            {hasUnread && (
-                              <span
-                                className="nf-chat-panel__badge"
-                                style={{ marginTop: 4 }}
-                              >
-                                {conv.unread_count}
-                              </span>
-                            )}
                           </div>
                         </div>
                       );
@@ -249,7 +245,7 @@ export default function NewsFeed() {
             {/* Community stats */}
             <div className="nf-community-box">
               <div className="nf-community-box__header">
-                🌱 TÁC ĐỘNG CỘNG ĐỒNG
+                TÁC ĐỘNG CỘNG ĐỒNG
               </div>
               <div className="nf-community-stats">
                 {COMMUNITY_STATS.map((s, i) => (

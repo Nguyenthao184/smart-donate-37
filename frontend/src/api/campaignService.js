@@ -24,14 +24,10 @@ export const getCategories = async () => {
   return res.data;
 };
 
+//sắp kết thúc
 export const getEndingCampaigns = async () => {
-  const res = await api.get("/campaigns", {
-    params: {
-      sort: "ending_soon",
-      limit: 3,
-    },
-  });
-  return res.data;
+  const res = await api.get("/campaigns/ending-soon");
+  return res.data; 
 };
 
 // Tạo chiến dịch — gửi FormData vì có file ảnh

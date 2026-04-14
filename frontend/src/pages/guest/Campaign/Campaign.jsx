@@ -40,10 +40,7 @@ export default function Campaign() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const {
-    featured,
-    loading: campLoading
-  } = useCampaigns({ featured: true });
+  const { featured, loading: campLoading } = useCampaigns({ featured: true });
   const { categories } = useCategories();
   const { organizations } = useOrganizations();
   const endingCampaigns = useCampaignStore((s) => s.endingCampaigns);
@@ -62,7 +59,7 @@ export default function Campaign() {
 
   useEffect(() => {
     if (location.state?.refresh) {
-      refreshCampaignData(); // ← thay fetchFeatured() + fetchEndingCampaigns()
+      refreshCampaignData();
       navigate(location.pathname, { replace: true, state: {} });
     }
   }, [location.state]);
@@ -394,7 +391,7 @@ export default function Campaign() {
           </div>
         </section>
 
-        {/* Chiến dịch sắp kết thúc — REDESIGN */}
+        {/* Chiến dịch sắp kết thúc */}
         <section className="camp-section">
           <div className="camp-section__header">
             <h2 className="camp-section__title">
@@ -406,100 +403,126 @@ export default function Campaign() {
           </div>
 
           <div className="ending-list">
-            {endingCampaigns.map((item, i) => {
-              const pct = Math.round(
-                (item.so_tien_da_nhan / item.muc_tieu_tien) * 100,
-              );
-              const remaining = item.muc_tieu_tien - item.so_tien_da_nhan;
-              return (
-                <div
-                  className="ending-item"
-                  key={item.id}
-                  style={{ animationDelay: `${i * 0.1}s` }}
-                >
-                  <div className="ending-item__thumb">
-                    <img src={item.hinh_anh} alt={item.ten_chien_dich} />
-                    <div className="ending-item__thumb-badge">#{i + 1}</div>
-                  </div>
-                  <div className="ending-item__body">
-                    <div className="ending-item__top">
-                      <h3 className="ending-item__title">
-                        {item.ten_chien_dich}
-                      </h3>
-                      <span
-                        className={`ending-item__days ${item.so_ngay_con_lai <= 3 ? "urgent" : ""}`}
-                      >
-                        <FiClock size={12} /> Còn {item.so_ngay_con_lai} ngày
-                      </span>
-                    </div>
+            {endingCampaigns.length === 0 ? (
+              <div className="ending-empty">
+                <p>Không có chiến dịch nào sắp kết thúc</p>
+              </div>
+            ) : (
+              endingCampaigns.map((item, i) => {
+                const target = Number(item.muc_tieu_tien) || 0;
+                const raised = Number(item.so_tien_da_nhan) || 0;
 
-                    {/* Thêm donor avatars */}
-                    <div className="ending-item__donors">
-                      <div className="ending-item__donor-avatars">
-                        {["A", "B", "C", "D"].map((l, idx) => (
-                          <div
-                            key={idx}
-                            className="ending-item__donor-avatar"
-                            style={{
-                              background: [
-                                "#ff4d4f",
-                                "#fa8c16",
-                                "#52c41a",
-                                "#1890ff",
-                              ][idx],
-                            }}
-                          >
-                            {l}
-                          </div>
-                        ))}
-                      </div>
-                      <span className="ending-item__donor-text">
-                        <strong>+{(120 + i * 34).toLocaleString()}</strong>{" "}
-                        người đã ủng hộ
-                      </span>
-                    </div>
+                const pct =
+                  target > 0
+                    ? Math.min(100, Math.round((raised / target) * 100))
+                    : 0;
 
-                    <div className="ending-item__progress-row">
-                      <Progress
-                        percent={pct}
-                        showInfo={false}
-                        strokeColor={{ "0%": "#ff4d4f", "100%": "#fa8c16" }}
-                        railColor="rgba(0,0,0,0.07)"
-                        strokeLinecap="round"
+                const remaining = Math.max(0, target - raised);
+
+                return (
+                  <div
+                    className="ending-item"
+                    key={item.id}
+                    style={{ animationDelay: `${i * 0.1}s` }}
+                  >
+                    {/* Thumbnail */}
+                    <div className="ending-item__thumb">
+                      <img
+                        src={item.hinh_anh}
+                        alt={item.ten_chien_dich}
+                        onError={(e) =>
+                          (e.target.src =
+                            "https://via.placeholder.com/150?text=No+Image")
+                        }
                       />
-                      <span className="ending-item__pct">{pct}%</span>
+                      <div className="ending-item__thumb-badge">#{i + 1}</div>
                     </div>
 
-                    {/* Còn thiếu */}
-                    <div className="ending-item__remaining">
-                      <FiAlertCircle size={12} />
-                      Còn thiếu <strong>{formatVnd(remaining)}</strong>
-                    </div>
+                    {/* Body */}
+                    <div className="ending-item__body">
+                      <div className="ending-item__top">
+                        <h3 className="ending-item__title">
+                          {item.ten_chien_dich}
+                        </h3>
 
-                    <div className="ending-item__footer">
-                      <div className="ending-item__meta">
-                        <span className="ending-item__raised">
-                          <FiTrendingUp size={12} />{" "}
-                          {formatVnd(item.so_tien_da_nhan)}
-                        </span>
-                        <span className="ending-item__goal">
-                          / {formatVnd(item.muc_tieu_tien)}
+                        <span
+                          className={`ending-item__days ${
+                            item.so_ngay_con_lai <= 3 ? "urgent" : ""
+                          }`}
+                        >
+                          <FiClock size={12} /> Còn {item.so_ngay_con_lai} ngày
                         </span>
                       </div>
-                      <Button
-                        type="primary"
-                        danger
-                        size="small"
-                        className="ending-item__btn"
-                        onClick={() => handleClick(item)}
-                      >
-                        ỦNG HỘ NGAY
-                      </Button>
+
+                      {/* Fake donors UI */}
+                      <div className="ending-item__donors">
+                        <div className="ending-item__donor-avatars">
+                          {["A", "B", "C", "D"].map((l, idx) => (
+                            <div
+                              key={idx}
+                              className="ending-item__donor-avatar"
+                              style={{
+                                background: [
+                                  "#ff4d4f",
+                                  "#fa8c16",
+                                  "#52c41a",
+                                  "#1890ff",
+                                ][idx],
+                              }}
+                            >
+                              {l}
+                            </div>
+                          ))}
+                        </div>
+                        <span className="ending-item__donor-text">
+                          <strong>+{(120 + i * 34).toLocaleString()}</strong>{" "}
+                          người đã ủng hộ
+                        </span>
+                      </div>
+
+                      {/* Progress */}
+                      <div className="ending-item__progress-row">
+                        <Progress
+                          percent={pct}
+                          showInfo={false}
+                          strokeColor={{ "0%": "#ff4d4f", "100%": "#fa8c16" }}
+                          strokeLinecap="round"
+                        />
+                        <span className="ending-item__pct">{pct}%</span>
+                      </div>
+
+                      {/* Remaining */}
+                      <div className="ending-item__remaining">
+                        <FiAlertCircle size={12} />
+                        Còn thiếu <strong>{formatVnd(remaining)}</strong>
+                      </div>
+
+                      {/* Footer */}
+                      <div className="ending-item__footer">
+                        <div className="ending-item__meta">
+                          <span className="ending-item__raised">
+                            <FiTrendingUp size={12} /> {formatVnd(raised)}
+                          </span>
+                          <span className="ending-item__goal">
+                            / {formatVnd(target)}
+                          </span>
+                        </div>
+
+                        <Button
+                          type="primary"
+                          danger
+                          size="small"
+                          className="ending-item__btn"
+                          onClick={() => handleClick(item)}
+                        >
+                          ỦNG HỘ NGAY
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </section>
       </main>

@@ -13,12 +13,13 @@ const detailPromises = {};
 
 const useCampaignStore = create((set, get) => ({
   campaigns: [],
-  pagination: null, // { current_page, last_page, total, per_page }
+  pagination: null,
   featured: [],
-  endingCampaigns: [],
   campaignDetail: {},
+  endingCampaigns: [],
   loading: false,
   isFetchedFeatured: false,
+  isFetchedEnding: false,
   loadingCreate: false,
 
   // ── Fetch danh sách chiến dịch (có filter/sort/page) ──
@@ -92,13 +93,18 @@ const useCampaignStore = create((set, get) => ({
   },
 
   fetchEndingCampaigns: async () => {
-    if (get().endingCampaigns.length > 0) return;
+    if (get().isFetchedEnding) return;
     if (endingPromise) return endingPromise;
 
     endingPromise = (async () => {
       try {
         const res = await getEndingCampaigns();
-        set({ endingCampaigns: res.data ?? [] });
+        set({
+          endingCampaigns: Array.isArray(res) ? res : [],
+          isFetchedEnding: true,
+        });
+      } catch (err) {
+        console.error("Lỗi fetch ending campaigns:", err);
       } finally {
         endingPromise = null;
       }
@@ -115,6 +121,7 @@ const useCampaignStore = create((set, get) => ({
       // Reset cache featured & ending để fetch lại sau khi tạo mới
       set({
         isFetchedFeatured: false,
+        isFetchedEnding: false,
         endingCampaigns: [],
         loadingCreate: false,
       });
@@ -128,6 +135,7 @@ const useCampaignStore = create((set, get) => ({
   refreshCampaignData: async () => {
     set({
       isFetchedFeatured: false,
+      isFetchedEnding: false,
       endingCampaigns: [],
     });
 

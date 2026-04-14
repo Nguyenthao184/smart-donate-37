@@ -96,10 +96,10 @@ export default function HomePage() {
                 nhận quà từ cộng đồng
               </Paragraph>
               <Space size="middle" className="home-hero__btns">
-                <Button type="primary" size="large" className="btn-hero-orange">
+                <Button type="primary" size="large" className="btn-hero-orange" onClick={() => navigate("/chien-dich")}>
                   KHÁM PHÁ CHIẾN DỊCH
                 </Button>
-                <Button size="large" className="btn-hero-green">
+                <Button size="large" className="btn-hero-green" onClick={() => navigate("/bang-tin")}>
                   ĐĂNG BÀI CHO/NHẬN
                 </Button>
               </Space>
