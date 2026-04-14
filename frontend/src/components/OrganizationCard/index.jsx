@@ -18,7 +18,7 @@ export default function OrganizationCard({ organization }) {
   };
 
   return (
-    <Card className="org-card" variant="borderless" onClick={handleClick}>
+    <Card className="org-card" variant="borderless">
       <div className="org-card__shimmer" />
 
       <div className="org-card__avatar">
@@ -85,7 +85,7 @@ export default function OrganizationCard({ organization }) {
         <div className="org-card__divider" />
 
         <div className="org-card__actions">
-          <Button type="primary" className="org-card__btn">
+          <Button type="primary" className="org-card__btn" onClick={handleClick}>
             <FiHeart size={18} style={{ marginRight: 3 }} /> QUAN TÂM
           </Button>
         </div>

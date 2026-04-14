@@ -25,7 +25,7 @@ export default function CreatePost() {
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
   const [location, setLocation] = useState("");
-  const [quantity, setQuantity] = useState(""); 
+  const [quantity, setQuantity] = useState("");
   const [images, setImages] = useState([]);
   const [preview, setPreview] = useState(null);
   const [dragging, setDragging] = useState(false);
@@ -151,100 +151,97 @@ export default function CreatePost() {
             />
           </div>
 
-          {/* Hình ảnh — chỉ cho tab "cho", không bắt buộc */}
-          {type === "cho" && (
-            <div className="cp-field">
-              <label className="cp-field__label">
-                <FiImage size={14} /> Hình ảnh
-                <span
-                  style={{
-                    fontWeight: 400,
-                    color: "#aaa",
-                    marginLeft: 6,
-                    fontSize: 12,
-                  }}
-                >
-                  (không bắt buộc)
-                </span>
-              </label>
+          <div className="cp-field">
+            <label className="cp-field__label">
+              <FiImage size={14} /> Hình ảnh
+              <span
+                style={{
+                  fontWeight: 400,
+                  color: "#aaa",
+                  marginLeft: 6,
+                  fontSize: 12,
+                }}
+              >
+                (không bắt buộc)
+              </span>
+            </label>
 
-              {images.length === 0 ? (
-                // ← Zone upload khi chưa có ảnh nào
-                <div
-                  className={`cp-upload__zone${dragging ? " dragging" : ""}`}
-                  onClick={() => fileRef.current?.click()}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    setDragging(true);
-                  }}
-                  onDragLeave={() => setDragging(false)}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    setDragging(false);
-                    handleFile(e.dataTransfer.files);
-                  }}
-                >
-                  <div className="cp-upload__zone-circle">
-                    <FiPlus size={24} />
-                  </div>
-                  <span className="cp-upload__zone-text">Tải ảnh lên</span>
-                  <span className="cp-upload__zone-hint">
-                    Kéo thả hoặc click để chọn • Có thể chọn nhiều ảnh
-                  </span>
+            {images.length === 0 ? (
+              // ← Zone upload khi chưa có ảnh nào
+              <div
+                className={`cp-upload__zone${dragging ? " dragging" : ""}`}
+                onClick={() => fileRef.current?.click()}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragging(true);
+                }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragging(false);
+                  handleFile(e.dataTransfer.files);
+                }}
+              >
+                <div className="cp-upload__zone-circle">
+                  <FiPlus size={24} />
                 </div>
-              ) : (
-                // ← Preview khi đã có ít nhất 1 ảnh
-                <div className="cp-upload__preview">
-                  <div className="cp-upload__preview-main">
-                    <img src={preview} alt="preview" />
-                    <div className="cp-upload__preview-overlay">
-                      <button
-                        className="cp-upload__preview-change"
-                        onClick={() => fileRef.current?.click()}
-                      >
-                        <FiUpload size={14} /> Thêm ảnh
-                      </button>
-                    </div>
-                  </div>
-                  <div className="cp-upload__thumbs">
-                    {images.map((img, i) => (
-                      <div
-                        key={i}
-                        className={`cp-upload__thumb${preview === img.url ? " active" : ""}`}
-                        onClick={() => setPreview(img.url)}
-                      >
-                        <img src={img.url} alt={img.name} />
-                        <button
-                          className="cp-upload__thumb-remove"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeImage(i);
-                          }}
-                        >
-                          <FiX size={10} />
-                        </button>
-                      </div>
-                    ))}
-                    <div
-                      className="cp-upload__thumb cp-upload__thumb--add"
+                <span className="cp-upload__zone-text">Tải ảnh lên</span>
+                <span className="cp-upload__zone-hint">
+                  Kéo thả hoặc click để chọn • Có thể chọn nhiều ảnh
+                </span>
+              </div>
+            ) : (
+              // ← Preview khi đã có ít nhất 1 ảnh
+              <div className="cp-upload__preview">
+                <div className="cp-upload__preview-main">
+                  <img src={preview} alt="preview" />
+                  <div className="cp-upload__preview-overlay">
+                    <button
+                      className="cp-upload__preview-change"
                       onClick={() => fileRef.current?.click()}
                     >
-                      <FiPlus size={16} />
-                    </div>
+                      <FiUpload size={14} /> Thêm ảnh
+                    </button>
                   </div>
                 </div>
-              )}
+                <div className="cp-upload__thumbs">
+                  {images.map((img, i) => (
+                    <div
+                      key={i}
+                      className={`cp-upload__thumb${preview === img.url ? " active" : ""}`}
+                      onClick={() => setPreview(img.url)}
+                    >
+                      <img src={img.url} alt={img.name} />
+                      <button
+                        className="cp-upload__thumb-remove"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeImage(i);
+                        }}
+                      >
+                        <FiX size={10} />
+                      </button>
+                    </div>
+                  ))}
+                  <div
+                    className="cp-upload__thumb cp-upload__thumb--add"
+                    onClick={() => fileRef.current?.click()}
+                  >
+                    <FiPlus size={16} />
+                  </div>
+                </div>
+              </div>
+            )}
 
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                multiple
-                style={{ display: "none" }}
-                onChange={(e) => handleFile(e.target.files)}
-              />
-            </div>
-          )}
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              multiple
+              style={{ display: "none" }}
+              onChange={(e) => handleFile(e.target.files)}
+            />
+          </div>
 
           {/* Mô tả */}
           <div className="cp-field">

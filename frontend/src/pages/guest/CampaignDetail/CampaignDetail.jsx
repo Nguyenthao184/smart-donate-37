@@ -40,7 +40,6 @@ export default function CampaignDetail() {
 
   const [campaign, setCampaign] = useState(null);
   const [mainImg, setMainImg] = useState(0);
-  const carouselRef = useRef(null);
   const otherRef = useRef(null);
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
@@ -308,18 +307,6 @@ export default function CampaignDetail() {
             <div className="cd-gallery__main-img">
               <img src={campaign.images[mainImg]} alt={`Hình ${mainImg + 1}`} />
             </div>
-            <button
-              className="cd-gallery__nav cd-gallery__nav--prev"
-              onClick={() => carouselRef.current?.prev?.()}
-            >
-              <FiChevronLeft size={18} />
-            </button>
-            <button
-              className="cd-gallery__nav cd-gallery__nav--next"
-              onClick={() => carouselRef.current?.next?.()}
-            >
-              <FiChevronRight size={18} />
-            </button>
           </div>
 
           <div className="cd-gallery__thumbs">
@@ -393,7 +380,7 @@ export default function CampaignDetail() {
                   <span className="cd-stats__meta-value">
                     {campaign.total_donor}
                   </span>
-                  <span className="cd-stats__meta-label">người đã ủng hộ</span>
+                  <span className="cd-stats__meta-label">số lượt ủng hộ</span>
                 </div>
               </div>
               <div className="cd-stats__meta-divider" />

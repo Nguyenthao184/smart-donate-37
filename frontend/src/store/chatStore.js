@@ -28,21 +28,50 @@ const useChatStore = create((set, get) => ({
     const { chats, syncSubscriptions } = get();
     syncSubscriptions(chats);
 
-    // Subscribe user-level channel để biết conversation list thay đổi
     const myUserId = useAuthStore.getState().user?.id;
     if (!myUserId) return;
 
     const userChannel = echo.private(`user.${myUserId}`);
+
     userChannel.listen(".ConversationListUpdated", async (e) => {
-      const data = await get().fetchChats();
+      const prevChats = get().chats;
+      const prevIds = new Set(prevChats.map((c) => c.cuoc_tro_chuyen_id));
+
+      let data = [];
+      let newConvs = [];
+      const newChatId = Number(e.cuoc_tro_chuyen_id);
+
+      for (let attempt = 0; attempt < 3; attempt++) {
+        if (attempt > 0) {
+          await new Promise((r) => setTimeout(r, 500 * attempt)); // 500ms, 1000ms
+        }
+
+        data = await get().fetchChats();
+        newConvs = data.filter((c) => !prevIds.has(c.cuoc_tro_chuyen_id));
+
+        // Nếu đã thấy conversation mới thì dừng retry
+        if (newConvs.length > 0 || !newChatId) break;
+      }
+
       get().syncSubscriptions(data);
 
-      // ✅ Nếu chat đang active thì reset unread về 0 (tránh fetchChats ghi đè)
+      for (const conv of newConvs) {
+        const chatId = conv.cuoc_tro_chuyen_id;
+        delete messagePromises[chatId];
+
+        const activeChatId = get().activeChatId;
+        if (Number(activeChatId) === Number(chatId)) {
+          await get().fetchMessages(chatId);
+        } else {
+          set((state) => ({
+            messages: { ...state.messages, [chatId]: undefined },
+          }));
+        }
+      }
+
+      // Giữ nguyên logic reset unread cho active chat
       const activeChatId = get().activeChatId;
-      if (
-        activeChatId &&
-        Number(e.cuoc_tro_chuyen_id) === Number(activeChatId)
-      ) {
+      if (activeChatId && newChatId === Number(activeChatId)) {
         set((state) => ({
           chats: state.chats.map((c) =>
             c.cuoc_tro_chuyen_id === activeChatId
@@ -144,15 +173,16 @@ const useChatStore = create((set, get) => ({
   fetchMessages: async (chatId, params = {}) => {
     const cid = Number(chatId);
     if (messagePromises[cid]) return messagePromises[cid];
+
     set({ loadingMessages: true });
     messagePromises[cid] = (async () => {
       try {
         const res = await getMessages(cid, params);
         const data = res?.data || [];
-        set({
-          messages: { ...get().messages, [cid]: data },
+        set((state) => ({
+          messages: { ...state.messages, [cid]: data },
           loadingMessages: false,
-        });
+        }));
         return data;
       } catch (err) {
         console.error("Lỗi fetch messages:", err);
@@ -221,6 +251,7 @@ const useChatStore = create((set, get) => ({
     });
   },
 
+  // chatStore.js — trong sendMessage
   sendMessage: async (chatId, payload) => {
     const cid = Number(chatId);
     set({ sending: true });
@@ -236,6 +267,11 @@ const useChatStore = create((set, get) => ({
               ? "[Video]"
               : newMsg.noi_dung || "";
 
+        // ✅ FIX: Kiểm tra xem chat này đã có trong sidebar chưa
+        const chatExists = get().chats.some(
+          (c) => c.cuoc_tro_chuyen_id === cid,
+        );
+
         set((state) => ({
           messages: {
             ...state.messages,
@@ -243,16 +279,16 @@ const useChatStore = create((set, get) => ({
           },
           chats: state.chats.map((c) =>
             c.cuoc_tro_chuyen_id === cid
-              ? {
-                  ...c,
-                  tin_nhan_cuoi: {
-                    ...newMsg,
-                    preview,
-                  },
-                }
+              ? { ...c, tin_nhan_cuoi: { ...newMsg, preview } }
               : c,
           ),
         }));
+
+        // ✅ FIX: Nếu conversation chưa có trong sidebar thì fetch lại + sync
+        if (!chatExists) {
+          const data = await get().fetchChats();
+          get().syncSubscriptions(data);
+        }
       }
 
       set({ sending: false });

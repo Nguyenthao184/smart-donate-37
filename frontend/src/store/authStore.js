@@ -42,7 +42,7 @@ const useAuthStore = create((set, get) => {
     },
 
     fetchMe: async () => {
-      const { token } = get();
+      const { token, logout } = get();
       if (!token) return;
 
       if (mePromise) return mePromise;
@@ -54,6 +54,10 @@ const useAuthStore = create((set, get) => {
           get().setUser(res.data.user, res.data.roles);
         } catch (err) {
           console.log("Lỗi lấy user:", err);
+          if (err.response?.status === 401) {
+            logout();
+          }
+
           throw err;
         } finally {
           mePromise = null;
@@ -66,7 +70,7 @@ const useAuthStore = create((set, get) => {
     logout: () => {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
-      localStorage.removeItem("roles"); 
+      localStorage.removeItem("roles");
 
       set({
         user: null,
