@@ -7,6 +7,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\OrganizationController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\CampaignController;
 use App\Http\Controllers\DonateController;
@@ -40,7 +41,7 @@ Route::middleware('auth:sanctum')->group(function(){
     Route::post('/broadcasting/auth', function (Request $request) {
         return Broadcast::auth($request);
     });
-
+    Route::get('/notifications', [NotificationController::class, 'index']);
     Route::post('/posts/{id}/like', [PostController::class, 'toggleLike'])->whereNumber('id');
     Route::post('/posts/{id}/comments', [PostCommentController::class, 'store'])->whereNumber('id');
     Route::post('/comments/{id}', [PostCommentController::class, 'destroy'])->whereNumber('id');
@@ -124,6 +125,7 @@ Route::middleware('auth:sanctum')->group(function(){
 
         // AI matching
         Route::get('/posts/{id}/matches', [PostController::class, 'matches'])->whereNumber('id');
+       
         Route::prefix('/tro-chuyen')->group(function () {
             Route::post('/tao-hoac-lay', [TroChuyenController::class, 'taoHoacLay']);
             Route::get('/', [TroChuyenController::class, 'danhSach']);

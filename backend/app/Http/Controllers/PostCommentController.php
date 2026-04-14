@@ -25,12 +25,14 @@ class PostCommentController extends Controller
 
         $paginator = BinhLuanBaiDang::query()
             ->where('bai_dang_id', $id)
-            ->with(['nguoiDung:id,ho_ten,anh_dai_dien'])
+            ->where('id_cha', null)
+            ->with(['nguoiDung:id,ho_ten,anh_dai_dien', 'replies.nguoiDung:id,ho_ten,anh_dai_dien'])
+            
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->paginate($perPage);
 
-        $paginator->getCollection()->transform(fn (BinhLuanBaiDang $c) => $this->formatComment($c));
+        $paginator->getCollection()->transform(fn(BinhLuanBaiDang $c) => $this->formatComment($c));
 
         return response()->json([
             'data' => $paginator,
@@ -43,14 +45,48 @@ class PostCommentController extends Controller
     public function store(StorePostCommentRequest $request, int $id)
     {
         $post = BaiDang::query()->findOrFail($id);
+        $data = $request->validated();
+        $idCha = $data['id_cha'] ?? null;
 
+        if ($idCha) {
+            $parent = BinhLuanBaiDang::with('nguoiDung')->find($idCha);
+
+            if (!$parent) {
+                return response()->json(['message' => 'Bình luận cha không tồn tại'], 404);
+            }
+
+            // ❗ chặn reply nhiều cấp
+            if ($parent->id_cha !== null) {
+                return response()->json(['message' => 'Chỉ được reply 1 cấp'], 400);
+            }
+        }
         $comment = BinhLuanBaiDang::query()->create([
+        
             'bai_dang_id' => $id,
             'nguoi_dung_id' => (int) Auth::id(),
-            'noi_dung' => $request->validated()['noi_dung'],
+            'noi_dung' => $data['noi_dung'],
+            'id_cha' => $idCha,
         ]);
-
-        $comment->load(['nguoiDung:id,ho_ten,anh_dai_dien']);
+        if ($idCha) {
+            $parent = BinhLuanBaiDang::with('nguoiDung')->find($idCha);
+        
+            if ($parent && $parent->nguoi_dung_id !== Auth::id()) {
+                $parentUser = $parent->nguoiDung;
+        
+                if ($parentUser) {
+                    $nguoiReply = Auth::user();
+        
+                    $parentUser->notify(new \App\Notifications\ReplyCommentNotification(
+                        bai_dang_id: $id,
+                        binh_luan_id: (int) $comment->id,
+                        nguoi_reply_id: (int) Auth::id(),
+                        nguoi_reply_ten: (string) ($nguoiReply->ho_ten ?? 'Người dùng'),
+                        noi_dung: Str::limit((string) $comment->noi_dung, 100)
+                    ));
+                }
+            }
+        }
+        $comment->load(['nguoiDung:id,ho_ten,anh_dai_dien', 'replies.nguoiDung:id,ho_ten,anh_dai_dien']);
 
         $chuBaiId = (int) $post->nguoi_dung_id;
         $nguoiBinhLuanId = (int) Auth::id();
@@ -112,7 +148,25 @@ class PostCommentController extends Controller
                 'id' => (int) $u->id,
                 'ho_ten' => $u->ho_ten,
                 'avatar_url' => $avatarUrl,
-            ] : null,
+            ] : null,   
+
+        'replies' => $c->replies->map(function ($r) {
+            $ru = $r->nguoiDung;
+
+            return [
+                'id' => (int) $r->id,
+                'noi_dung' => $r->noi_dung,
+                'created_at' => $r->created_at?->toIso8601String(),
+
+                'nguoi_dung' => $ru ? [
+                    'id' => (int) $ru->id,
+                    'ho_ten' => $ru->ho_ten,
+                    'avatar_url' => $ru->anh_dai_dien
+                        ? asset('storage/' . $ru->anh_dai_dien)
+                        : null,
+                ] : null,
+            ];
+        })->values(), 
         ];
     }
 }

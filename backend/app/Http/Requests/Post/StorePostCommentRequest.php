@@ -15,6 +15,8 @@ class StorePostCommentRequest extends FormRequest
     {
         return [
             'noi_dung' => ['required', 'string', 'min:1', 'max:2000'],
+
+            'id_cha' => 'nullable|exists:binh_luan_bai_dang,id'
         ];
     }
 }
