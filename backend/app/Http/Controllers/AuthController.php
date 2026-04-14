@@ -17,7 +17,49 @@ use Illuminate\Support\Facades\Mail;
 class AuthController extends Controller
 {
     // đăng ký
-    public function register(RegisterRequest $request)
+    public function register(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'otp' => 'required'
+        ]);
+
+        $data = Cache::get('register_' . $request->email);
+
+        if (!$data || $data['otp'] != $request->otp) {
+            return response()->json([
+                'message' => 'OTP không hợp lệ hoặc đã hết hạn'
+            ], 400);
+        }
+
+        // tạo username
+        $baseUsername = Str::before($request->email, '@');
+        $username = $baseUsername;
+        $count = 1;
+
+        while (User::where('ten_tai_khoan', $username)->exists()) {
+            $username = $baseUsername . $count;
+            $count++;
+        }
+
+        $user = User::create([
+            'ho_ten' => $data['ho_ten'],
+            'ten_tai_khoan' => $username,
+            'email' => $request->email,
+            'mat_khau' => $data['password'],
+            'trang_thai' => 'HOAT_DONG'
+        ]);
+
+        $user->roles()->attach(2);
+
+        Cache::forget('register_' . $request->email);
+
+        return response()->json([
+            'message' => 'Đăng ký thành công'
+        ]);
+    }
+
+    public function sendOtp(RegisterRequest $request)
     {
         $data = $request->validated();
 
@@ -28,62 +70,30 @@ class AuthController extends Controller
         }
 
         // chống spam
-        if (Cache::has('verify_limit_' . $data['email'])) {
+        if (Cache::has('otp_limit_' . $data['email'])) {
             return response()->json([
-                'message' => 'Vui lòng đợi trước khi gửi lại'
+                'message' => 'Vui lòng đợi 1 phút trước khi gửi lại OTP'
             ], 429);
         }
 
-        $token = Str::random(64);
+        $otp = rand(100000, 999999);
 
-        // lưu tạm
-        Cache::put('register_token_' . $token, [
-            'email' => $data['email'],
+        // lưu tạm toàn bộ dữ liệu
+        Cache::put('register_' . $data['email'], [
+            'otp' => $otp,
             'ho_ten' => $data['ho_ten'],
             'password' => Hash::make($data['password'])
-        ], now()->addMinutes(10));
+        ], now()->addMinutes(5));
 
-        Cache::put('verify_limit_' . $data['email'], true, 60);
+        Cache::put('otp_limit_' . $data['email'], true, 60);
 
-        $link = "http://localhost:8000/api/verify-register?token=$token";
-
-        Mail::html("
-        <div style='font-family: Arial, sans-serif; background:#f4f6f8; padding:40px'>
-            <div style='max-width:500px; margin:auto; background:white; padding:30px; border-radius:10px; text-align:center'>
-                
-                <h2 style='color:#333;'>Xác minh tài khoản</h2>
-                
-                <p style='color:#666; font-size:14px;'>
-                    Cảm ơn bạn đã đăng ký 🎉 <br>
-                    Nhấn nút bên dưới để xác minh email của bạn.
-                </p>
-
-                <a href='$link' 
-                style='display:inline-block;
-                        margin-top:20px;
-                        padding:12px 25px;
-                        background:linear-gradient(135deg,#4CAF50,#2ecc71);
-                        color:white;
-                        text-decoration:none;
-                        font-weight:bold;
-                        border-radius:6px;
-                        box-shadow:0 4px 10px rgba(0,0,0,0.1);'>
-                    Xác minh tài khoản
-                </a>
-
-                <p style='margin-top:30px; font-size:12px; color:#999;'>
-                    Nếu bạn không đăng ký, hãy bỏ qua email này.
-                </p>
-
-            </div>
-        </div>
-        ", function ($message) use ($data) {
+        Mail::raw("Mã OTP đăng ký của bạn là: $otp", function ($message) use ($data) {
             $message->to($data['email'])
-                    ->subject('Xác minh đăng ký');
+                    ->subject('Mã xác minh đăng ký');
         });
 
         return response()->json([
-            'message' => 'Vui lòng kiểm tra email để xác minh tài khoản'
+            'message' => 'OTP đã được gửi về email'
         ]);
     }
 
@@ -94,9 +104,7 @@ class AuthController extends Controller
         $data = Cache::get('register_token_' . $token);
 
         if (!$data) {
-            return response()->json([
-                'message' => 'Link không hợp lệ hoặc đã hết hạn'
-            ], 400);
+            return redirect("http://localhost:5173/dang-nhap?verified=invalid");
         }
 
         // tạo username
@@ -122,21 +130,7 @@ class AuthController extends Controller
 
         Cache::forget('register_token_' . $token);
 
-        $tokenLogin = $user->createToken('auth_token')->plainTextToken;
-
-        // redirect về FE luôn
-        return response("
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Xác minh thành công</title>
-        </head>
-        <body style='font-family:sans-serif; text-align:center; padding:50px'>
-            <h2>✅ Xác minh email thành công!</h2>
-            <p>Bạn có thể quay lại trang đăng nhập để tiếp tục.</p>
-        </body>
-        </html>
-        ");
+        return redirect("http://localhost:5173/dang-nhap?verified=success");
     }
 
     // đăng nhập

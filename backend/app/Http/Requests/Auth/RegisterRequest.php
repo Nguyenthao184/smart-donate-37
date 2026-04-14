@@ -32,17 +32,13 @@ class RegisterRequest extends FormRequest
                 'required',
                 'string',
                 'max:255',
-                'regex:/^[^\s@]+@[^\s@]+\.[^\s@]+$/',
-                'unique:nguoi_dung,email'
+                'regex:/^[^\s@]+@[^\s@]+\.[^\s@]+$/'
             ],
-            'email' => [
+            'password' => 'required|min:6',
+            'confirm_password' => [
                 'required',
-                'string',
-                'max:255',
-                'regex:/^[^\s@]+@[^\s@]+\.[^\s@]+$/',
-                'unique:nguoi_dung,email'
-            ],
-            'password' => 'required|min:6'
+                'same:password'
+            ]
         ];
     }
 
@@ -56,7 +52,6 @@ class RegisterRequest extends FormRequest
 
             'email.required' => 'Email không được để trống.',
             'email.regex' => 'Email không đúng định dạng.',
-            'email.unique' => 'Email đã tồn tại trong hệ thống.',
 
             'password.required' => 'Mật khẩu không được để trống.',
             'password.min' => 'Mật khẩu phải có ít nhất 6 ký tự.',

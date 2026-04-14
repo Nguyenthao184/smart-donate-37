@@ -125,6 +125,11 @@ class CampaignController extends Controller
             ->withCount('ungHos')
             ->whereIn('trang_thai', ['HOAT_DONG', 'HOAN_THANH', 'TAM_DUNG', 'DA_KET_THUC']);
 
+        if ($request->has(['min_lat', 'max_lat', 'min_lng', 'max_lng'])) {
+            $query->whereBetween('lat', [$request->min_lat, $request->max_lat])
+                ->whereBetween('lng', [$request->min_lng, $request->max_lng]);
+        }
+
         if ($request->keyword) {
             $query->where('ten_chien_dich', 'like', '%' . $request->keyword . '%');
         }
@@ -398,5 +403,22 @@ class CampaignController extends Controller
         $campaigns = $campaigns->map(fn($item) => $this->formatCampaign($item));
 
         return response()->json($campaigns);
+    }
+
+    public function map(Request $request)
+    {
+        $query = ChienDichGayQuy::whereNotNull('lat')
+            ->whereNotNull('lng')
+            ->where('trang_thai', 'HOAT_DONG');
+
+        // optional: filter theo vùng map
+        if ($request->has(['min_lat', 'max_lat', 'min_lng', 'max_lng'])) {
+            $query->whereBetween('lat', [$request->min_lat, $request->max_lat])
+                ->whereBetween('lng', [$request->min_lng, $request->max_lng]);
+        }
+
+        return response()->json(
+            $query->get(['id', 'lat', 'lng'])
+        );
     }
 }

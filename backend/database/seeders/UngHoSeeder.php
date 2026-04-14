@@ -17,6 +17,8 @@ class UngHoSeeder extends Seeder
         $campaigns = DB::table('chien_dich_gay_quy')->get();
 
         foreach ($campaigns as $campaign) {
+            $rows = [];
+
             // bỏ campaign chưa duyệt
             if (in_array($campaign->trang_thai, ['CHO_XU_LY', 'TU_CHOI'])) {
                 continue;
@@ -55,7 +57,7 @@ class UngHoSeeder extends Seeder
                         'so_tien' => rand(50, 500) * 1000,
                         'phuong_thuc_thanh_toan' => 'vnpay',
                         'trang_thai' => 'THANH_CONG',
-                        'vnp_txn_ref' => Str::uuid(),
+                        'payment_ref' => Str::uuid(),
                         'vnp_transaction_no' => rand(10000000, 99999999),
                         'created_at' => now()->subDays(rand(0, 5)),
                         'updated_at' => now(),
@@ -105,17 +107,23 @@ class UngHoSeeder extends Seeder
                     ->setHour(rand(0, 23))
                     ->setMinute(rand(0, 59));
 
-                DB::table('ung_ho')->insert([
+                if ($createdAt > now()) {
+                    $createdAt = now();
+                }
+
+                $method = rand(0, 1) ? 'vnpay' : 'momo';
+
+                $rows[] = [
                     'nguoi_dung_id' => $user->id,
                     'chien_dich_gay_quy_id' => $campaign->id,
                     'so_tien' => $soTien,
-                    'phuong_thuc_thanh_toan' => 'vnpay',
+                    'phuong_thuc_thanh_toan' => $method,
                     'trang_thai' => 'THANH_CONG',
-                    'vnp_txn_ref' => Str::uuid(),
-                    'vnp_transaction_no' => rand(10000000, 99999999),
+                    'payment_ref' => Str::uuid(),
+                    'gateway_transaction_id' => rand(10000000, 99999999),
                     'created_at' => $createdAt,
                     'updated_at' => now(),
-                ]);
+                ];
 
                 if ($tong >= $tongTienTarget) break;
             }
@@ -123,18 +131,22 @@ class UngHoSeeder extends Seeder
             if ($campaign->trang_thai === 'HOAN_THANH' && $tong < $campaign->muc_tieu_tien) {
                 $conThieu = $campaign->muc_tieu_tien - $tong;
 
-                DB::table('ung_ho')->insert([
-                    'nguoi_dung_id' => $users->random()->id,
+                $rows[] = [
+                    'nguoi_dung_id' => $user->id,
                     'chien_dich_gay_quy_id' => $campaign->id,
-                    'so_tien' => $conThieu,
-                    'phuong_thuc_thanh_toan' => 'vnpay',
+                    'so_tien' => $soTien,
+                    'phuong_thuc_thanh_toan' => $method,
                     'trang_thai' => 'THANH_CONG',
-                    'vnp_txn_ref' => Str::uuid(),
-                    'vnp_transaction_no' => rand(10000000, 99999999),
-                    'created_at' => now(),
+                    'payment_ref' => Str::uuid(),
+                    'gateway_transaction_id' => rand(10000000, 99999999),
+                    'created_at' => $createdAt,
                     'updated_at' => now(),
-                ]);
+                ];
             }
+
+            collect($rows)->chunk(500)->each(function ($chunk) {
+                DB::table('ung_ho')->insert($chunk->toArray());
+            });
         }
     }
 }

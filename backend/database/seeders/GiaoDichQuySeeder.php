@@ -17,6 +17,7 @@ class GiaoDichQuySeeder extends Seeder
             ->get();
 
         $tongTheoTaiKhoan = [];
+        $rows = [];
 
         foreach ($ungHos as $uh) {
             $user = $users[$uh->nguoi_dung_id];
@@ -25,19 +26,24 @@ class GiaoDichQuySeeder extends Seeder
             $ten = strtoupper($this->removeVietnameseAccents($user->ho_ten));
             $moTa = $campaignItem->ma_noi_dung_ck . ' ' . $ten . ' UNG HO';
 
-            DB::table('giao_dich_quy')->insert([
+            $rows[] = [
                 'tai_khoan_gay_quy_id' => $campaignItem->tai_khoan_gay_quy_id,
                 'ung_ho_id' => $uh->id,
                 'so_tien' => $uh->so_tien,
                 'loai_giao_dich' => 'UNG_HO',
                 'mo_ta' => $moTa,
                 'created_at' => $uh->created_at,
-            ]);
+            ];
+
             // gom tiền theo tài khoản
             $tongTheoTaiKhoan[$campaignItem->tai_khoan_gay_quy_id] =
                 ($tongTheoTaiKhoan[$campaignItem->tai_khoan_gay_quy_id] ?? 0)
                 + $uh->so_tien;
         }
+
+        collect($rows)->chunk(500)->each(function ($chunk) {
+            DB::table('giao_dich_quy')->insert($chunk->toArray());
+        });
 
         // update số dư tài khoản
         foreach ($tongTheoTaiKhoan as $tkId => $tongTien) {
@@ -47,11 +53,14 @@ class GiaoDichQuySeeder extends Seeder
         }
 
         // update campaign
+        $tongTheoCampaign = DB::table('ung_ho')
+            ->where('trang_thai', 'THANH_CONG')
+            ->select('chien_dich_gay_quy_id', DB::raw('SUM(so_tien) as tong'))
+            ->groupBy('chien_dich_gay_quy_id')
+            ->pluck('tong', 'chien_dich_gay_quy_id');
+
         foreach ($campaigns as $campaign) {
-            $tong = DB::table('ung_ho')
-                ->where('chien_dich_gay_quy_id', $campaign->id)
-                ->where('trang_thai', 'THANH_CONG')
-                ->sum('so_tien');
+            $tong = $tongTheoCampaign[$campaign->id] ?? 0;
 
             DB::table('chien_dich_gay_quy')
                 ->where('id', $campaign->id)
@@ -78,9 +87,9 @@ class GiaoDichQuySeeder extends Seeder
 
         // FAKE RÚT TIỀN (REALISTIC)
         if (rand(0, 1)) {
-
+            $randomCampaign = $campaigns->random();
             $soDu = DB::table('tai_khoan_gay_quy')
-                ->where('id', $campaign->tai_khoan_gay_quy_id)
+                ->where('id', $randomCampaign->tai_khoan_gay_quy_id)
                 ->value('so_du');
 
             if ($soDu > 5000000) {
@@ -88,7 +97,7 @@ class GiaoDichQuySeeder extends Seeder
                 $rut = min(rand(100, 500) * 1000, $soDu);
 
                 DB::table('giao_dich_quy')->insert([
-                    'tai_khoan_gay_quy_id' => $campaign->tai_khoan_gay_quy_id,
+                    'tai_khoan_gay_quy_id' => $randomCampaign->tai_khoan_gay_quy_id,
                     'ung_ho_id' => null,
                     'so_tien' => $rut,
                     'loai_giao_dich' => 'RUT',
@@ -97,7 +106,7 @@ class GiaoDichQuySeeder extends Seeder
                 ]);
 
                 DB::table('tai_khoan_gay_quy')
-                    ->where('id', $campaign->tai_khoan_gay_quy_id)
+                    ->where('id', $randomCampaign->tai_khoan_gay_quy_id)
                     ->decrement('so_du', $rut);
             }
         }            

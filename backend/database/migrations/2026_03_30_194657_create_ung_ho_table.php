@@ -16,9 +16,9 @@ return new class extends Migration
             $table->unsignedBigInteger('nguoi_dung_id');
             $table->unsignedBigInteger('chien_dich_gay_quy_id');
             $table->decimal('so_tien', 15, 2);
-            $table->string('vnp_txn_ref', 100)->nullable();          // mã gửi sang VNPAY
-            $table->string('vnp_transaction_no', 100)->nullable();   // mã VNPAY trả về
-            $table->enum('phuong_thuc_thanh_toan', ['vnpay', 'qr'])->nullable();
+            $table->string('payment_ref', 100)->nullable();          // mã gửi sang VNPAY
+            $table->string('gateway_transaction_id', 100)->nullable();   // mã VNPAY trả về
+            $table->enum('phuong_thuc_thanh_toan', ['vnpay', 'momo'])->nullable();
             $table->enum('trang_thai', ['CHO_XU_LY', 'THANH_CONG', 'THAT_BAI'])->default('CHO_XU_LY');
             $table->foreign('nguoi_dung_id')->references('id')->on('nguoi_dung');
             $table->foreign('chien_dich_gay_quy_id')->references('id')->on('chien_dich_gay_quy');

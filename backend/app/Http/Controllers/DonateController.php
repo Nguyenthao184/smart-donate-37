@@ -7,6 +7,7 @@ use App\Http\Requests\Donate\DonateRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use App\Models\ChienDichGayQuy;
+use Illuminate\Support\Facades\Http;
 use Carbon\Carbon;
 use App\Models\UngHo;
 
@@ -54,29 +55,87 @@ class DonateController extends Controller
             DB::table('ung_ho')
                 ->where('id', $ungHoId)
                 ->update([
-                    'vnp_txn_ref' => $ungHoId
+                    'payment_ref' => $ungHoId
                 ]);
 
             DB::commit();
 
             // ===== CASE 1: BANKING (QR) =====
-            if ($request->phuong_thuc_thanh_toan === 'qr') {
+            if ($request->phuong_thuc_thanh_toan === 'momo') {
                 $tk = $campaign->taiKhoanGayQuy;
+                $endpoint = "https://test-payment.momo.vn/v2/gateway/api/create";
+
+                $partnerCode = env('MOMO_PARTNER_CODE');
+                $accessKey   = env('MOMO_ACCESS_KEY');
+                $secretKey   = env('MOMO_SECRET_KEY');
+
+                $orderId   = (string) $ungHoId;
+                $requestId = time() . "";
+
+                $amount = $request->so_tien;
+
+                $orderInfo = "Ung ho chien dich " . $campaign->id;
+                $redirectUrl = "http://localhost:5173/thanh-cong";
+                $ipnUrl = "https://dipyramidal-silkier-bell.ngrok-free.dev/api/momo/ipn";
+                $extraData = "";
+
+                $requestType = "payWithATM";
+
+                // RAW HASH (PHẢI ĐÚNG THỨ TỰ)
+                $rawHash = "accessKey=" . $accessKey
+                    . "&amount=" . $amount
+                    . "&extraData=" . $extraData
+                    . "&ipnUrl=" . $ipnUrl
+                    . "&orderId=" . $orderId
+                    . "&orderInfo=" . $orderInfo
+                    . "&partnerCode=" . $partnerCode
+                    . "&redirectUrl=" . $redirectUrl
+                    . "&requestId=" . $requestId
+                    . "&requestType=" . $requestType;
+
+                // SIGNATURE
+                $signature = hash_hmac("sha256", $rawHash, $secretKey);
+
+                // 📦 DATA
+                $data = [
+                    "partnerCode" => $partnerCode,
+                    "accessKey" => $accessKey,
+                    "requestId" => $requestId,
+                    "amount" => $amount,
+                    "orderId" => $orderId,
+                    "orderInfo" => $orderInfo,
+                    "redirectUrl" => $redirectUrl,
+                    "ipnUrl" => $ipnUrl,
+                    "extraData" => $extraData,
+                    "requestType" => $requestType,
+                    "signature" => $signature,
+                    "lang" => "vi"
+                ];
+
+                // GỌI API
+                $response = Http::withOptions([
+                    'verify' => false
+                ])->post($endpoint, $data)->json();
+
+                //dd($response);
+
+                if (!isset($response['payUrl'])) {
+                    return response()->json([
+                        'message' => 'Không tạo được link MoMo',
+                        'data' => $response
+                    ], 500);
+                }
+
+                // lưu payment_ref
+                DB::table('ung_ho')
+                    ->where('id', $ungHoId)
+                    ->update([
+                        'payment_ref' => $orderId
+                    ]);
 
                 return response()->json([
-                    'type' => 'QR',
-                    'data' => [
-                        'ung_ho_id' => $ungHoId,
-                        'qr_code' => asset('storage/' . $tk->qr_code),
-
-                        'ngan_hang' => $tk->ngan_hang,
-                        'so_tai_khoan' => $tk->so_tai_khoan,
-                        'chu_tai_khoan' => $tk->chu_tai_khoan,
-
-                        'so_tien' => $request->so_tien,
-
-                        'mo_ta' => $noiDung
-                    ]
+                    'type' => 'MOMO',
+                    'payment_url' => $response['payUrl']
                 ]);
             }
 
@@ -93,7 +152,7 @@ class DonateController extends Controller
                 DB::table('ung_ho')
                     ->where('id', $ungHoId)
                     ->update([
-                        'vnp_txn_ref' => $vnp_TxnRef
+                        'payment_ref' => $vnp_TxnRef
                     ]);
 
                 $vnp_Amount = $request->so_tien * 100;
@@ -143,85 +202,6 @@ class DonateController extends Controller
                 ]);
             }
             return response()->json(['message' => 'Phương thức không hợp lệ'], 400);
-        } catch (\Throwable $e) {
-            DB::rollBack();
-            return response()->json([
-                'message' => 'Lỗi hệ thống',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    // Xác nhận ủng hộ
-    public function confirmDonate(Request $request)
-    {
-        DB::beginTransaction();
-
-        try {
-            $ungHo = DB::table('ung_ho')
-                ->where('id', $request->ung_ho_id)
-                ->lockForUpdate()
-                ->first();
-
-            if (!$ungHo) {
-                return response()->json(['message' => 'Không tìm thấy giao dịch'], 404);
-            }
-
-            if ($ungHo->trang_thai !== 'CHO_XU_LY') {
-                return response()->json(['message' => 'Đã xử lý'], 409);
-            }
-
-            // update trạng thái
-            DB::table('ung_ho')
-                ->where('id', $ungHo->id)
-                ->update([
-                    'trang_thai' => 'THANH_CONG',
-                    'updated_at' => now()
-                ]);
-
-            // lấy campaign
-            $campaign = DB::table('chien_dich_gay_quy')
-                ->where('id', $ungHo->chien_dich_gay_quy_id)
-                ->lockForUpdate()
-                ->first();
-
-            // Nội dung CK 
-            $user = DB::table('nguoi_dung')
-                ->where('id', $ungHo->nguoi_dung_id)
-                ->first();
-
-            $tenKhongDau = $this->removeVietnameseAccents($user->ho_ten);
-
-            $noiDung = strtoupper(
-                $campaign->ma_noi_dung_ck . ' ' .
-                $tenKhongDau . ' UNG HO'
-            );
-
-            // ghi quỹ
-            DB::table('giao_dich_quy')->insert([
-                'tai_khoan_gay_quy_id' => $campaign->tai_khoan_gay_quy_id,
-                'ung_ho_id' => $ungHo->id,
-                'so_tien' => $ungHo->so_tien,
-                'loai_giao_dich' => 'UNG_HO',
-                'mo_ta' => $noiDung,
-                'created_at' => now(),
-            ]);
-
-            // cộng tiền
-            DB::table('tai_khoan_gay_quy')
-                ->where('id', $campaign->tai_khoan_gay_quy_id)
-                ->increment('so_du', $ungHo->so_tien);
-
-            DB::table('chien_dich_gay_quy')
-                ->where('id', $campaign->id)
-                ->increment('so_tien_da_nhan', $ungHo->so_tien);
-
-            DB::commit();
-
-            return response()->json([
-                'message' => 'Ủng hộ thành công'
-            ]);
-
         } catch (\Throwable $e) {
             DB::rollBack();
             return response()->json([
@@ -413,7 +393,7 @@ class DonateController extends Controller
                     ->where('id', $ungHoLocked->id)
                     ->update([
                         'trang_thai' => 'THANH_CONG',
-                        'vnp_transaction_no' => $request->vnp_TransactionNo,
+                        'gateway_transaction_id' => $request->vnp_TransactionNo,
                         'updated_at' => now(),
                     ]);
 
@@ -451,17 +431,12 @@ class DonateController extends Controller
 
                 DB::commit();
 
-                return response()->json([
-                    'status' => 'success',
-                    'data' => [
-                        'ung_ho_id' => $ungHoLocked->id,
-                        'so_tien' => $ungHoLocked->so_tien,
-                        'nguoi_ung_ho' => $user->ho_ten,
-                        'phuong_thuc_thanh_toan' => 'VNPay',
-                        'ma_giao_dich' => $request->vnp_TransactionNo,
-                        'thoi_gian' => now()->format('d/m/Y H:i'),
-                    ],
-                ]);
+                return redirect()->away(
+                    "http://localhost:5173/thanh-cong?" . http_build_query([
+                        'status' => 'success',
+                        'orderId' => $request->vnp_TxnRef
+                    ])
+                );
             }
 
             DB::table('ung_ho')
@@ -472,19 +447,169 @@ class DonateController extends Controller
 
             DB::commit();
 
-            return response()->json([
-                'status' => 'failed',
-                'message' => 'Giao dịch không thành công',
-                'data' => [
-                    'ung_ho_id' => $ungHoLocked->id,
-                    'response_code' => $request->vnp_ResponseCode,
-                    'so_tien' => $ungHoLocked->so_tien,
-                    'nguoi_ung_ho' => $user->ho_ten ?? null,
-                ],
-            ]);
+            return redirect()->away(
+                env('FRONTEND_URL') . "/thanh-cong?" . http_build_query([
+                    'status' => 'failed',
+                    'orderId' => $request->vnp_TxnRef
+                ])
+            );
         } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Lỗi hệ thống'], 500);
+            return response()->json([
+                'message' => 'Lỗi hệ thống',
+                'error' => $e->getMessage(),
+                'line' => $e->getLine()
+            ], 500);
         }
+    }
+
+    public function momoIpn(Request $request)
+    {
+        \Log::info('MOMO IPN', $request->all());
+
+        $orderId = $request->orderId;
+        $transId = $request->transId ?? null;
+        $resultCode = $request->resultCode;
+
+        // ❗ tìm giao dịch (giống VNPAY)
+        $ungHo = DB::table('ung_ho')
+            ->where('payment_ref', $orderId)
+            ->first();
+
+        if (!$ungHo) {
+            return response()->json(['message' => 'Không tìm thấy giao dịch'], 404);
+        }
+
+        // check số tiền
+        if ($request->amount != $ungHo->so_tien) {
+            return response()->json(['message' => 'Sai số tiền'], 400);
+        }
+
+        // tránh xử lý lại
+        if ($ungHo->trang_thai !== 'CHO_XU_LY') {
+            return response()->json([
+                'message' => 'Giao dịch đã xử lý',
+                'data' => ['ung_ho_id' => $ungHo->id],
+            ], 409);
+        }
+
+        DB::beginTransaction();
+
+        try {
+            // lock giống VNPAY
+            $ungHoLocked = DB::table('ung_ho')
+                ->where('id', $ungHo->id)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$ungHoLocked || $ungHoLocked->trang_thai !== 'CHO_XU_LY') {
+                DB::rollBack();
+
+                return response()->json([
+                    'message' => 'Giao dịch đã xử lý',
+                    'data' => ['ung_ho_id' => $ungHo->id],
+                ], 409);
+            }
+
+            // THÀNH CÔNG (giống vnp_ResponseCode == 00)
+            if ($resultCode == 0) {
+
+                DB::table('ung_ho')
+                    ->where('id', $ungHoLocked->id)
+                    ->update([
+                        'trang_thai' => 'THANH_CONG',
+                        'gateway_transaction_id' => $transId ?? 'MOMO_' . time(),
+                        'updated_at' => now(),
+                    ]);
+
+                // lấy campaign
+                $campaign = DB::table('chien_dich_gay_quy')
+                    ->where('id', $ungHoLocked->chien_dich_gay_quy_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                // lấy user
+                $user = DB::table('nguoi_dung')
+                    ->where('id', $ungHoLocked->nguoi_dung_id)
+                    ->first();
+
+                // mô tả (y chang VNPAY)
+                $tenKhongDau = $this->removeVietnameseAccents($user->ho_ten);
+                $moTa = strtoupper(
+                    $campaign->ma_noi_dung_ck . ' ' .
+                    $tenKhongDau . ' UNG HO'
+                );
+
+                // insert giao dịch quỹ
+                DB::table('giao_dich_quy')->insert([
+                    'tai_khoan_gay_quy_id' => $campaign->tai_khoan_gay_quy_id,
+                    'ung_ho_id' => $ungHoLocked->id,
+                    'so_tien' => $ungHoLocked->so_tien,
+                    'loai_giao_dich' => 'UNG_HO',
+                    'mo_ta' => $moTa,
+                    'created_at' => now(),
+                ]);
+
+                // cộng số dư
+                DB::table('tai_khoan_gay_quy')
+                    ->where('id', $campaign->tai_khoan_gay_quy_id)
+                    ->increment('so_du', $ungHoLocked->so_tien);
+
+                // cộng campaign
+                DB::table('chien_dich_gay_quy')
+                    ->where('id', $campaign->id)
+                    ->increment('so_tien_da_nhan', $ungHoLocked->so_tien);
+
+                DB::commit();
+
+                return response()->json(['message' => 'OK']);
+            }
+
+            // THẤT BẠI
+            DB::table('ung_ho')
+                ->where('id', $ungHoLocked->id)
+                ->update([
+                    'trang_thai' => 'THAT_BAI',
+                ]);
+
+            DB::commit();
+
+            return response()->json(['message' => 'FAILED']);
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'message' => 'Lỗi hệ thống',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getDonateDetail($id)
+    {
+        $data = DB::table('ung_ho as uh')
+            ->join('chien_dich_gay_quy as cd', 'uh.chien_dich_gay_quy_id', '=', 'cd.id')
+            ->join('nguoi_dung as nd', 'uh.nguoi_dung_id', '=', 'nd.id')
+            ->select(
+                'uh.id',
+                'uh.so_tien',
+                'uh.trang_thai',
+                'uh.created_at',
+                'uh.phuong_thuc_thanh_toan',
+                'uh.gateway_transaction_id',
+                'cd.ten_chien_dich',
+                'nd.ho_ten'
+            )
+            ->where('uh.id', $id)
+            ->first();
+
+        if (!$data || $data->trang_thai !== 'THANH_CONG') {
+            return response()->json(['message' => 'Không hợp lệ'], 403);
+        }
+
+        return response()->json([
+            'data' => $data
+        ]);
     }
 }

@@ -13,7 +13,7 @@ class UngHo extends Model
         'chien_dich_gay_quy_id',
         'so_tien',
         'phuong_thuc',
-        'vnp_txn_ref', 
+        'payment_ref', 
         'trang_thai',
     ];
 

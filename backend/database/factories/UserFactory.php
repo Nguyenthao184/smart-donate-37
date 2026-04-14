@@ -13,7 +13,7 @@ class UserFactory extends Factory
     public function definition(): array
     {
         $ho = ['Nguyễn','Trần','Lê','Phạm','Hoàng','Huỳnh','Phan','Vũ','Đặng','Bùi'];
-        $tenDem = ['Văn','Thị','Minh','Quang','Thanh','Hữu','Đức'];
+        $tenDem = ['Hồ','Ánh','Minh','Quang','Thanh','Hữu','Đức'];
         $ten = ['An','Bình','Huy','Nam','Linh','Trang','Tuấn','Hà','Phúc','Khoa'];
 
         $fullName = $ho[array_rand($ho)] . ' ' . $tenDem[array_rand($tenDem)] . ' ' . $ten[array_rand($ten)];

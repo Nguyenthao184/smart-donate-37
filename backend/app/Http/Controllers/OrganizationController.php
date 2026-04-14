@@ -77,22 +77,7 @@ class OrganizationController extends Controller
     // USER xem trạng thái
     public function status()
     {
-        $data = XacMinhToChuc::where('nguoi_dung_id', auth()->id())
-            ->latest()
-            ->first();
-
-        if ($data && $data->giay_phep) {
-            $data->giay_phep = asset('storage/' . $data->giay_phep);
-        }
-
-
-        if ($data && $data->logo) {
-            $data->logo = asset('storage/' . $data->logo);
-        }
-
-        return response()->json([
-            'xac_minh' => $data
-        ]);
+        return XacMinhToChuc::where('nguoi_dung_id', auth()->id())->latest()->first();
     }
 
     // ADMIN duyệt tổ chức và tạo tài khoản gây quỹ

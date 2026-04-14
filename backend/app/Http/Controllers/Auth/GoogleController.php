@@ -49,7 +49,7 @@ class GoogleController extends Controller
                 'ten_tai_khoan' => $username,
                 'email' => $email,
                 'anh_dai_dien' => $googleUser->getAvatar(),
-                'mat_khau' => null, // 👈 QUAN TRỌNG
+                'mat_khau' => null, 
                 'trang_thai' => 'HOAT_DONG'
             ]);
 
@@ -69,7 +69,6 @@ class GoogleController extends Controller
 
         $roles = $user->roles->pluck('ten_vai_tro')->implode(',');
 
-        // 🚀 redirect về FE
         return redirect("http://localhost:5173/bang-tin?token={$token}&roles={$roles}");
     }
 }

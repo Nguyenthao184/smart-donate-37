@@ -18,12 +18,13 @@ use App\Http\Controllers\PostCommentController;
 use App\Http\Controllers\PostReportController;
 
 Route::post('/register', [AuthController::class,'register']);
-Route::get('/verify-register', [AuthController::class, 'verifyRegister']);
+Route::post('/send-otp', [AuthController::class, 'sendOtp']);
 Route::post('/login', [AuthController::class,'login']);
 Route::get('/auth/google', [GoogleController::class, 'redirect']);
 Route::get('/auth/google/callback', [GoogleController::class, 'callback']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+Route::get('/map/campaigns', [CampaignController::class, 'map']);
 
 // Feed - guest có thể xem danh sách/chi tiết
 Route::get('/posts', [PostController::class, 'index']);
@@ -102,8 +103,9 @@ Route::middleware('auth:sanctum')->group(function(){
 
         //ủng hộ
         Route::post('/donate', [DonateController::class, 'donate']);
-        Route::post('/donate/confirm', [DonateController::class, 'confirmDonate']);
+        Route::get('/donate/{id}', [DonateController::class, 'getDonateDetail']);
         Route::get('/donate/history', [DonateController::class, 'donateHistory']);
+        Route::post('/momo/success', [DonateController::class, 'momoSuccess']);
     });
     
     Route::middleware(['role:TO_CHUC','update.campaign'])->group(function(){
@@ -149,4 +151,5 @@ Route::middleware('update.campaign')->group(function () {
     Route::get('/campaigns/ending-soon', [CampaignController::class, 'endingSoon']);
     Route::get('/campaigns/{id}', [CampaignController::class, 'show']);
 });
-Route::get('/vnpay/return', [DonateController::class, 'vnpayReturn']);
+
+Route::post('/momo/ipn', [DonateController::class, 'momoIpn']);
