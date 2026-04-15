@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\User\UpdateProfileRequest;
 use App\Http\Requests\User\ChangePasswordRequest;
+use App\Http\Requests\User\UpdateDiaChiRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -57,8 +58,12 @@ class UserProfileController extends Controller
 
         // UPDATE USER
         $userData = $request->only([
-            'ho_ten'
+            'ho_ten',
         ]);
+
+        if ($request->has('dia_chi_user')) {
+            $userData['dia_chi'] = $request->dia_chi_user;
+        }
 
         if ($request->hasFile('anh_dai_dien')) {
 
@@ -216,6 +221,21 @@ class UserProfileController extends Controller
             'nguoi_dung' => $user,
             'to_chuc' => $toChuc,
             'bai_dang' => $baiDang,
+        ]);
+    }
+
+    // Cập nhật địa chỉ
+    public function updateDiaChi(UpdateDiaChiRequest $request)
+    {
+        $user = auth()->user();
+
+        $user->update([
+            'dia_chi' => $request->dia_chi
+        ]);
+
+        return response()->json([
+            'message' => 'Cập nhật địa chỉ thành công',
+            'data' => $user
         ]);
     }
 }

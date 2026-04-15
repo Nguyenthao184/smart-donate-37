@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, Notifiable, HasFactory; // ✅ thêm HasFactory
+    use HasApiTokens, Notifiable, HasFactory; 
 
     protected $table = 'nguoi_dung';
 
@@ -20,6 +20,7 @@ class User extends Authenticatable
         'email',
         'mat_khau',
         'anh_dai_dien',
+        'dia_chi',
         'trang_thai'
     ];
 

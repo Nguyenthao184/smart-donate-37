@@ -99,6 +99,7 @@ Route::middleware('auth:sanctum')->group(function(){
         Route::get('/user/profile',[UserProfileController::class,'getProfile']);
         Route::post('/user/profile',[UserProfileController::class,'updateProfile']);
         Route::post('/user/change-password',[UserProfileController::class,'changePassword']);
+        Route::post('/user/update-diachi',[UserProfileController::class,'updateDiaChi']);
 
         //xem profile người dùng khác
         Route::get('/profile/{id}', [UserProfileController::class, 'show']);

@@ -38,6 +38,14 @@ class UpdateProfileRequest extends FormRequest
                 'mimes:jpg,jpeg,png',
                 'max:2048'
             ],
+            'dia_chi_user' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'min:10',
+                'max:255',
+                'regex:/^[\pL0-9\s,.-]+$/u'
+            ],
         ];
 
         $toChuc = auth()->user()->toChuc;
@@ -61,7 +69,9 @@ class UpdateProfileRequest extends FormRequest
                     'sometimes',
                     'nullable',
                     'string',
-                    'max:255'
+                    'min:10',
+                    'max:255',
+                    'regex:/^[\pL0-9\s,.-]+$/u'
                 ],
                 'so_dien_thoai' => [
                     'sometimes',
@@ -91,15 +101,24 @@ class UpdateProfileRequest extends FormRequest
             'anh_dai_dien.mimes' => 'Ảnh đại diện chỉ được định dạng jpg, jpeg, png.',
             'anh_dai_dien.max' => 'Ảnh đại diện không được lớn hơn 2MB.',
 
+
             'email.required' => 'Email không được để trống.',
             'email.email' => 'Email không đúng định dạng.',
             'email.unique' => 'Email đã tồn tại.',
 
             'mo_ta.string' => 'Mô tả phải là chuỗi ký tự.',
             'mo_ta.max' => 'Mô tả không được vượt quá 1000 ký tự.',
+            
+            'dia_chi_user.string' => 'Địa chỉ phải là chuỗi ký tự.',
+            'dia_chi_user.min' => 'Địa chỉ phải có ít nhất 10 ký tự.',
+            'dia_chi_user.max' => 'Địa chỉ không được vượt quá 255 ký tự.',
+            'dia_chi_user.regex' => 'Địa chỉ chỉ được chứa chữ cái, số, dấu cách, dấu phẩy, dấu chấm và dấu gạch ngang.',
 
             'dia_chi.string' => 'Địa chỉ phải là chuỗi ký tự.',
+            'dia_chi.min' => 'Địa chỉ phải có ít nhất 10 ký tự.',
             'dia_chi.max' => 'Địa chỉ không được vượt quá 255 ký tự.',
+            'dia_chi.regex' => 'Địa chỉ chỉ được chứa chữ cái, số, dấu cách, dấu phẩy, dấu chấm và dấu gạch ngang.',
+
             'so_dien_thoai.regex' => 'Số điện thoại không hợp lệ (phải là số Việt Nam).',
 
             'logo.image' => 'Logo phải là file hình ảnh.',
