@@ -18,7 +18,6 @@ class ResetPasswordRequest extends FormRequest
     {
         $this->merge([
             'email' => trim($this->email),
-            'otp' => trim($this->otp),
             'new_password' => trim($this->new_password),
             'confirm_password' => trim($this->confirm_password),
         ]);
@@ -28,7 +27,6 @@ class ResetPasswordRequest extends FormRequest
     {
         return [
             'email' => 'required|email',
-            'otp' => 'required',
 
             'new_password' => [
                 'required',

@@ -32,15 +32,6 @@ class NguoiDungSeeder extends Seeder
             'trang_thai' => 'HOAT_DONG'
         ]);
 
-        // tổ chức
-        User::create([
-            'ho_ten' => 'Tổ chức từ thiện',
-            'ten_tai_khoan' => 'tochuc',
-            'email' => 'tochuc@gmail.com',
-            'mat_khau' => $password,
-            'trang_thai' => 'HOAT_DONG'
-        ]);
-
         // tạo data bằng factory (KHÔNG insert)
         $users = User::factory()
             ->count(30)

@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use App\Models\ToChuc;
 use Illuminate\Support\Facades\DB;
+use App\Models\User;
+use App\Models\XacMinhToChuc;
+use App\Models\BaiDang;
 
 class UserProfileController extends Controller
 {
@@ -155,6 +158,64 @@ class UserProfileController extends Controller
 
         return response()->json([
             'message' => 'Đổi mật khẩu thành công'
+        ]);
+    }
+
+    // Xem profile người dùng khác
+    public function show($id)
+    {
+        // 1. Người dùng
+        $user = User::select('ho_ten', 'ten_tai_khoan', 'anh_dai_dien')
+            ->findOrFail($id);
+
+        if ($user->anh_dai_dien) {
+            $user->anh_dai_dien = asset('storage/' . $user->anh_dai_dien);
+        }
+
+        // 2. Tổ chức
+        $xacMinh = XacMinhToChuc::where('nguoi_dung_id', $id)
+            ->select('ten_to_chuc', 'mo_ta', 'loai_hinh')
+            ->latest()
+            ->first();
+
+        $toChuc = ToChuc::where('nguoi_dung_id', $id)
+            ->select('logo')
+            ->first();
+
+        if ($toChuc && $toChuc->logo) {
+            $toChuc->logo = asset('storage/' . $toChuc->logo);
+        }
+
+        // gộp lại đúng format yêu cầu
+        $org = null;
+        if ($xacMinh) {
+            $org = [
+                'ten_to_chuc' => $xacMinh->ten_to_chuc,
+                'mo_ta' => "Đại diện {$xacMinh->ten_to_chuc}. {$xacMinh->mo_ta}",
+                'logo' => $toChuc->logo ?? null,
+                'loai_hinh' => $xacMinh->loai_hinh,
+            ];
+        }
+
+        // 3. Bài đăng
+        $baiDang = BaiDang::where('nguoi_dung_id', $id)
+            ->select('tieu_de', 'mo_ta', 'dia_diem', 'trang_thai', 'created_at')
+            ->latest()
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'tieu_de' => $item->tieu_de,
+                    'mo_ta' => $item->mo_ta,
+                    'dia_diem' => $item->dia_diem,
+                    'trang_thai' => $item->trang_thai,
+                    'ngay_dang' => $item->created_at->format('d/m/Y H:i'),
+                ];
+            });
+
+        return response()->json([
+            'nguoi_dung' => $user,
+            'to_chuc' => $toChuc,
+            'bai_dang' => $baiDang,
         ]);
     }
 }

@@ -31,76 +31,76 @@ class ChienDichGayQuySeeder extends Seeder
 
         $nameTemplates = [
             'Thiên tai' => [
-                'Cứu trợ khẩn cấp sau bão miền Trung',
-                'Hỗ trợ người dân vùng lũ Quảng Nam',
-                'Chung tay cứu trợ sau thiên tai Đà Nẵng',
-                'Hỗ trợ tái thiết nhà cửa sau bão',
-                'Tiếp tế nhu yếu phẩm vùng lũ',
-                'Cứu trợ khẩn cấp sau mưa lũ',
-                'Hỗ trợ người dân bị sạt lở đất',
-                'Chung tay giúp đỡ vùng thiên tai',
-                'Cứu trợ người dân sau bão lớn',
-                'Hỗ trợ khắc phục hậu quả thiên tai',
+                'Chung tay cứu trợ khẩn cấp vùng bị thiên tai',
+                'Hỗ trợ người dân vượt qua hậu quả bão lũ',
+                'Tiếp sức đồng bào vùng lũ tái thiết cuộc sống',
+                'Cứu trợ khẩn cấp cho khu vực bị ảnh hưởng nặng',
+                'Chung sức khắc phục hậu quả thiên tai',
+                'Hành trình cứu trợ đến vùng lũ khó khăn',
+                'Hỗ trợ tái thiết sau thiên tai cho người dân',
+                'Chia sẻ yêu thương đến vùng bị thiên tai',
+                'Tiếp tế khẩn cấp cho người dân vùng lũ',
+                'Đồng hành cùng người dân sau thiên tai',
             ],
             'Trẻ em' => [
-                'Tiếp sức đến trường cho trẻ em vùng cao',
-                'Mang hy vọng đến trẻ em khó khăn',
-                'Bảo vệ trẻ em có hoàn cảnh đặc biệt',
-                'Hỗ trợ dinh dưỡng cho trẻ em nghèo',
-                'Chung tay vì tương lai trẻ em',
-                'Trao học bổng cho trẻ em vượt khó',
-                'Giúp đỡ trẻ em mồ côi',
-                'Hỗ trợ chi phí học tập cho trẻ em',
-                'Xây dựng môi trường sống cho trẻ em',
-                'Chắp cánh ước mơ cho trẻ em',
+                'Vì nụ cười trẻ thơ ngày mai',
+                'Chung tay bảo vệ tuổi thơ em nhỏ',
+                'Mang yêu thương đến trẻ em vùng khó',
+                'Tiếp bước tương lai cho trẻ em nghèo',
+                'Trao yêu thương – vun đắp tuổi thơ',
+                'Hành trình vì trẻ em kém may mắn',
+                'Chắp cánh ước mơ cho em nhỏ vùng cao',
+                'Nâng đỡ tuổi thơ – thắp sáng tương lai',
+                'Đồng hành cùng trẻ em trên con đường đến trường',
+                'Vì một tuổi thơ đủ đầy và hạnh phúc',
             ],
             'Giáo dục' => [
-                'Học bổng cho học sinh nghèo vượt khó',
-                'Tiếp sức đến trường cho trẻ em vùng sâu',
-                'Xây dựng lớp học cho vùng cao',
-                'Nâng bước tri thức cho học sinh khó khăn',
-                'Trao cơ hội học tập cho trẻ em nghèo',
-                'Chắp cánh ước mơ đến trường',
-                'Hỗ trợ sách vở cho học sinh vùng xa',
-                'Đồng hành cùng học sinh nghèo hiếu học',
-                'Phát triển giáo dục vùng khó khăn',
-                'Ánh sáng tri thức cho trẻ em nghèo',
+                'Ươm mầm tri thức cho thế hệ tương lai',
+                'Chung tay xây dựng ước mơ đến trường',
+                'Tiếp bước em đến lớp mỗi ngày',
+                'Trao học bổng – gửi gắm tương lai',
+                'Vì một hành trình học tập không gián đoạn',
+                'Nâng cao tri thức cho trẻ em vùng khó',
+                'Cùng em viết tiếp giấc mơ học đường',
+                'Hỗ trợ điều kiện học tập cho học sinh nghèo',
+                'Gieo chữ – gặt tương lai',
+                'Chắp cánh tri thức cho vùng sâu vùng xa',
             ],
             'Môi trường' => [
-                'Chung tay làm sạch môi trường sống',
-                'Giảm rác thải nhựa vì tương lai xanh',
-                'Trồng cây gây rừng tại khu vực đô thị',
-                'Bảo vệ môi trường sống cho thế hệ sau',
-                'Hành động vì một Việt Nam xanh',
-                'Dọn dẹp rác thải tại khu dân cư',
-                'Phục hồi hệ sinh thái tự nhiên',
-                'Lan tỏa ý thức bảo vệ môi trường',
-                'Giữ gìn nguồn nước sạch cho cộng đồng',
-                'Chung tay bảo vệ trái đất xanh',
+                'Chung tay giảm thiểu ô nhiễm môi trường',
+                'Hành động nhỏ – thay đổi lớn cho môi trường',
+                'Vì một hành tinh xanh không rác thải',
+                'Bảo vệ thiên nhiên – bảo vệ tương lai',
+                'Lan tỏa lối sống xanh trong cộng đồng',
+                'Chung sức tái chế vì môi trường bền vững',
+                'Giữ màu xanh cho trái đất hôm nay',
+                'Hành trình xanh – vì cuộc sống trong lành',
+                'Cùng nhau kiến tạo môi trường sạch đẹp',
+                'Nói không với rác thải nhựa dùng một lần',
             ],
             'Xóa đói' => [
-                'Chung tay xóa đói giảm nghèo',
-                'Hỗ trợ lương thực cho hộ nghèo',
-                'Trao sinh kế cho người dân khó khăn',
-                'Giúp đỡ hộ nghèo vượt qua khó khăn',
-                'Hỗ trợ thực phẩm cho vùng khó khăn',
-                'Chia sẻ bữa ăn cho người nghèo',
-                'Tiếp sức cho người dân thiếu thốn',
-                'Cùng nhau vượt qua đói nghèo',
-                'Hỗ trợ cuộc sống cho hộ khó khăn',
-                'Mang no ấm đến mọi nhà',
+                'Tiếp sức sinh kế cho hộ nghèo bền vững',
+                'Chung tay mang bữa cơm ấm đến mọi nhà',
+                'Hành trình xóa đói – trao hy vọng',
+                'Nâng bước người nghèo vượt qua khó khăn',
+                'Trao cần câu – không trao con cá',
+                'Chia sẻ yêu thương đến vùng thiếu thốn',
+                'Hỗ trợ sinh kế cho người dân nghèo',
+                'Cùng nhau xây dựng cuộc sống đủ đầy',
+                'Thắp sáng niềm tin cho người nghèo',
+                'Đồng hành cùng hộ nghèo vươn lên',
             ],
             'An sinh' => [
-                'Chung tay vì cộng đồng khó khăn',
-                'Hỗ trợ người yếu thế trong xã hội',
-                'Chia sẻ yêu thương đến mọi người',
-                'Hỗ trợ người dân có hoàn cảnh khó khăn',
-                'Đồng hành cùng người già neo đơn',
-                'Giúp đỡ người khuyết tật hòa nhập',
-                'Lan tỏa yêu thương trong cộng đồng',
-                'Hỗ trợ chi phí sinh hoạt cho người nghèo',
-                'Kết nối yêu thương đến mọi nhà',
-                'Vì một xã hội tốt đẹp hơn',
+                'Chung tay nâng đỡ những mảnh đời khó khăn',
+                'Thắp sáng hy vọng cho hoàn cảnh khó khăn',
+                'Hành trình sẻ chia cùng người kém may mắn',
+                'Lan tỏa yêu thương đến những số phận khó khăn',
+                'Kết nối yêu thương – nâng bước người yếu thế',
+                'Chung sức vì cuộc sống tốt đẹp hơn cho người nghèo',
+                'Trao cơ hội – tiếp sức những mảnh đời bất hạnh',
+                'Sẻ chia hôm nay – đổi thay ngày mai',
+                'Vì một cộng đồng không ai bị bỏ lại phía sau',
+                'Chắp cánh hy vọng cho những hoàn cảnh khó khăn',
             ],
         ];
 
@@ -209,11 +209,22 @@ class ChienDichGayQuySeeder extends Seeder
             for ($i = 0; $i < 10; $i++) {
                 $location = $shuffledLocations[$index % $shuffledLocations->count()];
                 $index++;
-                // random 1–5 ảnh KHÔNG trùng
-                $selected = collect($files)->random(min(5, count($files)));
 
-                $images = collect($selected)
-                    ->map(fn($f) => $f)
+                // Tổng số ảnh trong folder
+                $totalFiles = count($files);
+
+                // Lấy ảnh đầu tiên KHÔNG TRÙNG theo index
+                $firstImage = $files[$i % $totalFiles];
+
+                // Lấy thêm 1–4 ảnh random khác (không trùng ảnh đầu)
+                $otherImages = collect($files)
+                    ->reject(fn($f) => $f === $firstImage)
+                    ->random(min(4, $totalFiles - 1));
+
+                // Merge lại → ảnh đầu tiên luôn unique theo index
+                $images = collect([$firstImage])
+                    ->merge($otherImages)
+                    ->values()
                     ->toArray();
 
                 // mục tiêu tiền

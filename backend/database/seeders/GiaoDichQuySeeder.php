@@ -28,6 +28,7 @@ class GiaoDichQuySeeder extends Seeder
 
             $rows[] = [
                 'tai_khoan_gay_quy_id' => $campaignItem->tai_khoan_gay_quy_id,
+                'chien_dich_gay_quy_id' => $campaignItem->id,
                 'ung_ho_id' => $uh->id,
                 'so_tien' => $uh->so_tien,
                 'loai_giao_dich' => 'UNG_HO',
@@ -98,10 +99,11 @@ class GiaoDichQuySeeder extends Seeder
 
                 DB::table('giao_dich_quy')->insert([
                     'tai_khoan_gay_quy_id' => $randomCampaign->tai_khoan_gay_quy_id,
+                    'chien_dich_gay_quy_id' => $randomCampaign->id,
                     'ung_ho_id' => null,
                     'so_tien' => $rut,
                     'loai_giao_dich' => 'RUT',
-                    'mo_ta' => 'RUT TIEN QUY',
+                    'mo_ta' => 'GIAI NGAN CHIEN DICH ' . $randomCampaign->ten_chien_dich,
                     'created_at' => now(),
                 ]);
 

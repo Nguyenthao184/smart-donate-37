@@ -87,7 +87,7 @@ class AuthController extends Controller
 
         Cache::put('otp_limit_' . $data['email'], true, 60);
 
-        Mail::raw("Mã OTP đăng ký của bạn là: $otp", function ($message) use ($data) {
+        Mail::send('emails.otp', ['otp' => $otp], function ($message) use ($data) {
             $message->to($data['email'])
                     ->subject('Mã xác minh đăng ký');
         });
@@ -191,8 +191,9 @@ class AuthController extends Controller
 
         Cache::put('register_' . $email, $data, now()->addMinutes(5));
 
-        Mail::raw("OTP mới của bạn là: $otp", function ($message) use ($email) {
-            $message->to($email)->subject('Gửi lại OTP');
+        Mail::send('emails.otp', ['otp' => $otp], function ($message) use ($data) {
+            $message->to($data['email'])
+                    ->subject('Mã xác minh đăng ký');
         });
 
         return response()->json(['message' => 'OTP đã được gửi lại']);
@@ -222,8 +223,9 @@ class AuthController extends Controller
         Cache::put('forgot_' . $email, $otp, now()->addMinutes(5));
         Cache::put('forgot_limit_' . $email, true, 60);
 
-        Mail::raw("Mã OTP đặt lại mật khẩu là: $otp", function ($message) use ($email) {
-            $message->to($email)->subject('Quên mật khẩu');
+        Mail::send('emails.otp', ['otp' => $otp], function ($message) use ($email) {
+            $message->to($email)
+                    ->subject('Quên mật khẩu');
         });
 
         return response()->json([
@@ -231,7 +233,7 @@ class AuthController extends Controller
         ]);
     }
 
-    public function resetPassword(ResetPasswordRequest $request)
+    public function verifyOtp(Request $request)
     {
         $email = $request->email;
         $otp = $request->otp;
@@ -244,13 +246,40 @@ class AuthController extends Controller
             ], 400);
         }
 
+        // đánh dấu đã verify OTP (cho đổi mật khẩu)
+        Cache::put('forgot_verified_' . $email, true, now()->addMinutes(5));
+
+        return response()->json([
+            'message' => 'Xác thực OTP thành công'
+        ]);
+    }
+
+    public function resetPassword(ResetPasswordRequest $request)
+    {
+        $email = $request->email;
+
+        // kiểm tra đã verify OTP chưa
+        if (!Cache::has('forgot_verified_' . $email)) {
+            return response()->json([
+                'message' => 'Vui lòng xác thực OTP trước'
+            ], 403);
+        }
+
         $user = User::where('email', $email)->first();
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'Email không tồn tại'
+            ], 404);
+        }
 
         $user->update([
             'mat_khau' => Hash::make($request->new_password)
         ]);
 
+        // xoá cache sau khi dùng
         Cache::forget('forgot_' . $email);
+        Cache::forget('forgot_verified_' . $email);
 
         return response()->json([
             'message' => 'Đặt lại mật khẩu thành công'

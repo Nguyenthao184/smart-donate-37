@@ -12,7 +12,7 @@ class UngHoSeeder extends Seeder
     public function run(): void
     {
         $users = DB::table('nguoi_dung')
-            ->whereNotIn('id', [1, 2, 3])
+            ->whereNotIn('id', [1, 2])
             ->get();
         $campaigns = DB::table('chien_dich_gay_quy')->get();
 

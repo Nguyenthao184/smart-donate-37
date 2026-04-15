@@ -9,36 +9,6 @@ class ToChucSeeder extends Seeder
 {
     public function run(): void
     {
-        $tochucUser = DB::table('nguoi_dung')
-            ->where('ten_tai_khoan', 'tochuc')
-            ->first();
-
-        if ($tochucUser) {
-            $xacMinh = DB::table('xac_minh_to_chuc')
-                ->where('nguoi_dung_id', $tochucUser->id)
-                ->where('trang_thai', 'CHAP_NHAN')
-                ->first();
-
-            if ($xacMinh) {
-                DB::table('to_chuc')->updateOrInsert(
-                    ['nguoi_dung_id' => $tochucUser->id],
-                    [
-                        'xac_minh_to_chuc_id' => $xacMinh->id,
-                        'ten_to_chuc' => $xacMinh->ten_to_chuc,
-                        'mo_ta' => $xacMinh->mo_ta,
-                        'dia_chi' => $xacMinh->dia_chi,
-                        'so_dien_thoai' => $xacMinh->so_dien_thoai,
-                        'email' => 'tochuc@gmail.com',
-                        'logo' => $xacMinh->logo ?? 'logos/default.png',
-                        'trang_thai' => 'HOAT_DONG',
-                        'diem_uy_tin' => 100,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]
-                );
-            }
-        }
-
         $xacMinhList = DB::table('xac_minh_to_chuc')
             ->where('trang_thai','CHAP_NHAN')
             ->get();
