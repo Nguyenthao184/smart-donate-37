@@ -9,36 +9,7 @@ class TaiKhoanGayQuySeeder extends Seeder
 {
     public function run(): void
     {
-        $tochuc = DB::table('to_chuc')
-            ->where('email', 'tochuc@gmail.com')
-            ->first();
-
-        if ($tochuc) {
-
-            $exists = DB::table('tai_khoan_gay_quy')
-                ->where('to_chuc_id', $tochuc->id)
-                ->exists();
-
-            if (!$exists) {
-                DB::table('tai_khoan_gay_quy')->insert([
-                    'to_chuc_id' => $tochuc->id,
-                    'ten_quy' => 'Quỹ Thiện Nguyện Test',
-                    'ngan_hang' => 'MB Bank',
-                    'so_tai_khoan' => '9999999999', // 👉 cố định
-                    'chu_tai_khoan' => 'THIEN NGUYEN TEST',
-                    'so_du' => 0,
-                    'qr_code' => 'qr_code/default.png',
-                    'trang_thai' => 'HOAT_DONG',
-                    'ma_yeu_cau_mb' => 'MB_' . rand(1000,9999),
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-            }
-        }
-
-        $orgs = DB::table('to_chuc')
-            ->where('email', '!=', 'tochuc@gmail.com')
-            ->get();
+        $orgs = DB::table('to_chuc')->get();
 
         $qrMap = [
             'Thiên tai' => 'qr_thientai.png',

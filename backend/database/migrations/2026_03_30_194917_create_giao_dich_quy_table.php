@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('giao_dich_quy', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('tai_khoan_gay_quy_id');
+            $table->unsignedBigInteger('chien_dich_gay_quy_id')->nullable();
             $table->unsignedBigInteger('ung_ho_id')->nullable();
             $table->decimal('so_tien', 15, 2);
             $table->enum('loai_giao_dich', ['UNG_HO', 'RUT']);

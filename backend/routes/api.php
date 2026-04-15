@@ -17,6 +17,7 @@ use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\TroChuyenController;
 use App\Http\Controllers\PostCommentController;
 use App\Http\Controllers\PostReportController;
+use App\Http\Controllers\DashboardController;
 
 Route::post('/register', [AuthController::class,'register']);
 Route::post('/send-otp', [AuthController::class, 'sendOtp']);
@@ -24,6 +25,7 @@ Route::post('/login', [AuthController::class,'login']);
 Route::get('/auth/google', [GoogleController::class, 'redirect']);
 Route::get('/auth/google/callback', [GoogleController::class, 'callback']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::get('/map/campaigns', [CampaignController::class, 'map']);
 
@@ -98,6 +100,9 @@ Route::middleware('auth:sanctum')->group(function(){
         Route::post('/user/profile',[UserProfileController::class,'updateProfile']);
         Route::post('/user/change-password',[UserProfileController::class,'changePassword']);
 
+        //xem profile người dùng khác
+        Route::get('/profile/{id}', [UserProfileController::class, 'show']);
+
         //đăng ký tổ chức
         Route::post('/organization/register', [OrganizationController::class, 'register']);
         Route::get('/organization/status', [OrganizationController::class, 'status']);
@@ -113,6 +118,13 @@ Route::middleware('auth:sanctum')->group(function(){
         //chiến dịch
         Route::post('/campaigns', [CampaignController::class, 'store']);
         Route::get('/campaigns/me', [CampaignController::class, 'myCampaigns']);
+
+        //thống kê
+        Route::get('/dashboard', [DashboardController::class, 'index']);
+        Route::get('/dashboard/financial-summary', [DashboardController::class, 'financialSummary']);
+        Route::get('/dashboard/monthly-statistics', [DashboardController::class, 'monthlyStatistics']);
+        Route::get('/dashboard/active-campaigns', [DashboardController::class, 'activeCampaigns']);
+        Route::get('/dashboard/recent-activities', [DashboardController::class, 'recentActivities']);
    });
 
     // Feed - user và tổ chức: đăng/cập nhật/xóa 
