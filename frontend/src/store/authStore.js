@@ -1,21 +1,35 @@
 import { create } from "zustand";
-import { getMeAPI } from "../api/authService";
+import {
+  getMeAPI,
+  forgotPasswordAPI,
+  resetPasswordAPI,
+} from "../api/authService";
 
 let mePromise = null;
 
 const useAuthStore = create((set, get) => {
-  const userFromStorage = JSON.parse(localStorage.getItem("user"));
-  const tokenFromStorage = localStorage.getItem("token");
+  const userFromStorage =
+    JSON.parse(localStorage.getItem("user")) ||
+    JSON.parse(sessionStorage.getItem("user"));
+
+  const tokenFromStorage =
+    localStorage.getItem("token") || sessionStorage.getItem("token");
+
+  const rolesFromStorage =
+    JSON.parse(localStorage.getItem("roles")) ||
+    JSON.parse(sessionStorage.getItem("roles")) ||
+    [];
 
   return {
     user: userFromStorage || null,
     token: tokenFromStorage || null,
-    roles: JSON.parse(localStorage.getItem("roles")) || [],
+    roles: rolesFromStorage,
     isFetchedMe: false,
 
     setAuth: (data) => {
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem("roles", JSON.stringify(data.roles || []));
 
       set({
         user: data.user,
@@ -38,7 +52,15 @@ const useAuthStore = create((set, get) => {
 
     applyTokenFromUrl: (token) => {
       localStorage.setItem("token", token);
-      set({ token, isFetchedMe: false });
+      localStorage.removeItem("user");
+      localStorage.removeItem("roles");
+
+      set({
+        token,
+        user: null,
+        roles: [],
+        isFetchedMe: false,
+      });
     },
 
     fetchMe: async () => {
@@ -67,10 +89,23 @@ const useAuthStore = create((set, get) => {
       return mePromise;
     },
 
+    forgotPassword: async (email) => {
+      const res = await forgotPasswordAPI({ email });
+      return res.data;
+    },
+    resetPassword: async (data) => {
+      const res = await resetPasswordAPI(data);
+      return res.data;
+    },
+
     logout: () => {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       localStorage.removeItem("roles");
+
+      sessionStorage.removeItem("token");
+      sessionStorage.removeItem("user");
+      sessionStorage.removeItem("roles");
 
       set({
         user: null,

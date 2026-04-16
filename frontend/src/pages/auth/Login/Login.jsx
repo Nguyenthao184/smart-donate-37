@@ -66,15 +66,28 @@ export default function Login() {
         password: values.password,
       });
 
-      notification.success({
-        title: "Đăng nhập thành công!",
-      });
+      const remember = values.remember;
+
+      if (remember) {
+        localStorage.setItem("token", res.data.token);
+        localStorage.setItem("user", JSON.stringify(res.data.user));
+        localStorage.setItem("roles", JSON.stringify(res.data.roles));
+      } else {
+        sessionStorage.setItem("token", res.data.token);
+        sessionStorage.setItem("user", JSON.stringify(res.data.user));
+        sessionStorage.setItem("roles", JSON.stringify(res.data.roles));
+      }
+
       setAuth(res.data);
+
+      notification.success({
+        message: "Đăng nhập thành công!",
+      });
 
       navigate("/bang-tin");
     } catch (err) {
       notification.error({
-        title: "Đăng nhập thất bại!",
+        message: "Đăng nhập thất bại!",
         description:
           err.response?.data?.message || "Sai tài khoản hoặc mật khẩu!",
       });

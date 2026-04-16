@@ -47,3 +47,15 @@ export const markAsRead = async (chatId) => {
   const res = await api.post(`/tro-chuyen/${chatId}/da-xem`);
   return res.data;
 };
+
+// thu hồi tin nhắn (POST /{id}/tin-nhan/{tinNhanId})
+export const recallMessage = async (chatId, tinNhanId) => {
+  const res = await api.post(`/tro-chuyen/${chatId}/tin-nhan/${tinNhanId}`);
+  return res.data;
+};
+ 
+// xóa hết lịch sử phía mình (DELETE /{id}/tin-nhan)
+export const deleteAllMessages = async (chatId) => {
+  const res = await api.delete(`/tro-chuyen/${chatId}/tin-nhan`);
+  return res.data;
+};

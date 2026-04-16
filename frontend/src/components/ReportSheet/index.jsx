@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { FiChevronRight, FiX, FiArrowLeft, FiCheckCircle } from "react-icons/fi";
+import {
+  FiChevronRight,
+  FiX,
+  FiArrowLeft,
+  FiCheckCircle,
+} from "react-icons/fi";
+import { notification } from "antd";
 import "./styles.scss";
 
 const REPORT_REASONS = [
@@ -82,7 +88,7 @@ const REPORT_REASONS = [
   },
 ];
 
-export default function ReportSheet({ visible, onClose }) {
+export default function ReportSheet({ visible, onClose, onSubmit, loading }) {
   const [view, setView] = useState("list"); // "list" | "detail" | "success"
   const [selected, setSelected] = useState(null);
 
@@ -99,8 +105,33 @@ export default function ReportSheet({ visible, onClose }) {
     setView("detail");
   };
 
-  const handleSubmit = () => {
-    setView("success");
+  const handleSubmit = async (subReason) => {
+    if (!onSubmit || !selected) return;
+
+    try {
+      await onSubmit({
+        ly_do: selected.key.toUpperCase(),
+        mo_ta: subReason,
+      });
+
+      setView("success");
+
+      notification.success({
+        message: "Báo cáo thành công",
+        description: "Chúng tôi đã nhận báo cáo của bạn.",
+        placement: "topRight",
+      });
+    } catch (err) {
+      console.error(err);
+
+      setView("list");
+
+      notification.error({
+        message: "Gửi báo cáo thất bại",
+        description:
+          err?.response?.data?.message || "Đã xảy ra lỗi, vui lòng thử lại.",
+      });
+    }
   };
 
   if (!visible) return null;
@@ -123,8 +154,8 @@ export default function ReportSheet({ visible, onClose }) {
               Tại sao bạn báo cáo bài đăng này?
             </div>
             <div className="report-sheet__hint">
-              Thông tin báo cáo của bạn sẽ được giữ bí mật. Nếu ai đó đang
-              gặp nguy hiểm, hãy tìm ngay sự giúp đỡ trước khi báo cáo.
+              Thông tin báo cáo của bạn sẽ được giữ bí mật. Nếu ai đó đang gặp
+              nguy hiểm, hãy tìm ngay sự giúp đỡ trước khi báo cáo.
             </div>
             <div className="report-sheet__list">
               {REPORT_REASONS.map((r, i) => (
@@ -134,7 +165,10 @@ export default function ReportSheet({ visible, onClose }) {
                     onClick={() => handleSelectReason(r)}
                   >
                     <span className="report-item__label">{r.label}</span>
-                    <FiChevronRight size={18} className="report-item__chevron" />
+                    <FiChevronRight
+                      size={18}
+                      className="report-item__chevron"
+                    />
                   </button>
                   {i < REPORT_REASONS.length - 1 && (
                     <div className="report-sheet__sep" />
@@ -165,9 +199,16 @@ export default function ReportSheet({ visible, onClose }) {
             <div className="report-sheet__list">
               {selected.subs.map((s, i) => (
                 <div key={i}>
-                  <button className="report-item" onClick={handleSubmit}>
+                  <button
+                    className="report-item"
+                    onClick={() => handleSubmit(s)}
+                    disabled={loading}
+                  >
                     <span className="report-item__label">{s}</span>
-                    <FiChevronRight size={18} className="report-item__chevron" />
+                    <FiChevronRight
+                      size={18}
+                      className="report-item__chevron"
+                    />
                   </button>
                   {i < selected.subs.length - 1 && (
                     <div className="report-sheet__sep" />
@@ -195,9 +236,9 @@ export default function ReportSheet({ visible, onClose }) {
                 Cảm ơn bạn đã báo cáo
               </div>
               <div className="report-sheet__success-desc">
-                Chúng tôi sẽ xem xét bài đăng và thực hiện các biện pháp phù
-                hợp theo quy định cộng đồng. Thông tin báo cáo của bạn được
-                bảo mật hoàn toàn.
+                Chúng tôi sẽ xem xét bài đăng và thực hiện các biện pháp phù hợp
+                theo quy định cộng đồng. Thông tin báo cáo của bạn được bảo mật
+                hoàn toàn.
               </div>
               <button className="report-sheet__done-btn" onClick={handleClose}>
                 Xong

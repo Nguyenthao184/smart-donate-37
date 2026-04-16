@@ -11,7 +11,6 @@ import {
   FiEyeOff,
   FiUserPlus,
   FiAlertTriangle,
-  FiCheckSquare,
 } from "react-icons/fi";
 import {
   FaHeart,
@@ -21,29 +20,79 @@ import {
   FaCheckCircle,
   FaRegComment,
 } from "react-icons/fa";
+import { notification } from "antd";
 import { useNavigate } from "react-router-dom";
 import { RiRobot2Line, RiSparklingLine } from "react-icons/ri";
 import PostModal from "../../components/PostModal/index";
 import ReportSheet from "../../components/ReportSheet/index";
 import { createOrGetChat } from "../../api/chatService";
+import usePostStore from "../../store/postStore";
 import useAuthStore from "../../store/authStore";
+import { formatPostTime } from "../../utils/formatTime";
 import "./styles.scss";
 
 export default function PostCard({ post, style, onDelete }) {
   const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
-  const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(post.likeCount ?? 0);
   const [expanded, setExpanded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [activePostId, setActivePostId] = useState(null);
+  const { fetchPostDetail, postDetail } = usePostStore();
   const menuRef = useRef(null);
   const { user } = useAuthStore();
+
+  const { toggleLike, reportPost } = usePostStore();
+
+  const postState = usePostStore((s) => s.posts.find((p) => p.id === post?.id));
+
+  const liked = postState?.liked;
+  const likeCount = postState?.so_luot_thich ?? 0;
+  const cmtCount = postState?.so_binh_luan ?? 0;
 
   const hasAiSuggestions = post.aiSuggestions?.length > 0;
   const isMyPost = user?.id === post.user?.id;
   const images = post.images || [];
   const imgCount = images.length;
+
+  useEffect(() => {
+    if (activePostId && activePostId !== post.id) {
+      fetchPostDetail(activePostId);
+    }
+  }, [activePostId]);
+
+  const fetchedPost = postDetail[String(activePostId)];
+  const activePost =
+    activePostId === null
+      ? null
+      : activePostId === post.id
+        ? post
+        : fetchedPost
+          ? {
+              id: fetchedPost.id,
+              type: fetchedPost.loai_bai?.toLowerCase(),
+              user: {
+                id: fetchedPost.nguoi_dung?.id,
+                name: fetchedPost.nguoi_dung?.ho_ten,
+                avatar: fetchedPost.nguoi_dung?.ho_ten?.charAt(0) || "?",
+                color: "#1890ff",
+              },
+              location: fetchedPost.dia_diem,
+              time: formatPostTime(fetchedPost.created_at),
+              title: fetchedPost.tieu_de,
+              desc: fetchedPost.mo_ta,
+              images: fetchedPost.hinh_anh_urls || [],
+              status:
+                fetchedPost.trang_thai === "CON_NHAN" ||
+                fetchedPost.trang_thai === "CON_CHO"
+                  ? "con"
+                  : "xong",
+              nguoi_dung_id: fetchedPost.nguoi_dung?.id,
+              liked: fetchedPost.da_thich ?? false,
+              so_luot_thich: fetchedPost.so_luot_thich ?? 0,
+              aiSuggestions: [],
+            }
+          : null;
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -68,12 +117,13 @@ export default function PostCard({ post, style, onDelete }) {
     }
   };
 
-  const handleLike = (e) => {
+  const handleLike = async (e) => {
     e.stopPropagation();
-    setLiked((prev) => {
-      setLikeCount((c) => (prev ? c - 1 : c + 1));
-      return !prev;
-    });
+    if (!user) {
+      notification.warning({ message: "Vui lòng đăng nhập để thích bài" });
+      return;
+    }
+    await toggleLike(post.id);
   };
 
   const handleToggleDesc = (e) => {
@@ -92,6 +142,18 @@ export default function PostCard({ post, style, onDelete }) {
     setReportOpen(true);
   };
 
+  const handleSubmitReport = async (data) => {
+    try {
+      setReportLoading(true);
+
+      await reportPost(post.id, data);
+
+      setReportOpen(false);
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
   const handleDelete = (e) => {
     e.stopPropagation();
     setMenuOpen(false);
@@ -105,7 +167,6 @@ export default function PostCard({ post, style, onDelete }) {
       <div
         className={`post-card${hasAiSuggestions ? " post-card--ai" : ""}`}
         style={style}
-        onClick={() => setOpen(true)}
       >
         {/* Header */}
         <div className="post-card__header">
@@ -138,10 +199,7 @@ export default function PostCard({ post, style, onDelete }) {
 
           {/* Nút 3 chấm */}
           <div className="post-card__more-wrap" ref={menuRef}>
-            <button
-              className="post-card__more-btn"
-              onClick={handleMenuToggle}
-            >
+            <button className="post-card__more-btn" onClick={handleMenuToggle}>
               <FiMoreVertical size={20} />
             </button>
 
@@ -231,8 +289,12 @@ export default function PostCard({ post, style, onDelete }) {
             <div
               className={`post-card__img post-card__img--${Math.min(
                 imgCount,
-                4
+                4,
               )}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                setActivePostId(post.id);
+              }}
             >
               {images.slice(0, 4).map((img, idx) => (
                 <div key={idx} className="post-card__img-item">
@@ -248,7 +310,13 @@ export default function PostCard({ post, style, onDelete }) {
           )}
 
           {/* Counts */}
-          <div className="post-card__counts-row">
+          <div
+            className="post-card__counts-row"
+            onClick={(e) => {
+              e.stopPropagation();
+              setActivePostId(post.id);
+            }}
+          >
             <span className="post-card__counts-left">
               {likeCount > 0 && (
                 <span className="post-card__count-item">
@@ -256,9 +324,9 @@ export default function PostCard({ post, style, onDelete }) {
                   {likeCount}
                 </span>
               )}
-              {post.commentCount > 0 && (
+              {cmtCount > 0 && (
                 <span className="post-card__count-item post-card__count-comment">
-                  {post.commentCount} bình luận
+                  {cmtCount} bình luận
                 </span>
               )}
             </span>
@@ -302,7 +370,7 @@ export default function PostCard({ post, style, onDelete }) {
               className="post-card__icon-btn comment"
               onClick={(e) => {
                 e.stopPropagation();
-                setOpen(true);
+                setActivePostId(post.id);
               }}
             >
               <FaRegComment size={20} />
@@ -310,10 +378,7 @@ export default function PostCard({ post, style, onDelete }) {
             </button>
 
             {!isMyPost && (
-              <button
-                className="post-card__icon-btn mess"
-                onClick={handleChat}
-              >
+              <button className="post-card__icon-btn mess" onClick={handleChat}>
                 <FiMessageCircle size={20} />
                 <span>Nhắn tin</span>
               </button>
@@ -358,7 +423,13 @@ export default function PostCard({ post, style, onDelete }) {
                       </span>
                     </div>
                   </div>
-                  <button className="post-card__ai-view-btn">
+                  <button
+                    className="post-card__ai-view-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActivePostId(sug.id);
+                    }}
+                  >
                     Xem ngay <FiChevronRight size={12} />
                   </button>
                 </div>
@@ -368,8 +439,17 @@ export default function PostCard({ post, style, onDelete }) {
         )}
       </div>
 
-      <PostModal post={post} visible={open} onClose={() => setOpen(false)} />
-      <ReportSheet visible={reportOpen} onClose={() => setReportOpen(false)} />
+      <PostModal
+        post={activePost}
+        visible={activePostId !== null}
+        onClose={() => setActivePostId(null)}
+      />
+      <ReportSheet
+        visible={reportOpen}
+        onClose={() => setReportOpen(false)}
+        onSubmit={handleSubmitReport}
+        loading={reportLoading}
+      />
     </>
   );
 }

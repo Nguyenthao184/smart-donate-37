@@ -24,6 +24,24 @@ export const registerAPI = (data) => {
   return axiosClient.post("/register", data);
 };
 
+export const sendOtpAPI = (data) => {
+  return axiosClient.post("/send-otp", data);
+};
+
+export const resendOtpAPI = (data) => {
+  return axiosClient.post("/resend-otp", data);
+};
+
+// FORGOT PASSWORD (gửi OTP)
+export const forgotPasswordAPI = (data) => {
+  return axiosClient.post("/forgot-password", data);
+};
+
+// RESET PASSWORD
+export const resetPasswordAPI = (data) => {
+  return axiosClient.post("/reset-password", data);
+};
+
 // LOGIN
 export const loginAPI = (data) => {
   return axiosClient.post("/login", data);

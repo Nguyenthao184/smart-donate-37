@@ -17,116 +17,72 @@ import {
   FaCheckCircle,
   FaRegComment,
 } from "react-icons/fa";
+import useComments from "../../hooks/useComments";
+import useAuthStore from "../../store/authStore";
+import usePostStore from "../../store/postStore";
+import { createOrGetChat } from "../../api/chatService";
+import { useNavigate } from "react-router-dom";
+import { notification, Popconfirm } from "antd";
 import { RiRobot2Line, RiSparklingLine } from "react-icons/ri";
 import "./styles.scss";
+import { formatPostTime } from "../../utils/formatTime";
 
-const MOCK_COMMENTS = [
-  {
-    id: 1,
-    user: { name: "Nguyễn Mai", avatar: "M", color: "#1890ff" },
-    text: "Bạn ơi tủ này còn không? Mình đang cần lắm!",
-    time: "2 giờ trước",
-    likes: 3,
-    liked: false,
-    replies: [
-      {
-        id: 11,
-        user: { name: "Anh Tú", avatar: "A", color: "#fa8c16" },
-        text: "Còn bạn nhé! Bạn nhắn tin cho mình để hẹn qua lấy nha 😊",
-        time: "1 giờ trước",
-        likes: 1,
-        liked: false,
-        isOwner: true,
-      },
-      {
-        id: 12,
-        user: { name: "Nguyễn Mai", avatar: "M", color: "#1890ff" },
-        text: "Cảm ơn bạn nhiều nhé, mình nhắn tin liền!",
-        time: "58 phút trước",
-        likes: 0,
-        liked: false,
-      },
-    ],
-  },
-  {
-    id: 2,
-    user: { name: "Trần Hùng", avatar: "H", color: "#52c41a" },
-    text: "Tủ có bị mọt không bạn? Nhà mình hay bị mọt lắm nên sợ.",
-    time: "3 giờ trước",
-    likes: 1,
-    liked: false,
-    replies: [
-      {
-        id: 21,
-        user: { name: "Anh Tú", avatar: "A", color: "#fa8c16" },
-        text: "Không có mọt bạn ơi, gỗ còn chắc lắm. Mình dùng 5 năm nên biết rõ 😄",
-        time: "2 giờ trước",
-        likes: 2,
-        liked: false,
-        isOwner: true,
-      },
-    ],
-  },
-  {
-    id: 3,
-    user: { name: "Lê Thảo", avatar: "T", color: "#722ed1" },
-    text: "Bạn ở quận mấy vậy? Mình ở quận 7 không biết có xa không.",
-    time: "4 giờ trước",
-    likes: 0,
-    liked: false,
-    replies: [],
-  },
-  {
-    id: 4,
-    user: { name: "Phạm Khoa", avatar: "K", color: "#eb2f96" },
-    text: "Tủ kích thước bao nhiêu bạn ơi? Nhà mình phòng nhỏ sợ không vừa.",
-    time: "5 giờ trước",
-    likes: 2,
-    liked: false,
-    replies: [],
-  },
-];
+function CommentBubble({
+  comment,
+  onReply,
+  onDelete,
+  isReply = false,
+  postOwnerId,
+}) {
+  const { user } = useAuthStore();
 
-function CommentBubble({ comment, onLike, onReply, isReply = false }) {
+  const canDelete =
+    user?.id === comment.nguoi_dung?.id || user?.id === postOwnerId;
+
   return (
     <div className={`pdc__comment${isReply ? " pdc__comment--reply" : ""}`}>
-      <div
-        className="pdc__comment-avatar"
-        style={{ background: comment.user.color }}
-      >
-        {comment.user.avatar}
+      <div className="pdc__comment-avatar">
+        {comment.nguoi_dung?.avatar_url ? (
+          <img src={comment.nguoi_dung.avatar_url} alt="avatar" />
+        ) : (
+          (comment.nguoi_dung?.ho_ten?.[0]?.toUpperCase() ?? "?")
+        )}
       </div>
       <div className="pdc__comment-right">
         <div className="pdc__comment-bubble">
           <span className="pdc__comment-name">
-            {comment.user.name}
+            {comment.nguoi_dung?.ho_ten}
             {comment.isOwner && (
               <span className="pdc__comment-owner-badge">Tác giả</span>
             )}
           </span>
-          <span className="pdc__comment-text">{comment.text}</span>
-          {comment.likes > 0 && (
-            <div className="pdc__comment-like-count">
-              <FaHeart size={10} />
-              {comment.likes}
-            </div>
-          )}
+          <span className="pdc__comment-text">{comment.noi_dung}</span>
         </div>
         <div className="pdc__comment-actions">
-          <span className="pdc__comment-time">{comment.time}</span>
-          <button
-            className={`pdc__comment-action-btn${comment.liked ? " pdc__comment-action-btn--liked" : ""}`}
-            onClick={() => onLike(comment.id)}
-          >
-            {comment.liked ? "Đã thích" : "Thích"}
-          </button>
+          <span className="pdc__comment-time">
+            {formatPostTime(comment.created_at)}
+          </span>
           {!isReply && (
             <button
               className="pdc__comment-action-btn"
-              onClick={() => onReply(comment.id, comment.user.name)}
+              onClick={() => onReply(comment.id, comment.nguoi_dung?.ho_ten)}
             >
               Phản hồi
             </button>
+          )}
+          {canDelete && (
+            <Popconfirm
+              title="Bạn chắc chắn muốn xóa bình luận này?"
+              onConfirm={() => onDelete(comment.id)}
+              okText="Xóa"
+              cancelText="Hủy"
+              okButtonProps={{ danger: true }}
+              getPopupContainer={(trigger) => trigger.closest(".pdc")}
+            >
+              <button className="pdc__comment-action-btn pdc__comment-action-btn--delete">
+                Xóa
+              </button>
+            </Popconfirm>
           )}
         </div>
       </div>
@@ -135,12 +91,32 @@ function CommentBubble({ comment, onLike, onReply, isReply = false }) {
 }
 
 export default function PostDetailModal({ post, visible, onClose }) {
-  const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(post?.likeCount ?? 0);
-  const [comments, setComments] = useState(MOCK_COMMENTS);
+  const { toggleLike, posts, postDetail  } = usePostStore();
+  const postFromStore = posts.find((p) => p.id === post?.id);
+  const postFromDetail = postDetail[String(post?.id)];
+  const liked =
+    postFromStore?.liked ?? postFromDetail?.liked ?? post?.liked ?? false;
+  const likeCount =
+    postFromStore?.so_luot_thich ??
+    postFromDetail?.so_luot_thich ??
+    post?.so_luot_thich ??
+    0;
+  const cmtCount =
+    postFromStore?.so_binh_luan ??
+    postFromDetail?.so_binh_luan ??
+    post?.so_binh_luan ??
+    0;
   const [commentText, setCommentText] = useState("");
   const [replyingTo, setReplyingTo] = useState(null);
   const [expandedReplies, setExpandedReplies] = useState({});
+  const [activeImageIndex, setActiveImageIndex] = useState(null);
+  const { user } = useAuthStore();
+  const navigate = useNavigate();
+  const {
+    comments: postComments,
+    createComment,
+    deleteComment,
+  } = useComments(post?.id);
 
   useEffect(() => {
     if (!visible) return;
@@ -172,39 +148,8 @@ export default function PostDetailModal({ post, visible, onClose }) {
     return "pdc__images--grid";
   };
 
-  const handleLikePost = () => {
-    setLiked((prev) => {
-      setLikeCount((c) => (prev ? c - 1 : c + 1));
-      return !prev;
-    });
-  };
-
-  const handleLikeComment = (commentId, parentId = null) => {
-    setComments((prev) =>
-      prev.map((c) => {
-        if (parentId) {
-          if (c.id !== parentId) return c;
-          return {
-            ...c,
-            replies: c.replies.map((r) =>
-              r.id === commentId
-                ? {
-                    ...r,
-                    liked: !r.liked,
-                    likes: r.liked ? r.likes - 1 : r.likes + 1,
-                  }
-                : r,
-            ),
-          };
-        }
-        if (c.id !== commentId) return c;
-        return {
-          ...c,
-          liked: !c.liked,
-          likes: c.liked ? c.likes - 1 : c.likes + 1,
-        };
-      }),
-    );
+  const handleLikePost = async () => {
+    await toggleLike(post.id);
   };
 
   const handleReply = (commentId, userName) => {
@@ -219,32 +164,53 @@ export default function PostDetailModal({ post, visible, onClose }) {
     setCommentText("");
   };
 
-  const handleSubmit = () => {
+  // Thêm handler
+  const handleDeleteComment = async (commentId) => {
+    try {
+      await deleteComment(commentId, post?.id);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  const handleSubmit = async () => {
     const text = commentText.trim();
     if (!text) return;
-    const newComment = {
-      id: Date.now(),
-      user: { name: "Bạn", avatar: "B", color: "#1890ff" },
-      text,
-      time: "Vừa xong",
-      likes: 0,
-      liked: false,
-      replies: [],
-    };
-    if (replyingTo) {
-      setComments((prev) =>
-        prev.map((c) =>
-          c.id === replyingTo.id
-            ? { ...c, replies: [...c.replies, { ...newComment }] }
-            : c,
-        ),
-      );
-      setExpandedReplies((prev) => ({ ...prev, [replyingTo.id]: true }));
-    } else {
-      setComments((prev) => [newComment, ...prev]);
+    try {
+      await createComment({
+        noi_dung: text,
+        id_cha: replyingTo?.id || null,
+      });
+      setCommentText("");
+      setReplyingTo(null);
+      setTimeout(() => {
+        document.getElementById("last-comment")?.scrollIntoView();
+      }, 100);
+    } catch (error) {
+      console.log(error);
     }
-    setCommentText("");
-    setReplyingTo(null);
+  };
+
+  const handleChat = async (e) => {
+    e.stopPropagation();
+    try {
+      const receiverId = post?.user?.id ?? post?.nguoi_dung_id ?? post?.user_id;
+
+      if (!receiverId) return;
+
+      const res = await createOrGetChat(receiverId);
+
+      const chatId = res?.data?.cuoc_tro_chuyen_id ?? res?.cuoc_tro_chuyen_id;
+
+      if (chatId) {
+        navigate(`/chat?cid=${chatId}`);
+      }
+    } catch {
+      notification.error({
+        message: "Lỗi chat",
+        description: "Không thể tạo cuộc trò chuyện",
+      });
+    }
   };
 
   const toggleReplies = (commentId) => {
@@ -257,7 +223,6 @@ export default function PostDetailModal({ post, visible, onClose }) {
         className={`pdc${hasAiSuggestions ? " pdc--ai" : ""}`}
         onClick={(e) => e.stopPropagation()}
       >
-
         <button className="pdc__close-btn" onClick={onClose}>
           <FiX size={20} />
         </button>
@@ -284,6 +249,51 @@ export default function PostDetailModal({ post, visible, onClose }) {
                   </span>
                 </div>
               </div>
+            </div>
+
+            <h2 className="pdc__title">{post.title}</h2>
+            <p className="pdc__desc">{post.desc}</p>
+
+            {images.length > 0 && (
+              <div
+                className={`pdc__images ${getImageGridClass(images.length)}`}
+              >
+                {images.slice(0, 4).map((src, i) => (
+                  <div
+                    key={i}
+                    className={`pdc__image-item${images.length === 3 && i === 0 ? " pdc__image-item--large" : ""}`}
+                  >
+                    <img
+                      src={src}
+                      alt={`Ảnh ${i + 1}`}
+                      onClick={() => setActiveImageIndex(i)}
+                      style={{ cursor: "pointer" }}
+                    />
+                    {images.length > 4 && i === 3 && (
+                      <div className="pdc__image-more">
+                        +{images.length - 4}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Counts */}
+            <div className="pdc__counts">
+              <div className="pdc__counts-row">
+                {likeCount > 0 && (
+                  <span className="pdc__count-item">
+                    <FaHeart size={13} className="pdc__count-heart" />
+                    {likeCount}
+                  </span>
+                )}
+                {cmtCount > 0 && (
+                  <span className="pdc__count-item pdc__count-comment">
+                    {cmtCount} bình luận
+                  </span>
+                )}
+              </div>
               <span
                 className={`pdc__status-tag pdc__status-tag--${post.status}`}
               >
@@ -308,44 +318,6 @@ export default function PostDetailModal({ post, visible, onClose }) {
               </span>
             </div>
 
-            <h2 className="pdc__title">{post.title}</h2>
-            <p className="pdc__desc">{post.desc}</p>
-
-            {images.length > 0 && (
-              <div
-                className={`pdc__images ${getImageGridClass(images.length)}`}
-              >
-                {images.slice(0, 4).map((src, i) => (
-                  <div
-                    key={i}
-                    className={`pdc__image-item${images.length === 3 && i === 0 ? " pdc__image-item--large" : ""}`}
-                  >
-                    <img src={src} alt={`Ảnh ${i + 1}`} />
-                    {images.length > 4 && i === 3 && (
-                      <div className="pdc__image-more">
-                        +{images.length - 4}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Counts */}
-            <div className="pdc__counts-row">
-              {likeCount > 0 && (
-                <span className="pdc__count-item">
-                  <FaHeart size={13} className="pdc__count-heart" />
-                  {likeCount}
-                </span>
-              )}
-              {comments.length > 0 && (
-                <span className="pdc__count-item pdc__count-comment">
-                  {comments.length} bình luận
-                </span>
-              )}
-            </div>
-
             {/* 4 action buttons */}
             <div className="pdc__actions-row">
               <button
@@ -359,7 +331,10 @@ export default function PostDetailModal({ post, visible, onClose }) {
                 <FaRegComment size={19} />
                 <span>Bình luận</span>
               </button>
-              <button className="pdc__action-btn pdc__action-btn--mess">
+              <button
+                className="pdc__action-btn pdc__action-btn--mess"
+                onClick={handleChat}
+              >
                 <FiMessageCircle size={19} />
                 <span>Nhắn tin</span>
               </button>
@@ -416,12 +391,13 @@ export default function PostDetailModal({ post, visible, onClose }) {
           {/* Comments */}
           <div className="pdc__comments-area">
             <div className="pdc__comments-list">
-              {comments.map((comment) => (
+              {postComments.map((comment) => (
                 <div key={comment.id} className="pdc__comment-thread">
                   <CommentBubble
                     comment={comment}
-                    onLike={(id) => handleLikeComment(id)}
                     onReply={handleReply}
+                    onDelete={handleDeleteComment}
+                    postOwnerId={post?.nguoi_dung_id}
                   />
                   {comment.replies.length > 0 && (
                     <div className="pdc__replies-wrap">
@@ -440,8 +416,9 @@ export default function PostDetailModal({ post, visible, onClose }) {
                             <CommentBubble
                               key={reply.id}
                               comment={reply}
-                              onLike={(id) => handleLikeComment(id, comment.id)}
                               onReply={handleReply}
+                              onDelete={handleDeleteComment}
+                              postOwnerId={post?.nguoi_dung_id}
                               isReply
                             />
                           ))}
@@ -471,7 +448,9 @@ export default function PostDetailModal({ post, visible, onClose }) {
               </div>
             )}
             <div className="pdc__comment-input-row">
-              <div className="pdc__me-avatar">B</div>
+              <div className="pdc__me-avatar">
+                {user?.ho_ten?.[0]?.toUpperCase() ?? "?"}
+              </div>
               <input
                 id="pdc-comment-input"
                 className="pdc__comment-input"
@@ -500,6 +479,49 @@ export default function PostDetailModal({ post, visible, onClose }) {
           </div>
         </div>
       </div>
+      {activeImageIndex !== null && (
+        <div
+          className="pdc__lightbox"
+          onClick={() => setActiveImageIndex(null)}
+        >
+          <button
+            className="pdc__lightbox-close"
+            onClick={() => setActiveImageIndex(null)}
+          >
+            <FiX />
+          </button>
+
+          <button
+            className="pdc__lightbox-prev"
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveImageIndex((prev) =>
+                prev > 0 ? prev - 1 : images.length - 1,
+              );
+            }}
+          >
+            ‹
+          </button>
+
+          <img
+            src={images[activeImageIndex]}
+            alt="preview"
+            onClick={(e) => e.stopPropagation()}
+          />
+
+          <button
+            className="pdc__lightbox-next"
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveImageIndex((prev) =>
+                prev < images.length - 1 ? prev + 1 : 0,
+              );
+            }}
+          >
+            ›
+          </button>
+        </div>
+      )}
     </div>,
     document.body,
   );

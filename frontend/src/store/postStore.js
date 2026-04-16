@@ -6,6 +6,11 @@ import {
   updatePost,
   deletePost,
   getPostMatches,
+  toggleLikePost,
+  getPostComments,
+  createPostComment,
+  deletePostComment,
+  reportPost,
 } from "../api/postService";
 
 let currentPage = 1;
@@ -19,6 +24,8 @@ const usePostStore = create((set, get) => ({
   loadingMatches: null,
   loading: false,
   hasMore: true,
+  comments: {}, // key: postId
+  loadingComments: null,
 
   fetchPosts: async (params = {}, loadMore = false) => {
     const key = JSON.stringify(params);
@@ -38,14 +45,15 @@ const usePostStore = create((set, get) => ({
     try {
       const res = await getPosts({ ...params, page });
 
-      const newPosts = res?.data?.data || [];
+      const newPosts = (res?.data?.data || []).map((p) => ({
+        ...p,
+        liked: p.da_thich ?? false,
+      }));
 
       currentPage = page;
 
       set({
-        posts: loadMore
-          ? [...get().posts, ...newPosts] // 👈 nối thêm
-          : newPosts,
+        posts: loadMore ? [...get().posts, ...newPosts] : newPosts,
         loading: false,
         hasMore: !!res?.data?.next_page_url,
       });
@@ -70,11 +78,12 @@ const usePostStore = create((set, get) => ({
         const res = await getPostDetail(id);
 
         const data = res?.data || null;
+        const mapped = data ? { ...data, liked: data.da_thich ?? false } : null;
 
         set({
           postDetail: {
             ...get().postDetail,
-            [sid]: data,
+            [sid]: mapped,
           },
         });
 
@@ -173,6 +182,166 @@ const usePostStore = create((set, get) => ({
 
       set({ loadingMatches: null });
       return [];
+    }
+  },
+
+  toggleLike: async (postId) => {
+    try {
+      const res = await toggleLikePost(postId);
+      const { liked, so_luot_thich } = res?.data || {};
+
+      const sid = String(postId);
+      set((state) => ({
+        // Cập nhật trong posts list (feed)
+        posts: state.posts.map((p) =>
+          p.id === postId ? { ...p, liked, so_luot_thich } : p,
+        ),
+        // Cập nhật trong postDetail (AI suggestion hoặc bài xem riêng)
+        postDetail: state.postDetail[sid]
+          ? {
+              ...state.postDetail,
+              [sid]: { ...state.postDetail[sid], liked, so_luot_thich },
+            }
+          : state.postDetail,
+      }));
+
+      return res;
+    } catch (err) {
+      console.error("Lỗi like:", err);
+      return null;
+    }
+  },
+  fetchComments: async (postId) => {
+    const key = String(postId);
+
+    set({ loadingComments: key });
+
+    try {
+      const res = await getPostComments(postId);
+
+      const raw = res?.data?.data || [];
+
+      set({
+        comments: {
+          ...get().comments,
+          [key]: { list: raw },
+        },
+        loadingComments: null,
+      });
+    } catch (err) {
+      console.error(err);
+      set({ loadingComments: null });
+      return [];
+    }
+  },
+  createComment: async (postId, payload) => {
+    try {
+      const res = await createPostComment(postId, payload);
+      const newCmt = res?.data;
+
+      const key = String(postId);
+
+      set((state) => {
+        const old = state.comments[key]?.list || [];
+        const parentId = payload?.id_cha ?? null;
+
+        if (!parentId) {
+          return {
+            comments: {
+              ...state.comments,
+              [key]: { list: [...old, { ...newCmt, replies: [] }] },
+            },
+          };
+        }
+
+        const updated = old.map((c) => {
+          if (c.id === parentId) {
+            return {
+              ...c,
+              replies: [...(c.replies || []), newCmt],
+            };
+          }
+          return c;
+        });
+
+        return {
+          comments: {
+            ...state.comments,
+            [key]: { list: updated },
+          },
+        };
+      });
+
+      set((state) => ({
+        posts: state.posts.map((p) =>
+          p.id === postId
+            ? { ...p, so_binh_luan: (p.so_binh_luan ?? 0) + 1 }
+            : p,
+        ),
+      }));
+
+      return res;
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
+  },
+
+  deleteComment: async (commentId, postId) => {
+    try {
+      await deletePostComment(commentId);
+
+      const key = String(postId);
+
+      set((state) => {
+        const old = state.comments[key]?.list || [];
+
+        const target = old.find((c) => c.id === commentId);
+        const deleteCount = target ? 1 + (target.replies?.length ?? 0) : 1;
+
+        const updated = old
+          .map((c) => {
+            if (c.id === commentId) return null; // xóa comment cha
+            const newReplies = (c.replies || []).filter(
+              (r) => r.id !== commentId,
+            );
+            return { ...c, replies: newReplies };
+          })
+          .filter(Boolean);
+
+        return {
+          comments: {
+            ...state.comments,
+            [key]: { list: updated },
+          },
+          posts: state.posts.map((p) =>
+            p.id === postId
+              ? {
+                  ...p,
+                  so_binh_luan: Math.max(
+                    0,
+                    (p.so_binh_luan ?? 0) - deleteCount,
+                  ),
+                }
+              : p,
+          ),
+        };
+      });
+
+      return true;
+    } catch (err) {
+      console.error(err);
+      return false;
+    }
+  },
+
+  reportPost: async (postId, payload) => {
+    try {
+      const res = await reportPost(postId, payload);
+      return res;
+    } catch (err) {
+      console.error("Lỗi report:", err);
+      throw err;
     }
   },
 }));

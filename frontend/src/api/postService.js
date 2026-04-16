@@ -1,4 +1,4 @@
-import api from "./authService"; 
+import api from "./authService";
 
 // lấy danh sách bài đăng (có filter)
 export const getPosts = async (params = {}) => {
@@ -41,5 +41,33 @@ export const deletePost = async (id) => {
 // AI matching
 export const getPostMatches = async (id) => {
   const res = await api.get(`/posts/${id}/matches`);
+  return res.data;
+};
+
+// ===== LIKE =====
+export const toggleLikePost = async (id) => {
+  const res = await api.post(`/posts/${id}/like`);
+  return res.data;
+};
+
+// ===== COMMENTS =====
+export const getPostComments = async (id, params = {}) => {
+  const res = await api.get(`/posts/${id}/comments`, { params });
+  return res.data;
+};
+
+export const createPostComment = async (id, data) => {
+  const res = await api.post(`/posts/${id}/comments`, data);
+  return res.data;
+};
+
+export const deletePostComment = async (id) => {
+  const res = await api.post(`/comments/${id}`); // ⚠️ do BE đang dùng POST
+  return res.data;
+};
+
+// ===== REPORT =====
+export const reportPost = async (id, data) => {
+  const res = await api.post(`/posts/${id}/report`, data);
   return res.data;
 };
