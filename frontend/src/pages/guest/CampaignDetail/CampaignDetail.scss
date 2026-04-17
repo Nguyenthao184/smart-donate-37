@@ -79,9 +79,9 @@
     img {
       width: 100%;
       height: 100%;
-      object-fit: cover; // fit ảnh vừa khung, không méo
-      transition: transform 0.3s ease; // hover scale mượt
-      border-radius: 18px; // bo góc đồng bộ với khung main
+      object-fit: cover; 
+      transition: transform 0.3s ease; 
+      border-radius: 18px; 
     }
 
     &:hover img {
@@ -96,12 +96,12 @@
   &__thumbs {
     display: flex;
     gap: 10px;
-    overflow-x: auto; // nếu quá nhiều thumbnail, scroll ngang
+    overflow-x: auto; 
     padding-bottom: 4px;
   }
 
   &__thumb {
-    flex: 0 0 80px; // thumbnail cố định width
+    flex: 0 0 80px; 
     height: 80px;
     border-radius: 12px;
     border: 2px solid transparent;
@@ -491,7 +491,6 @@
   flex-direction: column;
   gap: 16px;
 
-  // Decorative blobs
   &__blob {
     position: absolute;
     border-radius: 50%;

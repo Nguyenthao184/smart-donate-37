@@ -165,7 +165,7 @@ export default function RegisterOrg({ onClose }) {
       await registerOrganization({
         ...form,
         giay_phep: file,
-        logo: logo || undefined, // ← optional
+        logo: logo || undefined
       });
       notification.success({
         message: "Đăng ký thành công! Vui lòng chờ admin duyệt.",

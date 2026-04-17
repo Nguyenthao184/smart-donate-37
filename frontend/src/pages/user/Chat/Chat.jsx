@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { FiImage, FiVideo, FiX } from "react-icons/fi";
-import { HiDotsHorizontal } from "react-icons/hi";
+import { FiImage, FiVideo, FiX, FiMoreVertical } from "react-icons/fi";
 import { Popconfirm } from "antd";
 import { BASE_URL } from "../../../api/config";
 import Header from "../../../components/Header/index.jsx";
@@ -18,15 +17,15 @@ export default function ChatPage() {
   };
 
   const navigate = useNavigate();
-  const {
-    chats,
-    messages,
-    fetchMessages,
-    sendMessage,
-    markAsRead,
-    recallMessage,
-    deleteAllMessages,
-  } = useChatStore();
+
+  const chats = useChatStore((s) => s.chats);
+  const messages = useChatStore((s) => s.messages);
+  const pendingChat = useChatStore((s) => s.pendingChat);
+  const fetchMessages = useChatStore((s) => s.fetchMessages);
+  const sendMessage = useChatStore((s) => s.sendMessage);
+  const markAsRead = useChatStore((s) => s.markAsRead);
+  const recallMessage = useChatStore((s) => s.recallMessage);
+  const deleteAllMessages = useChatStore((s) => s.deleteAllMessages);
   const setActiveChatId = useChatStore((s) => s.setActiveChatId);
 
   const [searchParams] = useSearchParams();
@@ -40,10 +39,8 @@ export default function ChatPage() {
   const [search, setSearch] = useState("");
   const [showSidebar, setShowSidebar] = useState(true);
 
-  // ✅ Track hover state cho sidebar items và message bubbles
   const [hoveredConvId, setHoveredConvId] = useState(null);
   const [hoveredMsgId, setHoveredMsgId] = useState(null);
-  // ✅ Track menu đang mở (để không bị đóng khi hover ra ngoài)
   const [openConvMenuId, setOpenConvMenuId] = useState(null);
   const [openMsgMenuId, setOpenMsgMenuId] = useState(null);
 
@@ -53,13 +50,30 @@ export default function ChatPage() {
   const typingHideTimerRef = useRef(null);
   const whisperCooldownRef = useRef(0);
   const channelRef = useRef(null);
+
   const myUserId = useAuthStore((s) => Number(s.user?.id || 0));
 
-  const activeChat = chats.find((c) => c.cuoc_tro_chuyen_id === activeChatId);
+  const displayChats = useMemo(() => {
+    if (!pendingChat) return chats;
+    const alreadyReal = chats.some(
+      (c) => c.cuoc_tro_chuyen_id === pendingChat.cuoc_tro_chuyen_id,
+    );
+    if (alreadyReal) return chats;
+    return [pendingChat, ...chats];
+  }, [chats, pendingChat]);
 
-  const chatMessages = useMemo(() => {
-    return messages[activeChatId] || [];
-  }, [messages, activeChatId]);
+  const filteredConvs = displayChats.filter((c) =>
+    c.nguoi_kia?.ho_ten?.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  const activeChat = displayChats.find(
+    (c) => c.cuoc_tro_chuyen_id === activeChatId,
+  );
+
+  const chatMessages = useMemo(
+    () => messages[activeChatId] || [],
+    [messages, activeChatId],
+  );
 
   const selectedFileType = useMemo(() => {
     if (!selectedFile) return null;
@@ -79,9 +93,6 @@ export default function ChatPage() {
     };
   }, [selectedFilePreviewUrl]);
 
-  useEffect(() => {
-    return () => setActiveChatId(null);
-  }, []);
 
   useEffect(() => {
     if (!activeChatId) {
@@ -89,6 +100,10 @@ export default function ChatPage() {
       return;
     }
     setActiveChatId(activeChatId);
+
+    const isPending = pendingChat?.cuoc_tro_chuyen_id === activeChatId;
+    if (isPending) return;
+
     const load = async () => {
       await fetchMessages(activeChatId);
       await markAsRead(activeChatId);
@@ -96,11 +111,11 @@ export default function ChatPage() {
     void load();
   }, [activeChatId]);
 
-  // Typing indicator
   useEffect(() => {
     if (!activeChatId) return;
     const channel = echo.private(`cuoc-tro-chuyen.${activeChatId}`);
     channelRef.current = channel;
+
     channel.listenForWhisper("typing", (payload) => {
       const senderId = Number(payload?.user_id || 0);
       if (!senderId || senderId === myUserId) return;
@@ -111,6 +126,7 @@ export default function ChatPage() {
         1500,
       );
     });
+
     return () => {
       channelRef.current = null;
       setIsOtherTyping(false);
@@ -127,7 +143,6 @@ export default function ChatPage() {
     scrollToBottom();
   }, [chatMessages, scrollToBottom]);
 
-  // Đóng menu khi click ra ngoài
   useEffect(() => {
     const handleClickOutside = () => {
       setOpenConvMenuId(null);
@@ -140,11 +155,19 @@ export default function ChatPage() {
   const handleSelectChat = async (conv) => {
     const chatId = conv.cuoc_tro_chuyen_id;
     if (activeChatId === chatId) return;
+
     navigate(`/chat?cid=${chatId}`, { replace: true });
+
+    if (conv._isPending) {
+      if (window.innerWidth <= 768) setShowSidebar(false);
+      return;
+    }
+
     if (!messages[chatId]) {
       await fetchMessages(chatId);
     }
     await markAsRead(chatId);
+
     if (window.innerWidth <= 768) setShowSidebar(false);
   };
 
@@ -201,10 +224,6 @@ export default function ChatPage() {
     await recallMessage(chatId, msgId);
   };
 
-  const filteredConvs = chats.filter((c) =>
-    c.nguoi_kia?.ho_ten?.toLowerCase().includes(search.toLowerCase()),
-  );
-
   return (
     <>
       <Header />
@@ -242,13 +261,15 @@ export default function ChatPage() {
           <div className="chat-sidebar__list">
             {filteredConvs.map((conv) => {
               const chatId = conv.cuoc_tro_chuyen_id;
+              const isActive = activeChatId === chatId;
               const isHovered = hoveredConvId === chatId;
               const isMenuOpen = openConvMenuId === chatId;
+              const isPending = !!conv._isPending;
 
               return (
                 <div
                   key={chatId}
-                  className={`chat-conv ${activeChatId === chatId ? "chat-conv--active" : ""}`}
+                  className={`chat-conv${isActive ? " chat-conv--active" : ""}${isPending ? " chat-conv--pending" : ""}`}
                   onClick={() => handleSelectChat(conv)}
                   onMouseEnter={() => setHoveredConvId(chatId)}
                   onMouseLeave={() => {
@@ -278,6 +299,9 @@ export default function ChatPage() {
                     <div className="chat-conv__top">
                       <span className="chat-conv__name">
                         {conv.nguoi_kia?.ho_ten}
+                        {isPending && (
+                          <span className="chat-conv__pending-badge">Mới</span>
+                        )}
                       </span>
                       <span className="chat-conv__time">
                         {conv.tin_nhan_cuoi?.created_at
@@ -291,20 +315,23 @@ export default function ChatPage() {
                       </span>
                     </div>
                     <p
-                      className={`chat-conv__msg ${conv.unread_count > 0 ? "chat-conv__msg--unread" : ""}`}
+                      className={`chat-conv__msg${conv.unread_count > 0 ? " chat-conv__msg--unread" : ""}`}
                     >
-                      {conv.tin_nhan_cuoi
-                        ? `${Number(conv.tin_nhan_cuoi.nguoi_gui_id) === myUserId ? "Bạn: " : ""}${conv.tin_nhan_cuoi.preview || conv.tin_nhan_cuoi.noi_dung || ""}`
-                        : "Chưa có tin nhắn"}
+                      {isPending
+                        ? "Bắt đầu cuộc trò chuyện..."
+                        : conv.tin_nhan_cuoi
+                          ? `${Number(conv.tin_nhan_cuoi.nguoi_gui_id) === myUserId ? "Bạn: " : ""}${conv.tin_nhan_cuoi.preview || conv.tin_nhan_cuoi.noi_dung || ""}`
+                          : "Chưa có tin nhắn"}
                     </p>
                   </div>
 
+                  {/* Unread badge — ẩn khi hover hoặc menu mở */}
                   {conv.unread_count > 0 && !isHovered && !isMenuOpen && (
                     <span className="chat-conv__unread" />
                   )}
 
-                  {/* ✅ Nút 3 chấm — hiện khi hover hoặc menu đang mở */}
-                  {(isHovered || isMenuOpen) && (
+                  {/* Nút 3 chấm — chỉ hiện với cuộc thật (không pending) */}
+                  {!isPending && (isHovered || isMenuOpen) && (
                     <button
                       className="chat-conv__dots"
                       onClick={(e) => {
@@ -314,11 +341,11 @@ export default function ChatPage() {
                       }}
                       title="Tuỳ chọn"
                     >
-                      <HiDotsHorizontal size={16} />
+                      <FiMoreVertical size={16} />
                     </button>
                   )}
 
-                  {/* ✅ Dropdown menu xóa hết */}
+                  {/* Dropdown menu */}
                   {isMenuOpen && (
                     <div
                       className="chat-conv__menu"
@@ -354,7 +381,7 @@ export default function ChatPage() {
 
         {/* ── Main ── */}
         <div
-          className={`chat-main ${!showSidebar ? "" : "chat-main--hidden-mobile"}`}
+          className={`chat-main${!showSidebar ? "" : " chat-main--hidden-mobile"}`}
         >
           {activeChatId ? (
             <>
@@ -382,8 +409,7 @@ export default function ChatPage() {
                   )}
                   <div>
                     <div className="chat-main__name">
-                      {activeChat?.nguoi_kia?.ho_ten ||
-                        "Đang tải cuộc trò chuyện..."}
+                      {activeChat?.nguoi_kia?.ho_ten || "Đang tải..."}
                     </div>
                   </div>
                 </div>
@@ -391,6 +417,18 @@ export default function ChatPage() {
 
               {/* Messages */}
               <div className="chat-main__messages">
+                {/* Pending: chưa có tin nhắn nào */}
+                {pendingChat?.cuoc_tro_chuyen_id === activeChatId &&
+                  chatMessages.length === 0 && (
+                    <div className="chat-main__pending-hint">
+                      <span>👋</span>
+                      <p>
+                        Hãy gửi tin nhắn đầu tiên đến{" "}
+                        <strong>{activeChat?.nguoi_kia?.ho_ten}</strong>
+                      </p>
+                    </div>
+                  )}
+
                 {chatMessages.map((msg) => {
                   const isMe = Number(msg.nguoi_gui_id) === myUserId;
                   const isHoveredMsg = hoveredMsgId === msg.id;
@@ -399,14 +437,14 @@ export default function ChatPage() {
                   return (
                     <div
                       key={msg.id}
-                      className={`chat-msg ${isMe ? "chat-msg--me" : "chat-msg--them"}`}
+                      className={`chat-msg${isMe ? " chat-msg--me" : " chat-msg--them"}`}
                       onMouseEnter={() => setHoveredMsgId(msg.id)}
                       onMouseLeave={() => {
                         if (openMsgMenuId !== msg.id) setHoveredMsgId(null);
                       }}
                       style={{ position: "relative" }}
                     >
-                      {/* ✅ Nút 3 chấm trên bubble của mình — chỉ hiện khi chưa thu hồi */}
+                      {/* Nút 3 chấm trên bubble của mình */}
                       {isMe &&
                         !msg.da_thu_hoi &&
                         (isHoveredMsg || isMsgMenuOpen) && (
@@ -420,10 +458,9 @@ export default function ChatPage() {
                               }}
                               title="Tuỳ chọn"
                             >
-                              <HiDotsHorizontal size={14} />
+                              <FiMoreVertical size={14} />
                             </button>
 
-                            {/* ✅ Dropdown thu hồi */}
                             {isMsgMenuOpen && (
                               <div
                                 className="chat-msg__menu"
@@ -457,11 +494,11 @@ export default function ChatPage() {
                         )}
 
                       <div
-                        className={`chat-msg__bubble ${
+                        className={`chat-msg__bubble${
                           msg.loai_tin === "ANH" || msg.loai_tin === "VIDEO"
-                            ? "chat-msg__bubble--media"
+                            ? " chat-msg__bubble--media"
                             : ""
-                        } ${msg.da_thu_hoi ? "chat-msg__bubble--recalled" : ""}`}
+                        }${msg.da_thu_hoi ? " chat-msg__bubble--recalled" : ""}`}
                       >
                         {msg.da_thu_hoi ? (
                           <span className="chat-msg__recalled-text">
@@ -488,17 +525,7 @@ export default function ChatPage() {
                             src={toMediaUrl(msg.tep_dinh_kem)}
                             width={300}
                             controls
-                            style={{
-                              borderRadius: 12,
-                              display: "block",
-                              cursor: "pointer",
-                            }}
-                            onClick={() =>
-                              setPreviewMedia({
-                                type: "VIDEO",
-                                url: toMediaUrl(msg.tep_dinh_kem),
-                              })
-                            }
+                            style={{ borderRadius: 12, display: "block" }}
                           />
                         ) : (
                           msg.noi_dung
@@ -511,6 +538,7 @@ export default function ChatPage() {
                           minute: "2-digit",
                         })}
                       </div>
+
                       {isMe && msg.da_xem && !msg.da_thu_hoi && (
                         <div className="chat-msg__seen">Đã xem ✓</div>
                       )}

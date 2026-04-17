@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { FiAward, FiMonitor } from "react-icons/fi";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./styles.scss";
@@ -18,7 +18,6 @@ export default function Menu({ items, onChange }) {
     [items]
   );
 
-  // Active nếu URL bắt đầu bằng key — vd: /chien-dich/123 vẫn active /chien-dich
   const currentValue = resolvedItems.find((item) =>
     location.pathname.startsWith(item.key)
   )?.key;

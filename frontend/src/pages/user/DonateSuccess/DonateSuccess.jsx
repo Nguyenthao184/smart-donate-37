@@ -1,7 +1,7 @@
-import { useEffect } from "react";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { FiShare2, FiHome, FiCheckCircle } from "react-icons/fi";
-import useCampaignStore from "../../../store/campaignStore";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { FiShare2, FiHome, FiCheckCircle, FiX } from "react-icons/fi";
+import api from "../../../api/authService";
 import "./DonateSuccess.scss";
 
 function formatVnd(n) {
@@ -14,38 +14,65 @@ function formatDate(str) {
   return `${now.getDate().toString().padStart(2, "0")}/${(now.getMonth() + 1).toString().padStart(2, "0")}/${now.getFullYear()} - ${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
 }
 
-const METHOD_LABELS = {
-  qr: "Mã QR ngân hàng",
-  vnpay: "VNPay",
-};
-
 export default function DonateSuccess() {
   const navigate = useNavigate();
-  const location = useLocation();
   const [searchParams] = useSearchParams();
-  const state = location.state || {};
+  const [loading, setLoading] = useState(true);
+  const [realStatus, setRealStatus] = useState(null);
+  const [donateDetail, setDonateDetail] = useState(null);
 
-  // QR → location.state | VNPay → query params
-  const amount = state.amount || Number(searchParams.get("amount")) || 0;
-  const donor = state.donor || searchParams.get("donor") || "Ẩn danh";
-  const method = state.method || searchParams.get("method") || "qr";
-  const txId = state.txId || searchParams.get("txId") || "—";
-  const campaignId = state.campaignId || searchParams.get("campaignId");
-  const campaignName =
-    state.campaignName || searchParams.get("campaignName") || "—";
-  const orgName = state.orgName || searchParams.get("orgName") || "—";
-  const thoiGian = state.thoiGian || searchParams.get("thoiGian");
-  const status = searchParams.get("status");
+  const orderId = searchParams.get("orderId");
+  const method = searchParams.get("method"); 
+  const status = searchParams.get("status"); 
 
-  // Invalidate cache sau khi donate thành công
+  const amount = donateDetail?.so_tien || 0;
+  const donor = donateDetail?.ho_ten || "Ẩn danh";
+  const methodLabel =
+    donateDetail?.phuong_thuc_thanh_toan === "momo" ? "MoMo" : "VNPay";
+  const txId = donateDetail?.gateway_transaction_id || orderId;
+  const campaignName = donateDetail?.ten_chien_dich || "—";
+  const orgName = donateDetail?.ten_to_chuc || "—";
+  const thoiGian = donateDetail?.created_at;
+
   useEffect(() => {
-    if (campaignId) {
-      useCampaignStore.getState().invalidateCampaignDetail(campaignId);
-      useCampaignStore.getState().refreshCampaignData();
+    async function fetchData() {
+      // ===== VNPAY =====
+      if (status) {
+        setRealStatus(status);
+        setLoading(false);
+        return;
+      }
+
+      // ===== MOMO =====
+      if (method === "momo" && orderId) {
+        try {
+          for (let i = 0; i < 5; i++) {
+            const res = await api.get(`/donate/${orderId}`);
+            const data = res.data?.data;
+
+            if (data) {
+              setDonateDetail(data);
+              setRealStatus("success");
+              setLoading(false);
+              return;
+            }
+
+            await new Promise((r) => setTimeout(r, 1000));
+          }
+
+          setRealStatus("pending");
+          setLoading(false);
+        } catch {
+          setRealStatus("failed");
+          setLoading(false);
+        }
+      }
     }
+
+    fetchData();
   }, []);
 
-  if (status === "failed") {
+  if (realStatus === "failed") {
     return (
       <div className="ds-page">
         <div className="ds-card">
@@ -67,6 +94,34 @@ export default function DonateSuccess() {
             >
               <FiHome size={15} /> Về trang chủ
             </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (realStatus === "pending") {
+    return (
+      <div className="ds-page">
+        <div className="ds-card">
+          <div className="ds-header">
+            <div className="ds-header__title">Đang xử lý giao dịch</div>
+            <div className="ds-header__sub">
+              Hệ thống đang xác nhận thanh toán từ MoMo, vui lòng chờ thêm
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="ds-page">
+        <div className="ds-card">
+          <div className="ds-header">
+            <div className="ds-header__title">Đang xác nhận thanh toán...</div>
+            <div className="ds-header__sub">Vui lòng chờ trong giây lát</div>
           </div>
         </div>
       </div>
@@ -134,9 +189,7 @@ export default function DonateSuccess() {
           <div className="ds-row">
             <span className="ds-row__key">Phương thức</span>
             <span className="ds-row__val">
-              <span className="ds-badge ds-badge--info">
-                {METHOD_LABELS[method]}
-              </span>
+              <span className="ds-badge ds-badge--info">{methodLabel}</span>
             </span>
           </div>
           <div className="ds-row">

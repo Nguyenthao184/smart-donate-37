@@ -289,7 +289,6 @@
   }
 
   &__item {
-    // CampaignCard có width: 315px cố định — override để fill grid
     .campaign-card {
       width: 100% !important;
     }

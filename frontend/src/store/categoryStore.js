@@ -1,23 +1,20 @@
 import { create } from "zustand";
 import { getCategories } from "../api/campaignService";
 
-let categoriesPromise = null; // 🔥 chống gọi song song
+let categoriesPromise = null; 
 
 const useCategoryStore = create((set, get) => ({
   categories: [],
   selectedCategory: null,
   loading: false,
 
-  // 🔥 flag
   isFetchedCategories: false,
 
   fetchCategories: async () => {
     const { isFetchedCategories } = get();
 
-    // 🔥 chặn nếu đã fetch
     if (isFetchedCategories) return;
 
-    // 🔥 chặn nếu đang có request chạy
     if (categoriesPromise) return categoriesPromise;
 
     set({ loading: true });
@@ -30,7 +27,7 @@ const useCategoryStore = create((set, get) => ({
       set({
         categories: res,
         loading: false,
-        isFetchedCategories: true, // 🔥 đánh dấu đã fetch
+        isFetchedCategories: true, 
       });
     } catch (err) {
       console.error("Lỗi fetch categories:", err);

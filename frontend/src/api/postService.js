@@ -24,7 +24,7 @@ export const createPost = async (formData) => {
 
 // cập nhật bài đăng
 export const updatePost = async (id, formData) => {
-  const res = await api.post(`/posts/${id}?_method=PUT`, formData, {
+  const res = await api.post(`/posts/${id}`, formData, {
     headers: {
       "Content-Type": "multipart/form-data",
     },
@@ -62,7 +62,7 @@ export const createPostComment = async (id, data) => {
 };
 
 export const deletePostComment = async (id) => {
-  const res = await api.post(`/comments/${id}`); // ⚠️ do BE đang dùng POST
+  const res = await api.post(`/comments/${id}`);
   return res.data;
 };
 

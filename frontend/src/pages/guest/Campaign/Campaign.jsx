@@ -81,7 +81,7 @@ export default function Campaign() {
       params.set("category", cat.id);
     }
 
-    params.set("page", 1); // reset page
+    params.set("page", 1); 
 
     navigate(`/chien-dich/danh-sach?${params.toString()}`);
   }
@@ -233,7 +233,7 @@ export default function Campaign() {
           type="primary"
           danger
           block
-          onClick={() => navigate("/dk-to-chuc")} // ← navigate sang trang
+          onClick={() => navigate("/dk-to-chuc")} 
         >
           ĐĂNG KÝ XÁC MINH
         </Button>

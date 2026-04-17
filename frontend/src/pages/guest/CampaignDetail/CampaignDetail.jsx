@@ -50,12 +50,10 @@ export default function CampaignDetail() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [location.pathname]);
 
-  // Fetch chi tiết chiến dịch (store dedupe + cleanup tránh setState sau unmount)
   useEffect(() => {
     if (!id) return;
     let cancelled = false;
     const loadCampaign = async () => {
-      // Nếu từ trang donate về → invalidate cache trước
       if (location.state?.fromDonate) {
         useCampaignStore.getState().invalidateCampaignDetail(id);
       }
@@ -87,7 +85,7 @@ export default function CampaignDetail() {
           address: data.to_chuc?.dia_chi,
           email: data.to_chuc?.email,
           hotline: data.to_chuc?.so_dien_thoai,
-          verified: true, // giả sử luôn verified
+          verified: true, 
         },
         donors: data.danh_sach_ung_ho.map((d, i) => ({
           id: i,
@@ -112,12 +110,12 @@ export default function CampaignDetail() {
 
   useEffect(() => {
     if (!campaign?.lat || !campaign?.lng) return;
-    if (mapRef.current) return; // chỉ khởi tạo 1 lần
+    if (mapRef.current) return; 
 
     mapRef.current = new mapboxgl.Map({
       container: mapContainerRef.current,
       style: "mapbox://styles/mapbox/streets-v12",
-      center: [campaign.lng, campaign.lat], // [lng, lat]
+      center: [campaign.lng, campaign.lat], 
       zoom: 12,
     });
 
@@ -137,6 +135,39 @@ export default function CampaignDetail() {
     campaign.goal > 0 ? Math.round((campaign.raised / campaign.goal) * 100) : 0;
 
   const tabItems = [
+    {
+      key: "info",
+      label: (
+        <span className="cd-tab__label">
+          <FiInfo size={14} /> Thông tin chiến dịch
+        </span>
+      ),
+      children: (
+        <div className="cd-info">
+          <div className="cd-info__grid">
+            <div className="cd-info__item">
+              <span className="cd-info__label">Mã chuyển khoản</span>
+              <span className="cd-info__value">{campaign.codebank}</span>
+            </div>
+            <div className="cd-info__item">
+              <span className="cd-info__label">Danh mục</span>
+              <span className="cd-info__value cd-info__value--badge">
+                {campaign.category}
+              </span>
+            </div>
+            <div className="cd-info__item">
+              <span className="cd-info__label">Bắt đầu</span>
+              <span className="cd-info__value">{campaign.startday}</span>
+            </div>
+            <div className="cd-info__item">
+              <span className="cd-info__label">Kết thúc</span>
+              <span className="cd-info__value">{campaign.endday}</span>
+            </div>
+          </div>
+          <p className="cd-info__desc">{campaign.description}</p>
+        </div>
+      ),
+    },
     {
       key: "org",
       label: (
@@ -201,39 +232,6 @@ export default function CampaignDetail() {
               TÌM HIỂU THÊM
             </Button>
           </div>
-        </div>
-      ),
-    },
-    {
-      key: "info",
-      label: (
-        <span className="cd-tab__label">
-          <FiInfo size={14} /> Thông tin chiến dịch
-        </span>
-      ),
-      children: (
-        <div className="cd-info">
-          <div className="cd-info__grid">
-            <div className="cd-info__item">
-              <span className="cd-info__label">Mã chuyển khoản</span>
-              <span className="cd-info__value">{campaign.codebank}</span>
-            </div>
-            <div className="cd-info__item">
-              <span className="cd-info__label">Danh mục</span>
-              <span className="cd-info__value cd-info__value--badge">
-                {campaign.category}
-              </span>
-            </div>
-            <div className="cd-info__item">
-              <span className="cd-info__label">Bắt đầu</span>
-              <span className="cd-info__value">{campaign.startday}</span>
-            </div>
-            <div className="cd-info__item">
-              <span className="cd-info__label">Kết thúc</span>
-              <span className="cd-info__value">{campaign.endday}</span>
-            </div>
-          </div>
-          <p className="cd-info__desc">{campaign.description}</p>
         </div>
       ),
     },

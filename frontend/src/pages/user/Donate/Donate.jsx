@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
 import { notification } from "antd";
+import { useParams } from "react-router-dom";
 import {
   FiArrowRight,
   FiArrowLeft,
@@ -11,11 +11,10 @@ import {
   FiCheckCircle,
   FiExternalLink,
 } from "react-icons/fi";
-import { RiSparklingLine, RiQrCodeLine } from "react-icons/ri";
-import bank from "../../../assets/user/bank.png";
+import { RiSparklingLine } from "react-icons/ri";
+import momo from "../../../assets/user/momo.png";
 import vnpay from "../../../assets/user/vnpay.jpg";
 import useDonateStore from "../../../store/donateStore";
-import useCampaignStore from "../../../store/campaignStore";
 import useUserStore from "../../../store/authStore";
 import "./Donate.scss";
 
@@ -24,7 +23,6 @@ const PRESET_AMOUNTS = [50000, 100000, 200000, 500000, 1000000, 2000000];
 const STEPS = [
   { id: 1, label: "Phương thức" },
   { id: 2, label: "Thông tin" },
-  { id: 3, label: "Thanh toán" },
 ];
 
 function formatVnd(n) {
@@ -32,21 +30,15 @@ function formatVnd(n) {
 }
 
 export default function DonatePage() {
-  const navigate = useNavigate();
   const { id } = useParams();
-  const { handleDonate, handleConfirm, loading } = useDonateStore();
-  const campaignDetail = useCampaignStore((s) => s.campaignDetail[String(id)]);
+  const { handleDonate, loading } = useDonateStore();
   const { user } = useUserStore();
   const [step, setStep] = useState(1);
-  const [payMethod, setPayMethod] = useState("qr");
+  const [payMethod, setPayMethod] = useState("momo");
   const [amount, setAmount] = useState(200000);
   const [customAmt, setCustomAmt] = useState("200.000");
   const [message, setMessage] = useState("");
   const [errors, setErrors] = useState({});
-  const [qrData, setQrData] = useState(null);
-
-  const campaignName = campaignDetail?.ten_chien_dich ?? "";
-  const orgName = campaignDetail?.to_chuc?.ten_to_chuc ?? "";
 
   const donor = user?.ho_ten || "";
 
@@ -57,8 +49,17 @@ export default function DonatePage() {
 
   function handleCustomChange(e) {
     const raw = e.target.value.replace(/\D/g, "");
-    setCustomAmt(raw ? Number(raw).toLocaleString("vi-VN") : "");
-    setAmount(Number(raw) || 0);
+
+    const num = Number(raw);
+
+    if (!raw) {
+      setCustomAmt("");
+      setAmount(0);
+      return;
+    }
+
+    setCustomAmt(num.toLocaleString("vi-VN"));
+    setAmount(num);
   }
 
   function validateStep2() {
@@ -70,14 +71,14 @@ export default function DonatePage() {
   }
 
   async function next() {
-    // ===== STEP 1 =====
+    // STEP 1
     if (step === 1) {
       setErrors({});
       setStep(2);
       return;
     }
 
-    // ===== STEP 2 =====
+    // STEP 2
     if (step === 2) {
       if (!validateStep2()) return;
       setErrors({});
@@ -90,18 +91,20 @@ export default function DonatePage() {
           noi_dung: message,
         });
 
-        if (res?.type === "QR") {
-          setQrData(res.data);
-          setStep(3);
-        }
+        const url = res?.payment_url || res?.data?.payment_url;
 
-        if (res?.type === "VNPAY") {
-          const url = res.payment_url || res.data?.payment_url;
-          if (url) {
+        if (url) {
+          notification.info({
+            message: "Đang chuyển đến cổng thanh toán...",
+          });
+
+          setTimeout(() => {
             window.location.href = url;
-          } else {
-            notification.error({ message: "Không lấy được link VNPay" });
-          }
+          }, 500);
+        } else {
+          notification.error({
+            message: "Không lấy được link thanh toán",
+          });
         }
       } catch (err) {
         notification.error({
@@ -111,41 +114,6 @@ export default function DonatePage() {
       }
 
       return;
-    }
-
-    // ===== STEP 3 (QR confirm) =====
-    if (!qrData) return;
-
-    try {
-      await handleConfirm({ ung_ho_id: qrData.ung_ho_id });
-      notification.success({
-        message: "Ủng hộ thành công",
-        description: "Cảm ơn bạn rất nhiều!",
-      });
-
-      navigate("/thanh-cong", {
-        state: {
-          amount,
-          donor,
-          method: payMethod,
-          txId: qrData.ung_ho_id,
-          campaignId: Number(id),
-          campaignName,
-          orgName,
-          thoiGian:
-            new Date().toLocaleDateString("vi-VN") +
-            " - " +
-            new Date().toLocaleTimeString("vi-VN", {
-              hour: "2-digit",
-              minute: "2-digit",
-            }),
-        },
-      });
-    } catch (err) {
-      notification.error({
-        message: "Xác nhận thất bại",
-        description: err?.response?.data?.message || "Có lỗi xảy ra",
-      });
     }
   }
 
@@ -200,22 +168,22 @@ export default function DonatePage() {
 
               <div className="dp-method-select">
                 <button
-                  className={`dp-method-card${payMethod === "qr" ? " active" : ""}`}
-                  onClick={() => setPayMethod("qr")}
+                  className={`dp-method-card${payMethod === "momo" ? " active" : ""}`}
+                  onClick={() => setPayMethod("momo")}
                 >
-                  <div className="dp-method-card__icon dp-method-card__icon--qr">
-                    <img src={bank} />
+                  <div className="dp-method-card__icon">
+                    <img src={momo} />
                   </div>
                   <div className="dp-method-card__body">
-                    <div className="dp-method-card__name">Chuyển khoản QR</div>
+                    <div className="dp-method-card__name">MoMo</div>
                     <div className="dp-method-card__desc">
-                      Quét mã QR qua ứng dụng ngân hàng
+                      Thanh toán qua ví MoMo
                     </div>
                   </div>
                   <div
-                    className={`dp-method-card__radio${payMethod === "qr" ? " checked" : ""}`}
+                    className={`dp-method-card__radio${payMethod === "momo" ? " checked" : ""}`}
                   >
-                    {payMethod === "qr" && (
+                    {payMethod === "momo" && (
                       <div className="dp-method-card__radio-dot" />
                     )}
                   </div>
@@ -247,10 +215,10 @@ export default function DonatePage() {
               <div
                 className={`dp-method-badge${payMethod === "vnpay" ? " vnpay" : ""}`}
               >
-                {payMethod === "qr" ? (
+                {payMethod === "momo" ? (
                   <>
-                    <RiQrCodeLine size={14} /> Bạn sẽ quét QR ngân hàng ở bước
-                    cuối
+                    <FiExternalLink size={14} /> Bạn sẽ được chuyển đến ví MoMo
+                    để thanh toán
                   </>
                 ) : (
                   <>
@@ -335,69 +303,6 @@ export default function DonatePage() {
               )}
             </div>
           )}
-
-          {/* ── Step 3: chỉ hiện với QR, VNPAY redirect thẳng ra ngoài ── */}
-          {step === 3 && payMethod === "qr" && (
-            <div className="dp-step dp-step--3">
-              <div className="dp-confirm-header">
-                <h3 className="dp-confirm-header__title">
-                  Quét mã để thanh toán
-                </h3>
-                <p className="dp-confirm-header__sub">
-                  Sử dụng ứng dụng ngân hàng MB Bank hoặc ứng dụng hỗ trợ VietQR
-                </p>
-              </div>
-
-              <div className="dp-qr-layout">
-                <div className="dp-qr-box">
-                  <img
-                    src={qrData?.qr_code}
-                    alt="QR Code"
-                    className="dp-qr-box__img"
-                  />
-                  <div className="dp-qr-box__badges">
-                    <span className="dp-badge dp-badge--vietqr">VIETQR</span>
-                    <span className="dp-badge dp-badge--napas">napas+</span>
-                  </div>
-                </div>
-
-                <div className="dp-bank-info">
-                  <div className="dp-bank-row">
-                    <span className="dp-bank-row__label">Ngân hàng</span>
-                    <span className="dp-bank-row__value">
-                      {qrData?.ngan_hang}
-                    </span>
-                  </div>
-                  <div className="dp-bank-row">
-                    <span className="dp-bank-row__label">Số tài khoản</span>
-                    <span className="dp-bank-row__value dp-bank-row__value--accent">
-                      {qrData?.so_tai_khoan}
-                    </span>
-                  </div>
-                  <div className="dp-bank-row">
-                    <span className="dp-bank-row__label">Chủ tài khoản</span>
-                    <span className="dp-bank-row__value dp-bank-row__value--name">
-                      {qrData?.chu_tai_khoan}
-                    </span>
-                  </div>
-                  <div className="dp-bank-row">
-                    <span className="dp-bank-row__label">Số tiền</span>
-                    <span className="dp-bank-row__value dp-bank-row__value--amount">
-                      {formatVnd(qrData?.so_tien)} VNĐ
-                    </span>
-                  </div>
-                  <div className="dp-bank-row dp-bank-row--transfer">
-                    <span className="dp-bank-row__label">Nội dung CK</span>
-                    <span className="dp-bank-row__value">
-                      <span className="dp-tx-code">
-                        {message || qrData?.mo_ta}
-                      </span>
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Actions */}
@@ -407,13 +312,10 @@ export default function DonatePage() {
             onClick={next}
             disabled={loading}
           >
-            {step === 3 ? (
+            {step === 2 ? (
               <>
-                <FiCheckCircle size={16} /> Đã thanh toán
-              </>
-            ) : step === 2 && payMethod === "vnpay" ? (
-              <>
-                Chuyển đến VNPay <FiExternalLink size={16} />
+                {loading ? "Đang chuyển hướng..." : "Thanh toán"}{" "}
+                <FiExternalLink size={16} />
               </>
             ) : (
               <>

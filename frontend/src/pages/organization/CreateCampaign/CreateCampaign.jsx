@@ -14,8 +14,8 @@ import {
   FiDollarSign,
 } from "react-icons/fi";
 import LocationPicker from "../../../components/LocationPicker/index";
-import useCategories from "../../../hooks/useCategories"; // ← dùng hook categories có sẵn
-import useCampaignStore from "../../../store/campaignStore"; // ← gọi thẳng store
+import useCategories from "../../../hooks/useCategories"; 
+import useCampaignStore from "../../../store/campaignStore";
 import "./CreateCampaign.scss";
 
 const { TextArea } = Input;
@@ -32,7 +32,7 @@ export default function CreateCampaign() {
   const [previewImg, setPreviewImg] = useState(null);
   const fileRef = useRef(null);
 
-  const { categories } = useCategories(); // ← categories từ API
+  const { categories } = useCategories();
   const createCampaign = useCampaignStore((s) => s.createCampaign);
   const loadingCreate = useCampaignStore((s) => s.loadingCreate);
 
@@ -110,7 +110,7 @@ export default function CreateCampaign() {
     formData.append("danh_muc_id", form.danh_muc_id);
     formData.append("mo_ta", form.mo_ta);
     formData.append("muc_tieu_tien", form.muc_tieu_tien);
-    formData.append("ngay_ket_thuc", form.ngay_ket_thuc.format("YYYY-MM-DD")); // dayjs từ DatePicker
+    formData.append("ngay_ket_thuc", form.ngay_ket_thuc.format("YYYY-MM-DD")); 
     formData.append("vi_tri", form.vi_tri);
     formData.append("lat", form.lat);
     formData.append("lng", form.lng);
@@ -397,7 +397,7 @@ export default function CreateCampaign() {
                 placeholder="Chọn thời gian"
                 format="DD/MM/YYYY"
                 suffixIcon={<FiCalendar size={15} />}
-                disabledDate={(d) => d && d.isBefore(new Date(), "day")} // ← không cho chọn ngày quá khứ
+                disabledDate={(d) => d && d.isBefore(new Date(), "day")}
                 onChange={(v) => setForm((p) => ({ ...p, ngay_ket_thuc: v }))}
               />
             </div>

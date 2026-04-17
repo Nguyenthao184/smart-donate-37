@@ -87,6 +87,7 @@ export default function NewsFeed() {
       commentCount: p.so_binh_luan || 0,
       title: p.tieu_de,
       desc: p.mo_ta,
+      so_luong: p.so_luong,
       images:
         tab === "cho"
           ? p.hinh_anh_urls?.length
@@ -95,9 +96,8 @@ export default function NewsFeed() {
               ? [p.hinh_anh_url]
               : []
           : [],
-      status: "con",
+      trang_thai: p.trang_thai,
 
-      // ✅ AI suggestions
       aiSuggestions: aiData.map((m) => ({
         id: m.post.id,
         title: m.post.tieu_de,
@@ -205,7 +205,6 @@ export default function NewsFeed() {
                       const lastMsg = conv.tin_nhan_cuoi;
                       const otherUser = conv.nguoi_kia;
 
-                      // Preview tin nhắn cuối
                       let preview = "Chưa có tin nhắn";
                       if (lastMsg) {
                         if (lastMsg.loai_tin === "ANH") preview = "[Ảnh]";
@@ -225,7 +224,6 @@ export default function NewsFeed() {
                         preview = `Bạn: ${preview}`;
                       }
 
-                      // Thời gian
                       const timeStr = lastMsg?.created_at
                         ? new Date(lastMsg.created_at).toLocaleTimeString(
                             "vi-VN",

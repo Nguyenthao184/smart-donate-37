@@ -1,8 +1,7 @@
 import { create } from "zustand";
-import { donate, confirmDonate } from "../api/donateService";
+import { donate } from "../api/donateService";
 
 let donatePromise = null;
-let confirmPromise = null;
 
 const useDonateStore = create((set) => ({
   donateData: null,
@@ -22,6 +21,7 @@ const useDonateStore = create((set) => ({
           donateData: res,
           loading: false,
         });
+
         return res;
       } catch (err) {
         console.error("Lỗi donate:", err);
@@ -33,31 +33,6 @@ const useDonateStore = create((set) => ({
     })();
 
     return donatePromise;
-  },
-
-  // ===== CONFIRM QR =====
-  handleConfirm: async (payload) => {
-    if (confirmPromise) return confirmPromise;
-
-    set({ loading: true });
-
-    confirmPromise = (async () => {
-      try {
-        const res = await confirmDonate(payload);
-
-        set({ loading: false });
-
-        return res;
-      } catch (err) {
-        console.error("Lỗi confirm donate:", err);
-        set({ loading: false });
-        throw err;
-      } finally {
-        confirmPromise = null;
-      }
-    })();
-
-    return confirmPromise;
   },
 
   resetDonate: () => {

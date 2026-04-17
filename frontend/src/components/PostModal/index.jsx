@@ -8,6 +8,7 @@ import {
   FiX,
   FiChevronRight,
   FiCornerDownRight,
+  FiPackage
 } from "react-icons/fi";
 import {
   FaHeart,
@@ -20,7 +21,7 @@ import {
 import useComments from "../../hooks/useComments";
 import useAuthStore from "../../store/authStore";
 import usePostStore from "../../store/postStore";
-import { createOrGetChat } from "../../api/chatService";
+import useChatStore from "../../store/chatStore";
 import { useNavigate } from "react-router-dom";
 import { notification, Popconfirm } from "antd";
 import { RiRobot2Line, RiSparklingLine } from "react-icons/ri";
@@ -35,7 +36,6 @@ function CommentBubble({
   postOwnerId,
 }) {
   const { user } = useAuthStore();
-
   const canDelete =
     user?.id === comment.nguoi_dung?.id || user?.id === postOwnerId;
 
@@ -91,32 +91,46 @@ function CommentBubble({
 }
 
 export default function PostDetailModal({ post, visible, onClose }) {
-  const { toggleLike, posts, postDetail  } = usePostStore();
+  const { toggleLike, posts } = usePostStore();
   const postFromStore = posts.find((p) => p.id === post?.id);
-  const postFromDetail = postDetail[String(post?.id)];
-  const liked =
-    postFromStore?.liked ?? postFromDetail?.liked ?? post?.liked ?? false;
-  const likeCount =
-    postFromStore?.so_luot_thich ??
-    postFromDetail?.so_luot_thich ??
-    post?.so_luot_thich ??
-    0;
-  const cmtCount =
-    postFromStore?.so_binh_luan ??
-    postFromDetail?.so_binh_luan ??
-    post?.so_binh_luan ??
-    0;
+  const liked = postFromStore?.liked ?? false;
+  const likeCount = postFromStore?.so_luot_thich ?? 0;
+  const cmtCount = postFromStore?.so_binh_luan ?? 0;
+
   const [commentText, setCommentText] = useState("");
   const [replyingTo, setReplyingTo] = useState(null);
   const [expandedReplies, setExpandedReplies] = useState({});
   const [activeImageIndex, setActiveImageIndex] = useState(null);
+
   const { user } = useAuthStore();
   const navigate = useNavigate();
+  const openChatWith = useChatStore((s) => s.openChatWith);
+
   const {
     comments: postComments,
     createComment,
     deleteComment,
   } = useComments(post?.id);
+
+  const rawStatus = post?.trang_thai;
+  const soLuong = post?.so_luong ?? post?.quantity ?? null;
+  const showQuantityTag = soLuong !== null && soLuong !== 0 && soLuong !== "";
+
+  const isDone = rawStatus === "DA_NHAN" || rawStatus === "DA_TANG";
+
+  const statusLabelMap = {
+    CON_TANG: "Còn tặng",
+    CON_NHAN: "Còn nhận",
+    DA_TANG: "Đã tặng",
+    DA_NHAN: "Đã nhận",
+  };
+
+  const statusIconMap = {
+    CON_TANG: <FaGift style={{ marginRight: 4 }} />,
+    CON_NHAN: <FaInbox style={{ marginRight: 4 }} />,
+    DA_TANG: <FaCheckCircle style={{ marginRight: 4 }} />,
+    DA_NHAN: <FaCheckCircle style={{ marginRight: 4 }} />,
+  };
 
   useEffect(() => {
     if (!visible) return;
@@ -164,10 +178,9 @@ export default function PostDetailModal({ post, visible, onClose }) {
     setCommentText("");
   };
 
-  // Thêm handler
   const handleDeleteComment = async (commentId) => {
     try {
-      await deleteComment(commentId, post?.id);
+      await deleteComment(commentId);
     } catch (err) {
       console.log(err);
     }
@@ -177,10 +190,7 @@ export default function PostDetailModal({ post, visible, onClose }) {
     const text = commentText.trim();
     if (!text) return;
     try {
-      await createComment({
-        noi_dung: text,
-        id_cha: replyingTo?.id || null,
-      });
+      await createComment({ noi_dung: text, id_cha: replyingTo?.id || null });
       setCommentText("");
       setReplyingTo(null);
       setTimeout(() => {
@@ -193,16 +203,22 @@ export default function PostDetailModal({ post, visible, onClose }) {
 
   const handleChat = async (e) => {
     e.stopPropagation();
+    if (!user) {
+      notification.warning({ message: "Vui lòng đăng nhập để nhắn tin" });
+      return;
+    }
     try {
       const receiverId = post?.user?.id ?? post?.nguoi_dung_id ?? post?.user_id;
-
       if (!receiverId) return;
 
-      const res = await createOrGetChat(receiverId);
-
-      const chatId = res?.data?.cuoc_tro_chuyen_id ?? res?.cuoc_tro_chuyen_id;
+      const chatId = await openChatWith(receiverId, {
+        id: receiverId,
+        ho_ten: post?.user?.name ?? post?.user?.ho_ten ?? "Người dùng",
+        avatar_url: post?.user?.avatar_url ?? null,
+      });
 
       if (chatId) {
+        onClose();
         navigate(`/chat?cid=${chatId}`);
       }
     } catch {
@@ -214,7 +230,10 @@ export default function PostDetailModal({ post, visible, onClose }) {
   };
 
   const toggleReplies = (commentId) => {
-    setExpandedReplies((prev) => ({ ...prev, [commentId]: !prev[commentId] }));
+    setExpandedReplies((prev) => ({
+      ...prev,
+      [commentId]: !prev[commentId],
+    }));
   };
 
   return createPortal(
@@ -227,7 +246,7 @@ export default function PostDetailModal({ post, visible, onClose }) {
           <FiX size={20} />
         </button>
 
-        {/* LEFT: post info + images */}
+        {/* LEFT */}
         <div className="pdc__left">
           <div className="pdc__left-scroll">
             <div className="pdc__header">
@@ -261,7 +280,11 @@ export default function PostDetailModal({ post, visible, onClose }) {
                 {images.slice(0, 4).map((src, i) => (
                   <div
                     key={i}
-                    className={`pdc__image-item${images.length === 3 && i === 0 ? " pdc__image-item--large" : ""}`}
+                    className={`pdc__image-item${
+                      images.length === 3 && i === 0
+                        ? " pdc__image-item--large"
+                        : ""
+                    }`}
                   >
                     <img
                       src={src}
@@ -294,31 +317,36 @@ export default function PostDetailModal({ post, visible, onClose }) {
                   </span>
                 )}
               </div>
-              <span
-                className={`pdc__status-tag pdc__status-tag--${post.status}`}
-              >
-                {post.status === "con" ? (
-                  post.type === "cho" ? (
-                    <>
-                      <FaGift style={{ marginRight: 4 }} />
-                      Còn tặng
-                    </>
-                  ) : (
-                    <>
-                      <FaInbox style={{ marginRight: 4 }} />
-                      Còn nhận
-                    </>
-                  )
-                ) : (
-                  <>
-                    <FaCheckCircle style={{ marginRight: 4 }} />
-                    Đã xong
-                  </>
+
+              <span className="pdc__status-group">
+                {showQuantityTag && (
+                  <span className="pdc__quantity-tag">
+                    {/* giống PostCard */}
+                    {post?.loai_bai === "CHO" || post?.type === "cho" ? (
+                      <>
+                        <FiPackage size={11} style={{ marginRight: 3 }} />
+                        Tặng: <span>{soLuong}</span>
+                      </>
+                    ) : (
+                      <>
+                        <FiPackage size={11} style={{ marginRight: 3 }} />
+                        Cần: <span>{soLuong}</span>
+                      </>
+                    )}
+                  </span>
                 )}
+                <span
+                  className={`pdc__status-tag ${
+                    isDone ? "pdc__status-tag--xong" : "pdc__status-tag--con"
+                  }`}
+                >
+                  {statusIconMap[rawStatus]}
+                  {statusLabelMap[rawStatus]}
+                </span>
               </span>
             </div>
 
-            {/* 4 action buttons */}
+            {/* Actions */}
             <div className="pdc__actions-row">
               <button
                 className={`pdc__action-btn pdc__action-btn--heart${liked ? " active" : ""}`}
@@ -386,9 +414,8 @@ export default function PostDetailModal({ post, visible, onClose }) {
           </div>
         </div>
 
-        {/* RIGHT: actions + comments */}
+        {/* RIGHT: comments */}
         <div className="pdc__right">
-          {/* Comments */}
           <div className="pdc__comments-area">
             <div className="pdc__comments-list">
               {postComments.map((comment) => (
@@ -431,7 +458,7 @@ export default function PostDetailModal({ post, visible, onClose }) {
             </div>
           </div>
 
-          {/* Comment input — pinned to bottom */}
+          {/* Comment input */}
           <div className="pdc__comment-input-wrap">
             {replyingTo && (
               <div className="pdc__replying-bar">
@@ -469,7 +496,9 @@ export default function PostDetailModal({ post, visible, onClose }) {
                 }}
               />
               <button
-                className={`pdc__send-btn${commentText.trim() ? " pdc__send-btn--active" : ""}`}
+                className={`pdc__send-btn${
+                  commentText.trim() ? " pdc__send-btn--active" : ""
+                }`}
                 onClick={handleSubmit}
                 disabled={!commentText.trim()}
               >
@@ -479,6 +508,7 @@ export default function PostDetailModal({ post, visible, onClose }) {
           </div>
         </div>
       </div>
+
       {activeImageIndex !== null && (
         <div
           className="pdc__lightbox"
@@ -490,7 +520,6 @@ export default function PostDetailModal({ post, visible, onClose }) {
           >
             <FiX />
           </button>
-
           <button
             className="pdc__lightbox-prev"
             onClick={(e) => {
@@ -502,13 +531,11 @@ export default function PostDetailModal({ post, visible, onClose }) {
           >
             ‹
           </button>
-
           <img
             src={images[activeImageIndex]}
             alt="preview"
             onClick={(e) => e.stopPropagation()}
           />
-
           <button
             className="pdc__lightbox-next"
             onClick={(e) => {

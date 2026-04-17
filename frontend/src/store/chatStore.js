@@ -12,7 +12,7 @@ import useAuthStore from "./authStore";
 import echo from "../socket";
 
 const messagePromises = {};
-const activeChannels = new Map(); // chatId → channel instance
+const activeChannels = new Map(); 
 
 const useChatStore = create((set, get) => ({
   chats: [],
@@ -22,19 +22,75 @@ const useChatStore = create((set, get) => ({
   sending: false,
   totalUnread: 0,
   activeChatId: null,
-  pendingChat: null,
-  
-  // Trong setActiveChatId:
+  pendingChat: null, 
+
+  // ─── setActiveChatId ──────────────────────────────────────────────────────
+  // Nếu rời khỏi pendingChat mà chưa gửi tin → tự xóa pending
   setActiveChatId: (id) => {
     const pending = get().pendingChat;
-    if (pending && pending.cuoc_tro_chuyen_id !== id) {
-      set({ pendingChat: null }); // rời đi mà chưa nhắn → bỏ
+    // Chỉ xóa pending khi navigate sang chatId khác (không phải khi id === null — tức là unmount)
+    if (pending && id !== null && pending.cuoc_tro_chuyen_id !== id) {
+      set({ pendingChat: null });
     }
     set({ activeChatId: id });
   },
 
-  // ─── Realtime lifecycle ───────────────────────────────────────
+  // ─── _subscribeChannel: helper subscribe 1 channel ───────────────────────
+  _subscribeChannel: (chatId) => {
+    const cid = Number(chatId);
+    if (activeChannels.has(cid)) return;
 
+    const channel = echo.private(`cuoc-tro-chuyen.${cid}`);
+
+    channel.listen(".TinNhanMoi", (e) => {
+      const myUserId = Number(useAuthStore.getState().user?.id || 0);
+      if (Number(e.nguoi_gui_id) === myUserId) return;
+      get().appendIncomingMessage(cid, e);
+    });
+
+    channel.listen(".TinNhanDaXem", (e) => {
+      get().applySeenByEvent(cid, e.tin_nhan_ids);
+    });
+
+    channel.listen(".TinNhanBiThuHoi", (e) => {
+      get().applyRecallMessage(cid, e.tin_nhan_id);
+    });
+
+    channel.listen(".TinNhanBiXoaHet", (e) => {
+      const myUserId = Number(useAuthStore.getState().user?.id || 0);
+      if (Number(e.nguoi_dung_id) === myUserId) {
+        set((state) => ({
+          messages: { ...state.messages, [cid]: [] },
+        }));
+      }
+    });
+
+    activeChannels.set(cid, channel);
+  },
+
+  _fetchChatsQuiet: async () => {
+    try {
+      const res = await getChats();
+      const freshData = res?.data || [];
+      const totalUnread = res?.total_unread ?? 0;
+      set((state) => {
+        const currentMap = new Map(
+          state.chats.map((c) => [c.cuoc_tro_chuyen_id, c]),
+        );
+        freshData.forEach((c) => currentMap.set(c.cuoc_tro_chuyen_id, c));
+        return {
+          chats: Array.from(currentMap.values()),
+          totalUnread: Math.max(state.totalUnread, totalUnread),
+        };
+      });
+      return freshData;
+    } catch (err) {
+      console.error("Lỗi fetch chats quiet:", err);
+      return [];
+    }
+  },
+
+  // ─── startRealtime ────────────────────────────────────────────────────────
   startRealtime: () => {
     const { chats, syncSubscriptions } = get();
     syncSubscriptions(chats);
@@ -45,104 +101,76 @@ const useChatStore = create((set, get) => ({
     const userChannel = echo.private(`user.${myUserId}`);
 
     userChannel.listen(".ConversationListUpdated", async (e) => {
-      const prevChats = get().chats;
-      const prevIds = new Set(prevChats.map((c) => c.cuoc_tro_chuyen_id));
       const newChatId = Number(e.cuoc_tro_chuyen_id);
 
-      let data = [];
-      for (let attempt = 0; attempt < 3; attempt++) {
-        if (attempt > 0) await new Promise((r) => setTimeout(r, 500 * attempt));
-        data = await get().fetchChats();
-        const found = data.some((c) => !prevIds.has(c.cuoc_tro_chuyen_id));
-        if (found || !newChatId) break;
+      if (newChatId && !activeChannels.has(newChatId)) {
+        get()._subscribeChannel(newChatId);
       }
 
+      const data = await get()._fetchChatsQuiet();
       get().syncSubscriptions(data);
 
-      const newConvs = data.filter((c) => !prevIds.has(c.cuoc_tro_chuyen_id));
-      for (const conv of newConvs) {
-        const chatId = conv.cuoc_tro_chuyen_id;
-        delete messagePromises[chatId];
-        // Fetch messages ngay cho cuộc mới — sidebar hiển thị tin đầu không cần reload
-        await get().fetchMessages(chatId);
+      if (newChatId) {
+        delete messagePromises[newChatId];
+        set((state) => ({
+          messages: { ...state.messages, [newChatId]: undefined },
+        }));
+        await get().fetchMessages(newChatId);
       }
     });
   },
 
   syncSubscriptions: (chats) => {
-    const currentIds = new Set(chats.map((c) => c.cuoc_tro_chuyen_id));
-
-    // Unsubscribe các channel không còn trong danh sách
-    activeChannels.forEach((_, chatId) => {
-      if (!currentIds.has(chatId)) {
-        echo.leave(`cuoc-tro-chuyen.${chatId}`);
-        activeChannels.delete(chatId);
-      }
-    });
-
-    // Subscribe các channel mới chưa có
     chats.forEach((conv) => {
-      const chatId = conv.cuoc_tro_chuyen_id;
-      if (activeChannels.has(chatId)) return;
-
-      const channel = echo.private(`cuoc-tro-chuyen.${chatId}`);
-
-      channel.listen(".TinNhanMoi", (e) => {
-        const myUserId = Number(useAuthStore.getState().user?.id || 0);
-        if (Number(e.nguoi_gui_id) === myUserId) return;
-        get().appendIncomingMessage(chatId, e);
-      });
-
-      channel.listen(".TinNhanDaXem", (e) => {
-        get().applySeenByEvent(chatId, e.tin_nhan_ids);
-      });
-
-      // ✅ Lắng nghe thu hồi tin nhắn realtime
-      channel.listen(".TinNhanBiThuHoi", (e) => {
-        get().applyRecallMessage(chatId, e.tin_nhan_id);
-      });
-
-      // ✅ Lắng nghe xóa hết lịch sử realtime (chỉ ảnh hưởng người thực hiện)
-      channel.listen(".TinNhanBiXoaHet", (e) => {
-        const myUserId = Number(useAuthStore.getState().user?.id || 0);
-        if (Number(e.nguoi_dung_id) === myUserId) {
-          set((state) => ({
-            messages: { ...state.messages, [chatId]: [] },
-          }));
-        }
-      });
-
-      activeChannels.set(chatId, channel);
+      get()._subscribeChannel(conv.cuoc_tro_chuyen_id);
     });
   },
 
   stopRealtime: () => {
     const myUserId = useAuthStore.getState().user?.id;
-
     activeChannels.forEach((_, chatId) => {
       echo.leave(`cuoc-tro-chuyen.${chatId}`);
     });
     activeChannels.clear();
-
-    if (myUserId) {
-      echo.leave(`user.${myUserId}`);
-    }
-
+    if (myUserId) echo.leave(`user.${myUserId}`);
     set({ chats: [], messages: {}, totalUnread: 0 });
   },
 
-  // ─── Actions ─────────────────────────────────────────────────
-
-  createOrGetChat: async (nguoi_nhan_id) => {
+  // ─── openChatWith: gọi từ PostCard / PostModal ───────────────────────────
+  openChatWith: async (nguoiNhanId, nguoiNhanInfo) => {
     try {
-      const res = await createOrGetChat(nguoi_nhan_id);
-      return res?.data?.cuoc_tro_chuyen_id;
+      const res = await createOrGetChat(nguoiNhanId);
+      const chatId = res?.data?.cuoc_tro_chuyen_id ?? res?.cuoc_tro_chuyen_id;
+      if (!chatId) return null;
+
+      const cid = Number(chatId);
+      const exists = get().chats.some((c) => c.cuoc_tro_chuyen_id === cid);
+
+      if (!exists) {
+        set({
+          pendingChat: {
+            cuoc_tro_chuyen_id: cid,
+            nguoi_kia: {
+              id: nguoiNhanInfo.id,
+              ho_ten: nguoiNhanInfo.ho_ten,
+              avatar_url: nguoiNhanInfo.avatar_url ?? null,
+            },
+            tin_nhan_cuoi: null,
+            unread_count: 0,
+            updated_at: new Date().toISOString(),
+            _isPending: true,
+          },
+        });
+      }
+
+      return cid;
     } catch (err) {
-      console.error("Lỗi create chat:", err);
+      console.error("Lỗi openChatWith:", err);
       return null;
     }
   },
 
+  // ─── fetchChats ───────────────────────────────────────────────────────────
   fetchChats: async () => {
     set({ loadingChats: true });
     try {
@@ -199,29 +227,55 @@ const useChatStore = create((set, get) => ({
     const current = get().messages[cid] || [];
     if (current.some((m) => Number(m.id) === Number(msg.id))) return;
 
-    const tinNhanCuoiPreview = {
-      ...payload,
-      preview:
-        payload.loai_tin === "ANH"
-          ? "[Ảnh]"
-          : payload.loai_tin === "VIDEO"
-            ? "[Video]"
-            : payload.noi_dung || "",
-    };
+    const preview =
+      payload.loai_tin === "ANH"
+        ? "[Ảnh]"
+        : payload.loai_tin === "VIDEO"
+          ? "[Video]"
+          : payload.noi_dung || "";
+
+    const chatExists = get().chats.some((c) => c.cuoc_tro_chuyen_id === cid);
+
+    const currentChat = get().chats.find((c) => c.cuoc_tro_chuyen_id === cid);
+    const isFirstUnread = !currentChat || (currentChat.unread_count || 0) === 0;
 
     set((state) => ({
       messages: { ...state.messages, [cid]: [...current, msg] },
-      chats: state.chats.map((c) =>
-        c.cuoc_tro_chuyen_id === cid
-          ? {
-              ...c,
-              tin_nhan_cuoi: tinNhanCuoiPreview,
-              unread_count: (c.unread_count || 0) + 1,
-            }
-          : c,
-      ),
-      totalUnread: state.totalUnread + 1,
+      chats: chatExists
+        ? state.chats.map((c) =>
+            c.cuoc_tro_chuyen_id === cid
+              ? {
+                  ...c,
+                  tin_nhan_cuoi: { ...payload, preview },
+                  unread_count: (c.unread_count || 0) + 1,
+                }
+              : c,
+          )
+        : [
+            {
+              cuoc_tro_chuyen_id: cid,
+              nguoi_kia: {
+                id: payload.nguoi_gui_id,
+                ho_ten: "...",
+                avatar_url: null,
+              },
+              tin_nhan_cuoi: { ...payload, preview },
+              unread_count: 1,
+              updated_at: payload.created_at,
+              _isSkeletonPending: true,
+            },
+            ...state.chats,
+          ],
+      totalUnread: state.totalUnread + (isFirstUnread ? 1 : 0),
     }));
+
+    if (!chatExists) {
+      get()._fetchChatsQuiet();
+    }
+
+    if (get().activeChatId === cid) {
+      get().markAsRead(cid);
+    }
   },
 
   applySeenByEvent: (chatId, messageIds) => {
@@ -239,7 +293,6 @@ const useChatStore = create((set, get) => ({
     });
   },
 
-  // ✅ Áp dụng thu hồi tin nhắn lên store (realtime + sau khi gọi API)
   applyRecallMessage: (chatId, tinNhanId) => {
     const cid = Number(chatId);
     const mid = Number(tinNhanId);
@@ -257,7 +310,6 @@ const useChatStore = create((set, get) => ({
         : m,
     );
 
-    // Cập nhật tin nhắn cuối nếu cần
     const chats = get().chats.map((c) => {
       if (c.cuoc_tro_chuyen_id !== cid) return c;
       const lastMsg = c.tin_nhan_cuoi;
@@ -278,13 +330,10 @@ const useChatStore = create((set, get) => ({
     set({ messages: { ...get().messages, [cid]: updatedMessages }, chats });
   },
 
-  // ✅ Thu hồi tin nhắn — gọi API rồi cập nhật store
   recallMessage: async (chatId, tinNhanId) => {
-    const cid = Number(chatId);
-    const mid = Number(tinNhanId);
     try {
-      await recallMessage(cid, mid);
-      get().applyRecallMessage(cid, mid);
+      await recallMessage(Number(chatId), Number(tinNhanId));
+      get().applyRecallMessage(chatId, tinNhanId);
       return true;
     } catch (err) {
       console.error("Lỗi thu hồi:", err);
@@ -297,12 +346,10 @@ const useChatStore = create((set, get) => ({
     try {
       await deleteAllMessages(cid);
       set((state) => ({
-        messages: { ...state.messages, [cid]: [] },
         chats: state.chats.filter((c) => c.cuoc_tro_chuyen_id !== cid),
+        messages: { ...state.messages, [cid]: [] },
+        activeChatId: state.activeChatId === cid ? null : state.activeChatId,
       }));
-      if (get().activeChatId === cid) {
-        set({ activeChatId: null });
-      }
       return true;
     } catch (err) {
       console.error("Lỗi xóa lịch sử:", err);
@@ -310,10 +357,10 @@ const useChatStore = create((set, get) => ({
     }
   },
 
+  // ─── sendMessage ──────────────────────────────────────────────────────────
   sendMessage: async (chatId, payload) => {
     const cid = Number(chatId);
     set({ sending: true });
-
     try {
       const res = await sendMessage(cid, payload);
       const newMsg = res?.data;
@@ -326,51 +373,42 @@ const useChatStore = create((set, get) => ({
               ? "[Video]"
               : newMsg.noi_dung || "";
 
-        // ✅ luôn update messages trước
-        set((state) => ({
-          messages: {
-            ...state.messages,
-            [cid]: [...(state.messages[cid] || []), newMsg],
-          },
-        }));
-
         const isPending = get().pendingChat?.cuoc_tro_chuyen_id === cid;
 
         if (isPending) {
-          // 🟡 CASE 1: chat mới (pending)
           const pending = get().pendingChat;
-
           set((state) => ({
             chats: [
               {
                 ...pending,
                 _isPending: false,
                 tin_nhan_cuoi: { ...newMsg, preview },
+                updated_at: new Date().toISOString(),
               },
               ...state.chats,
             ],
             pendingChat: null,
+            messages: {
+              ...state.messages,
+              [cid]: [...(state.messages[cid] || []), newMsg],
+            },
           }));
-
-          get().syncSubscriptions(get().chats);
+          get()._subscribeChannel(cid);
         } else {
-          // 🟢 CASE 2: chat đã tồn tại
           const chatExists = get().chats.some(
             (c) => c.cuoc_tro_chuyen_id === cid,
           );
-
           set((state) => ({
+            messages: {
+              ...state.messages,
+              [cid]: [...(state.messages[cid] || []), newMsg],
+            },
             chats: state.chats.map((c) =>
               c.cuoc_tro_chuyen_id === cid
-                ? {
-                    ...c,
-                    tin_nhan_cuoi: { ...newMsg, preview },
-                  }
+                ? { ...c, tin_nhan_cuoi: { ...newMsg, preview } }
                 : c,
             ),
           }));
-
-          // nếu chưa có chat → fetch lại
           if (!chatExists) {
             const data = await get().fetchChats();
             get().syncSubscriptions(data);
@@ -402,28 +440,6 @@ const useChatStore = create((set, get) => ({
     } catch (err) {
       console.error("Lỗi mark as read:", err);
     }
-  },
-
-  openChatWith: async (nguoiNhanId, nguoiNhanInfo) => {
-    // Tạo hoặc lấy conversation
-    const res = await createOrGetChat(nguoiNhanId);
-    const chatId = res?.data?.cuoc_tro_chuyen_id;
-    if (!chatId) return null;
-
-    // Nếu đã có trong chats rồi thì không cần pending
-    const exists = get().chats.some((c) => c.cuoc_tro_chuyen_id === chatId);
-    if (!exists) {
-      set({
-        pendingChat: {
-          cuoc_tro_chuyen_id: chatId,
-          nguoi_kia: nguoiNhanInfo, // { id, ho_ten, avatar_url }
-          tin_nhan_cuoi: null,
-          unread_count: 0,
-          _isPending: true,
-        },
-      });
-    }
-    return chatId;
   },
 }));
 

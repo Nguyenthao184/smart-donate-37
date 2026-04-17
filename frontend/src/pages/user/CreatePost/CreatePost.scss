@@ -296,7 +296,7 @@
       transition: opacity 0.2s ease;
     }
 
-    &:hover &-overlay { opacity: 1; }  // ← note: this won't work with & nesting, use below
+    &:hover &-overlay { opacity: 1; } 
   }
 
   &-change {

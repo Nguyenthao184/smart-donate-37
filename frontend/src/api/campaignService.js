@@ -3,13 +3,13 @@ import api from "./authService";
 // Danh sách campaign — nhận mọi params: keyword, danh_muc_id, sort, page
 export const getCampaigns = async (params = {}) => {
   const res = await api.get(`/campaigns`, { params });
-  return res.data; // Laravel paginate object: { data, current_page, last_page, total, per_page }
+  return res.data; 
 };
 
 // Campaign nổi bật
 export const getFeaturedCampaigns = async () => {
   const res = await api.get(`/campaigns/featured`);
-  return res.data; // mảng thuần
+  return res.data;
 };
 
 // Chi tiết campaign

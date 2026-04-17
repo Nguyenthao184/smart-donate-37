@@ -201,11 +201,35 @@
     color: rgba(0, 0, 0, 0.35);
   }
 
+  &__status-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  &__quantity-tag {
+    isplay: inline-flex;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 0 9px;
+    border-radius: 5px;
+    background: rgba(0, 115, 255, 0.04);
+    color: rgb(24, 144, 255);
+    border: 1px solid rgba(28, 3, 251, 0.1);
+    white-space: nowrap;
+
+    span {
+      font-weight: 600;
+      margin-left: 2px;
+    }
+  }
+
   &__status-tag {
     font-size: 12px;
     font-weight: 600;
-    padding: 3px 10px;
-    border-radius: 999px;
+    padding: 0 10px;
+    border-radius: 5px;
     display: flex;
     align-items: center;
     white-space: nowrap;
@@ -926,9 +950,9 @@
 }
 
 .pdc__lightbox {
-  position: fixed; // ✅ fixed thay vì absolute
+  position: fixed;
   inset: 0;
-  z-index: 999999; // ✅ cao hơn modal (99999)
+  z-index: 999999;
   background: rgba(0, 0, 0, 0.92);
   display: flex;
   align-items: center;

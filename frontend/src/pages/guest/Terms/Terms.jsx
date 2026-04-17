@@ -249,7 +249,6 @@ export default function Terms() {
     const handleScroll = () => {
       setShowScrollTop(window.scrollY > 400);
 
-      // Active section on scroll
       for (const s of [...SECTIONS].reverse()) {
         const el = sectionRefs.current[s.id];
         if (el && el.getBoundingClientRect().top <= 140) {

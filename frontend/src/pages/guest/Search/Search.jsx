@@ -54,7 +54,6 @@ export default function SearchCampaign() {
   const [page, setPage]             = useState(1);
   const [showFilter, setShowFilter] = useState(false);
 
-  // Close dropdown on outside click
   function handleCategoryChange(cat) {
     setCategory(cat);
     setPage(1);

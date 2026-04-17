@@ -561,13 +561,12 @@
       height: 350px;
       border-radius: 10px;
       margin-right: 10px;
-      overflow: visible !important; // ← đổi từ hidden → visible
+      overflow: visible !important; 
       box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
       border: 1px solid #e8e8e8;
       position: relative;
 
-      // Dùng clip-path thay overflow hidden để bo góc mà không cắt dots
-      clip-path: inset(0 round 20px); // ← thay thế overflow hidden
+      clip-path: inset(0 round 20px); 
 
       &:hover {
         box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);

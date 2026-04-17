@@ -17,7 +17,6 @@ export default function useCampaigns({ params = null, featured = false } = {}) {
   const fetchEndingCampaigns = useCampaignStore((s) => s.fetchEndingCampaigns)
   const createCampaign = useCampaignStore((s) => s.createCampaign);
 
-  // Dùng ref để so sánh params thực sự thay đổi (tránh loop vô tận)
   const paramsKey = params ? JSON.stringify(params) : null;
   const prevParamsKey = useRef(null);
 
@@ -30,8 +29,8 @@ export default function useCampaigns({ params = null, featured = false } = {}) {
   }, []);
 
   useEffect(() => {
-    if (paramsKey === null) return; // không yêu cầu fetch list → bỏ qua
-    if (paramsKey === prevParamsKey.current) return; // params không đổi → bỏ qua
+    if (paramsKey === null) return; 
+    if (paramsKey === prevParamsKey.current) return; 
     prevParamsKey.current = paramsKey;
     fetchCampaigns(params);
   }, [paramsKey]);

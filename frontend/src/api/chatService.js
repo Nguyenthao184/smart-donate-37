@@ -24,7 +24,6 @@ export const getMessages = async (chatId, params = {}) => {
 
 // gửi tin nhắn
 export const sendMessage = async (chatId, payload) => {
-  // payload có thể là text hoặc FormData
   const isFormData = payload instanceof FormData;
 
   const res = await api.post(

@@ -189,7 +189,7 @@
   }
 
   &__float-icon {
-    position: absolute; // ← đổi sang absolute
+    position: absolute;
     right: 0;
     bottom: -5px;
     width: 50px;
@@ -203,7 +203,7 @@
     justify-content: center;
     color: #ff4d4f;
     box-shadow: 0 4px 12px rgba(255, 77, 79, 0.15);
-    animation: float-pulse 2s ease-in-out infinite; // ← đổi animation
+    animation: float-pulse 2s ease-in-out infinite; 
 
     .campaign-card:hover & {
       background: linear-gradient(135deg, #ff4d4f, #fa8c16);

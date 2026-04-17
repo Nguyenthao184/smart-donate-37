@@ -24,7 +24,7 @@ const usePostStore = create((set, get) => ({
   loadingMatches: null,
   loading: false,
   hasMore: true,
-  comments: {}, // key: postId
+  comments: {}, 
   loadingComments: null,
 
   fetchPosts: async (params = {}, loadMore = false) => {
@@ -103,7 +103,6 @@ const usePostStore = create((set, get) => ({
     try {
       const res = await createPost(formData);
 
-      // thêm vào đầu list
       const newPost = res?.data;
 
       set({
@@ -122,11 +121,15 @@ const usePostStore = create((set, get) => ({
       const res = await updatePost(id, formData);
       const updated = res?.data;
 
+      const sid = String(id);
+
       set({
-        posts: get().posts.map((p) => (p.id === id ? updated : p)),
+        posts: get().posts.map((p) =>
+          p.id === id ? { ...updated, liked: updated.da_thich ?? false } : p,
+        ),
         postDetail: {
           ...get().postDetail,
-          [id]: updated,
+          [sid]: { ...updated, liked: updated.da_thich ?? false },
         },
       });
 
@@ -192,11 +195,9 @@ const usePostStore = create((set, get) => ({
 
       const sid = String(postId);
       set((state) => ({
-        // Cập nhật trong posts list (feed)
         posts: state.posts.map((p) =>
           p.id === postId ? { ...p, liked, so_luot_thich } : p,
         ),
-        // Cập nhật trong postDetail (AI suggestion hoặc bài xem riêng)
         postDetail: state.postDetail[sid]
           ? {
               ...state.postDetail,
@@ -301,7 +302,7 @@ const usePostStore = create((set, get) => ({
 
         const updated = old
           .map((c) => {
-            if (c.id === commentId) return null; // xóa comment cha
+            if (c.id === commentId) return null; 
             const newReplies = (c.replies || []).filter(
               (r) => r.id !== commentId,
             );

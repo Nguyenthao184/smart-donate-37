@@ -20,7 +20,6 @@ function App() {
     void init();
 
     return () => {
-      // Cleanup khi logout (userId thành null)
       useChatStore.getState().stopRealtime();
     };
   }, [userId]);

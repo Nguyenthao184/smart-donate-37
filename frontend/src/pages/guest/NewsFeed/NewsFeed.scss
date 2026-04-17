@@ -228,7 +228,7 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  max-height: 60%; // Giới hạn chiều cao chat panel để scroll
+  max-height: 60%; 
 
   &__header {
     display: flex;
@@ -269,7 +269,7 @@
 // Chat list
 .nf-chat-list {
   padding: 6px 0;
-  flex: 1; // Cho phép chiếm hết chỗ trống còn lại trong panel
+  flex: 1;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: rgba(0, 0, 0, 0.1) transparent;

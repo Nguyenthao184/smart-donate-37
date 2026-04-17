@@ -17,8 +17,6 @@ axiosClient.interceptors.request.use((config) => {
   return config;
 });
 
-// ================= API =================
-
 // REGISTER
 export const registerAPI = (data) => {
   return axiosClient.post("/register", data);
@@ -48,7 +46,7 @@ export const loginAPI = (data) => {
 };
 
 export const getMeAPI = () => {
-  return axiosClient.get("/me"); // backend phải có route này
+  return axiosClient.get("/me");
 };
 
 // GOOGLE LOGIN

@@ -89,7 +89,7 @@ const REPORT_REASONS = [
 ];
 
 export default function ReportSheet({ visible, onClose, onSubmit, loading }) {
-  const [view, setView] = useState("list"); // "list" | "detail" | "success"
+  const [view, setView] = useState("list"); 
   const [selected, setSelected] = useState(null);
 
   const handleClose = () => {

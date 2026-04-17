@@ -55,9 +55,8 @@ export default function CreatePost() {
     formData.append("mo_ta", desc);
     formData.append("loai_bai", type === "cho" ? "CHO" : "NHAN");
     formData.append("dia_diem", location);
-    formData.append("so_luong", quantity === "" ? 1 : Number(quantity)); // ← ép number, fallback 1
+    formData.append("so_luong", quantity === "" ? 1 : Number(quantity)); 
 
-    // ← gửi tất cả ảnh, không bắt buộc phải có
     images.forEach((img) => {
       if (img.file) formData.append("hinh_anh[]", img.file);
     });
@@ -77,7 +76,6 @@ export default function CreatePost() {
       const message = err?.response?.data?.message;
 
       if (errors) {
-        // ← dùng đúng field name và message từ BE
         Object.entries(errors).forEach(([field, errArr]) => {
           notification.warning({
             message: `Lỗi: ${field}`,
@@ -167,7 +165,6 @@ export default function CreatePost() {
             </label>
 
             {images.length === 0 ? (
-              // ← Zone upload khi chưa có ảnh nào
               <div
                 className={`cp-upload__zone${dragging ? " dragging" : ""}`}
                 onClick={() => fileRef.current?.click()}
@@ -191,7 +188,6 @@ export default function CreatePost() {
                 </span>
               </div>
             ) : (
-              // ← Preview khi đã có ít nhất 1 ảnh
               <div className="cp-upload__preview">
                 <div className="cp-upload__preview-main">
                   <img src={preview} alt="preview" />
@@ -286,7 +282,7 @@ export default function CreatePost() {
                 className="cp-field-inline__input"
                 placeholder="Nhập số lượng..."
                 value={quantity}
-                onChange={(e) => setQuantity(e.target.value)} // ← giữ string, ép khi submit
+                onChange={(e) => setQuantity(e.target.value)} 
                 type="number"
                 min={1}
               />

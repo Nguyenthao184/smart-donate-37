@@ -7,7 +7,7 @@ import {
 } from "../api/organizationService";
 
 let organizationsPromise = null;
-const detailPromises = {}; // cache promise theo id
+const detailPromises = {}; 
 
 const useOrganizationStore = create((set, get) => ({
   organizations: [],
@@ -54,11 +54,9 @@ const useOrganizationStore = create((set, get) => ({
   fetchOrganizationDetail: async (id) => {
     const sid = String(id);
 
-    // ✅ đã có cache → không gọi lại
     const cached = get().organizationDetail[sid];
     if (cached) return cached;
 
-    // ✅ đang gọi rồi → return promise cũ
     if (detailPromises[sid]) return detailPromises[sid];
 
     set({ loading: true });
@@ -67,7 +65,6 @@ const useOrganizationStore = create((set, get) => ({
       try {
         const data = await getOrganizationDetail(id);
 
-        // Gắn tạm báo cáo chi giả vào data trả về
         data.bao_cao_chi = [
           {
             ten_chien_dich:
@@ -141,7 +138,7 @@ const useOrganizationStore = create((set, get) => ({
         set({ loading: false });
         return null;
       } finally {
-        delete detailPromises[sid]; // cleanup
+        delete detailPromises[sid]; 
       }
     })();
 
@@ -177,7 +174,6 @@ const useOrganizationStore = create((set, get) => ({
     try {
       const formData = new FormData();
 
-      // Các field text — append nếu có giá trị
       const textFields = [
         "ten_to_chuc",
         "ma_so_thue",
@@ -200,7 +196,6 @@ const useOrganizationStore = create((set, get) => ({
         }
       });
 
-      // Giấy phép — bắt buộc
       if (values.giay_phep) {
         formData.append(
           "giay_phep",
@@ -208,7 +203,6 @@ const useOrganizationStore = create((set, get) => ({
         );
       }
 
-      // Logo — optional
       if (values.logo) {
         formData.append("logo", values.logo.originFileObj || values.logo);
       }

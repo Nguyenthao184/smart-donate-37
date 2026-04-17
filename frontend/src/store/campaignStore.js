@@ -22,12 +22,10 @@ const useCampaignStore = create((set, get) => ({
   isFetchedEnding: false,
   loadingCreate: false,
 
-  // ── Fetch danh sách chiến dịch (có filter/sort/page) ──
   fetchCampaigns: async (params = {}) => {
     set({ loading: true });
     try {
       const res = await getCampaigns(params);
-      // BE trả về Laravel paginate: { data, current_page, last_page, total, ... }
       set({
         campaigns: res.data ?? [],
         pagination: {
@@ -118,7 +116,6 @@ const useCampaignStore = create((set, get) => ({
     set({ loadingCreate: true });
     try {
       const res = await createCampaign(formData);
-      // Reset cache featured & ending để fetch lại sau khi tạo mới
       set({
         isFetchedFeatured: false,
         isFetchedEnding: false,
@@ -128,7 +125,7 @@ const useCampaignStore = create((set, get) => ({
       return res;
     } catch (err) {
       set({ loadingCreate: false });
-      throw err; // ném lên để FE bắt và hiện notification
+      throw err; 
     }
   },
 
