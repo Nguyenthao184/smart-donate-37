@@ -67,27 +67,35 @@ const useCampaignStore = create((set, get) => ({
   },
 
   // ── Fetch chi tiết chiến dịch (cache theo id) ──
-  fetchCampaignDetail: async (id) => {
-    const sid = String(id);
-    const cached = get().campaignDetail[sid];
-    if (cached) return cached;
-    if (detailPromises[sid]) return detailPromises[sid];
+  fetchCampaignDetail: async (id, params = {}) => {
+    const page = params.page || 1;
+    const key = `${id}_${page}`;
 
-    detailPromises[sid] = (async () => {
+    const cached = get().campaignDetail[key];
+    if (cached) return cached;
+    if (detailPromises[key]) return detailPromises[key];
+
+    detailPromises[key] = (async () => {
       try {
-        const res = await getCampaignDetail(id);
+        const res = await getCampaignDetail(id, params);
+
         set({
-          campaignDetail: { ...get().campaignDetail, [sid]: res },
+          campaignDetail: {
+            ...get().campaignDetail,
+            [key]: res, // 👈 cache theo page
+          },
         });
+
         return res;
       } catch (err) {
         console.error("Lỗi fetch campaign detail:", err);
         return null;
       } finally {
-        delete detailPromises[sid];
+        delete detailPromises[key];
       }
     })();
-    return detailPromises[sid];
+
+    return detailPromises[key];
   },
 
   fetchEndingCampaigns: async () => {
@@ -125,7 +133,7 @@ const useCampaignStore = create((set, get) => ({
       return res;
     } catch (err) {
       set({ loadingCreate: false });
-      throw err; 
+      throw err;
     }
   },
 
@@ -141,10 +149,16 @@ const useCampaignStore = create((set, get) => ({
   },
 
   invalidateCampaignDetail: (id) => {
-    const sid = String(id);
     const current = get().campaignDetail;
-    const { [sid]: _, ...rest } = current;
-    set({ campaignDetail: rest });
+
+    const filtered = Object.keys(current)
+      .filter((key) => !key.startsWith(`${id}_`))
+      .reduce((acc, key) => {
+        acc[key] = current[key];
+        return acc;
+      }, {});
+
+    set({ campaignDetail: filtered });
   },
 }));
 
