@@ -7,9 +7,10 @@ import RequiredLoginModal from "../../components/Required/index";
 import useAuthStore from "../../store/authStore";
 import { logoutAPI } from "../../api/authService";
 import useChatStore from "../../store/chatStore";
+import NotificationDropdown from "../../components/NotificationDropdown";
 import "./styles.scss";
 
-export default function Header({ notificationsCount = 2 }) {
+export default function Header() {
   const location = useLocation();
   const navigate = useNavigate();
   const totalUnread = useChatStore((s) => s.totalUnread);
@@ -140,15 +141,7 @@ export default function Header({ notificationsCount = 2 }) {
         <div className="app-header__actions">
           {isLoggedIn ? (
             <>
-              <button
-                type="button"
-                className="app-header__iconBtn"
-                aria-label="Thông báo"
-              >
-                <Badge count={notificationsCount} size="small" offset={[0, 4]}>
-                  <FiBell size={22} />
-                </Badge>
-              </button>
+              <NotificationDropdown />
               <button
                 type="button"
                 className="app-header__iconBtn"

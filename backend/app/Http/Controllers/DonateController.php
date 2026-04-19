@@ -96,7 +96,7 @@ class DonateController extends Controller
                 // SIGNATURE
                 $signature = hash_hmac("sha256", $rawHash, $secretKey);
 
-                // 📦 DATA
+                // DATA
                 $data = [
                     "partnerCode" => $partnerCode,
                     "accessKey" => $accessKey,
@@ -353,7 +353,9 @@ class DonateController extends Controller
             }
         }
 
-        $ungHo = DB::table('ung_ho')->where('id', $request->vnp_TxnRef)->first();
+        $ungHo = DB::table('ung_ho')
+            ->where('payment_ref', $request->vnp_TxnRef)
+            ->first();
         if (!$ungHo) {
             return response()->json(['message' => 'Không tìm thấy giao dịch'], 404);
         }
@@ -471,7 +473,7 @@ class DonateController extends Controller
         $transId = $request->transId ?? null;
         $resultCode = $request->resultCode;
 
-        // ❗ tìm giao dịch (giống VNPAY)
+        // tìm giao dịch (giống VNPAY)
         $ungHo = DB::table('ung_ho')
             ->where('payment_ref', $orderId)
             ->first();

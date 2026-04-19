@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useParams } from "react-router-dom";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { Button, Progress, Tabs, Carousel } from "antd";
+import { Button, Progress, Tabs, Carousel, Pagination } from "antd";
 import {
   FiHeart,
   FiClock,
@@ -45,6 +45,12 @@ export default function CampaignDetail() {
   const mapRef = useRef(null);
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
+  const [donorPage, setDonorPage] = useState(1);
+  const [donorPagination, setDonorPagination] = useState({
+    current: 1,
+    total: 0,
+    pageSize: 6,
+  });
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -53,14 +59,16 @@ export default function CampaignDetail() {
   useEffect(() => {
     if (!id) return;
     let cancelled = false;
-    const loadCampaign = async () => {
-      if (location.state?.fromDonate) {
-        useCampaignStore.getState().invalidateCampaignDetail(id);
-      }
 
-      const data = await useCampaignStore.getState().fetchCampaignDetail(id);
+    const loadCampaign = async () => {
+      const data = await useCampaignStore
+        .getState()
+        .fetchCampaignDetail(id, { page: donorPage });
+
       if (cancelled || !data) return;
-      setCampaign({
+
+      setCampaign((prev) => ({
+        ...(prev || {}),
         id: data.id,
         title: data.ten_chien_dich,
         description: data.mo_ta,
@@ -77,6 +85,7 @@ export default function CampaignDetail() {
         lng: data.lng,
         status: data.trang_thai,
         total_donor: data.so_luot_ung_ho,
+
         org: {
           id: data.to_chuc?.id,
           name: data.to_chuc?.ten_to_chuc,
@@ -85,22 +94,36 @@ export default function CampaignDetail() {
           address: data.to_chuc?.dia_chi,
           email: data.to_chuc?.email,
           hotline: data.to_chuc?.so_dien_thoai,
-          verified: true, 
+          verified: true,
         },
-        donors: data.danh_sach_ung_ho.map((d, i) => ({
-          id: i,
-          name: d.ten_nguoi_ung_ho,
-          amount: Number(d.so_tien.replace(/[^\d]/g, "")),
-          time: d.thoi_gian,
-          avatar: d.ten_nguoi_ung_ho[0],
-        })),
+
+        donors:
+          data.danh_sach_ung_ho?.data?.map((d, i) => {
+            const name = d?.ho_ten || "Ẩn danh";
+
+            return {
+              id: i,
+              name,
+              amount: Number((d?.so_tien || "0").replace(/[^\d]/g, "")),
+              time: d?.created_at, 
+              avatar: name.charAt(0).toUpperCase(),
+            };
+          }) || [],
+      }));
+
+      setDonorPagination({
+        current: data.danh_sach_ung_ho.current_page,
+        total: data.danh_sach_ung_ho.total,
+        pageSize: data.danh_sach_ung_ho.per_page,
       });
     };
-    void loadCampaign();
+
+    loadCampaign();
+
     return () => {
       cancelled = true;
     };
-  }, [id, location.state]);
+  }, [id, donorPage]);
 
   function handleCopy() {
     navigator.clipboard.writeText(campaign.codebank);
@@ -110,12 +133,12 @@ export default function CampaignDetail() {
 
   useEffect(() => {
     if (!campaign?.lat || !campaign?.lng) return;
-    if (mapRef.current) return; 
+    if (mapRef.current) return;
 
     mapRef.current = new mapboxgl.Map({
       container: mapContainerRef.current,
       style: "mapbox://styles/mapbox/streets-v12",
-      center: [campaign.lng, campaign.lat], 
+      center: [campaign.lng, campaign.lat],
       zoom: 12,
     });
 
@@ -273,6 +296,15 @@ export default function CampaignDetail() {
               </div>
             </div>
           ))}
+
+          <div style={{ marginTop: 16, textAlign: "center" }}>
+            <Pagination
+              current={donorPagination.current}
+              total={donorPagination.total}
+              pageSize={donorPagination.pageSize}
+              onChange={(page) => setDonorPage(page)}
+            />
+          </div>
         </div>
       ),
     },

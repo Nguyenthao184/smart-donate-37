@@ -6,6 +6,8 @@ import { BsBagHeartFill } from "react-icons/bs";
 import { FaPeopleCarry } from "react-icons/fa";
 import { MdFeed } from "react-icons/md";
 import PostCard from "../../../components/PostCard/index.jsx";
+import AddressPromptModal from "../../../components/AddressPromptModal/index.jsx";
+import { shouldShowAddressPrompt } from "../../../components/AddressPromptModal/addressPromptUtils.js";
 import usePosts from "../../../hooks/usePosts";
 import usePostStore from "../../../store/postStore";
 import useChatStore from "../../../store/chatStore";
@@ -34,11 +36,14 @@ export default function NewsFeed() {
   const navigate = useNavigate();
   const [tab, setTab] = useState("cho");
   const [search, setSearch] = useState("");
+  const user = useAuthStore((s) => s.user);
+  const [showAddressModal, setShowAddressModal] = useState(
+    () => !!(user?.id && shouldShowAddressPrompt(user.id)),
+  );
 
   const fetchMatches = usePostStore((s) => s.fetchMatches);
   const matchesMap = usePostStore((s) => s.matches);
 
-  const user = useAuthStore((s) => s.user);
   const myUserId = useAuthStore((s) => Number(s.user?.id || 0));
   const isLoggedIn = !!user;
 
@@ -103,7 +108,7 @@ export default function NewsFeed() {
         title: m.post.tieu_de,
         location: m.post.dia_diem || "Không rõ",
         matchScore: Math.round(m.match_percent || 0),
-        icon: "🤝", 
+        icon: "🤝",
       })),
     };
   });
@@ -129,6 +134,12 @@ export default function NewsFeed() {
 
   return (
     <>
+      {showAddressModal && (
+        <AddressPromptModal
+          userId={user.id}
+          onClose={() => setShowAddressModal(false)}
+        />
+      )}
       <div className="nf-page">
         <div className="nf-layout">
           {/* ── Feed ── */}
