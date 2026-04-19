@@ -13,8 +13,8 @@ export const getFeaturedCampaigns = async () => {
 };
 
 // Chi tiết campaign
-export const getCampaignDetail = async (id) => {
-  const res = await api.get(`/campaigns/${id}`);
+export const getCampaignDetail = async (id, params = {}) => {
+  const res = await api.get(`/campaigns/${id}`, { params });
   return res.data;
 };
 
