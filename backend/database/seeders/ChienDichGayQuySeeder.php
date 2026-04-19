@@ -251,35 +251,42 @@ class ChienDichGayQuySeeder extends Seeder
                 switch ($trangThai) {
                     case 'HOAT_DONG':
                         // đang chạy → ngày kết thúc ở tương lai
+                        $createdAt = now()->subDays(rand(1, 10));
                         $ngayKetThuc = now()->addDays(rand(1, 30));
                         break;
 
                     case 'TAM_DUNG':
                         // tạm dừng nhưng chưa hết hạn
+                        $createdAt = now()->subDays(rand(5, 20));
                         $ngayKetThuc = now()->addDays(rand(5, 20));
                         break;
 
                     case 'CHO_XU_LY':
                         // mới tạo → còn hạn xa
+                        $createdAt = now()->subDays(rand(0, 2));
                         $ngayKetThuc = now()->addDays(rand(10, 40));
                         break;
 
                     case 'DA_KET_THUC':
                         // đã kết thúc → ngày trong quá khứ
                         $ngayKetThuc = now()->subDays(rand(1, 10));
+                        $createdAt = (clone $ngayKetThuc)->subDays(rand(10, 30));
                         break;
 
                     case 'HOAN_THANH':
                         // hoàn thành sớm → vẫn là quá khứ
                         $ngayKetThuc = now()->subDays(rand(1, 5));
+                        $createdAt = (clone $ngayKetThuc)->subDays(rand(5, 20));
                         break;
 
                     case 'TU_CHOI':
                         // bị từ chối → có thể chưa tới hạn hoặc vừa tạo
+                        $createdAt = now()->subDays(rand(0, 5));
                         $ngayKetThuc = now()->addDays(rand(5, 15));
                         break;
 
                     default:
+                        $createdAt = now()->subDays(3);
                         $ngayKetThuc = now()->addDays(10);
                         break;
                 }
@@ -330,8 +337,8 @@ class ChienDichGayQuySeeder extends Seeder
 
                     'trang_thai' => $trangThai,
 
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                    'created_at' => $createdAt,
+                    'updated_at' => $createdAt,
                 ]);
             }
         }
