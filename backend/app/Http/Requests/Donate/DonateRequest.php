@@ -23,7 +23,7 @@ class DonateRequest extends FormRequest
     {
         return [
             'chien_dich_gay_quy_id' => 'required|exists:chien_dich_gay_quy,id',
-            'so_tien' => 'required|numeric|min:10000|max:50000000',
+            'so_tien' => 'required|numeric|min:1000|max:50000000',
         ];
     }
 
@@ -34,7 +34,7 @@ class DonateRequest extends FormRequest
             'chien_dich_gay_quy_id.exists' => 'Chiến dịch không tồn tại',
             'so_tien.required' => 'Số tiền không được để trống',
             'so_tien.numeric' => 'Số tiền phải là số',
-            'so_tien.min' => 'Số tiền tối thiểu là 10.000 VND',
+            'so_tien.min' => 'Số tiền tối thiểu là 1.000 VND',
             'so_tien.max' => 'Số tiền tối đa là 50.000.000 VND',
         ];
     }

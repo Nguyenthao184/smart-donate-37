@@ -234,6 +234,8 @@ class CampaignController extends Controller
             return asset('storage/' . $img);
         }, $images);
 
+        $pageSize = 6;
+
         $donations = DB::table('ung_ho as uh')
             ->leftJoin('nguoi_dung as nd', 'uh.nguoi_dung_id', '=', 'nd.id')
             ->select(
@@ -243,15 +245,15 @@ class CampaignController extends Controller
             )
             ->where('uh.chien_dich_gay_quy_id', $chienDich->id)
             ->orderByDesc('uh.created_at')
-            ->limit(10) // giới hạn 10 dòng giống UI
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'ten_nguoi_ung_ho' => $item->ho_ten ?? 'Người ủng hộ ẩn danh',
-                    'so_tien' => number_format($item->so_tien, 0, ',', '.') . 'đ',
-                    'thoi_gian' => \Carbon\Carbon::parse($item->created_at)->format('d/m/Y H:i')
-                ];
-            });
+            ->paginate($pageSize);
+
+        $donationsFormatted = collect($donations->items())->map(function ($item) {
+            return [
+                'ten_nguoi_ung_ho' => $item->ho_ten ?? 'Người ủng hộ ẩn danh',
+                'so_tien' => number_format($item->so_tien, 0, ',', '.') . 'đ',
+                'thoi_gian' => \Carbon\Carbon::parse($item->created_at)->format('d/m/Y H:i')
+            ];
+        });
         
         $soLuotUngHo = DB::table('ung_ho')
             ->where('chien_dich_gay_quy_id', $chienDich->id)

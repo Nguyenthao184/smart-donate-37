@@ -184,7 +184,7 @@ class UserProfileController extends Controller
             ->first();
 
         $toChuc = ToChuc::where('nguoi_dung_id', $id)
-            ->select('logo')
+            ->select('id', 'logo')
             ->first();
 
         if ($toChuc && $toChuc->logo) {
@@ -195,6 +195,7 @@ class UserProfileController extends Controller
         $org = null;
         if ($xacMinh) {
             $org = [
+                'id' => $toChuc->id ?? null,
                 'ten_to_chuc' => $xacMinh->ten_to_chuc,
                 'mo_ta' => "Đại diện {$xacMinh->ten_to_chuc}. {$xacMinh->mo_ta}",
                 'logo' => $toChuc->logo ?? null,
@@ -219,7 +220,7 @@ class UserProfileController extends Controller
 
         return response()->json([
             'nguoi_dung' => $user,
-            'to_chuc' => $toChuc,
+            'to_chuc' => $org,
             'bai_dang' => $baiDang,
         ]);
     }
