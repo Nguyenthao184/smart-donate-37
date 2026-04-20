@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Notification;
 
 class BaiDangDuocThichNotification extends Notification
@@ -18,7 +19,7 @@ class BaiDangDuocThichNotification extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['database', 'broadcast'];
     }
 
     /**
@@ -34,5 +35,10 @@ class BaiDangDuocThichNotification extends Notification
             'nguoi_thich_ten' => $this->nguoi_thich_ten,
             'tieu_de_bai' => $this->tieu_de_bai,
         ];
+    }
+
+    public function toBroadcast(object $notifiable): BroadcastMessage
+    {
+        return new BroadcastMessage($this->toDatabase($notifiable));
     }
 }

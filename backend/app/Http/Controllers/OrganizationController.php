@@ -168,7 +168,13 @@ class OrganizationController extends Controller
 
             // notification
             $org->user->notify(
-                new ApprovalNotification('approve', 'Tổ chức & tài khoản gây quỹ')
+                new ApprovalNotification(
+                    'approve',
+                    'Tổ chức & tài khoản gây quỹ',
+                    null,
+                    'organization',
+                    (int) $org->id
+                )
             );
 
             return response()->json([
@@ -210,7 +216,9 @@ class OrganizationController extends Controller
             new ApprovalNotification(
                 'reject',
                 'Tổ chức',
-                $request->ly_do
+                $request->ly_do,
+                'organization',
+                (int) $org->id
             )
         );
 
@@ -442,7 +450,9 @@ class OrganizationController extends Controller
             new ApprovalNotification(
                 'lock',
                 'Tài khoản gây quỹ',
-                $request->ly_do
+                $request->ly_do,
+                'fund_account',
+                (int) $tk->id
             )
         );
 

@@ -29,6 +29,8 @@ class UpdatePostRequest extends FormRequest
             // multiple images: hinh_anh[] (max 6)
             'hinh_anh' => 'nullable|array|max:6',
             'hinh_anh.*' => 'file|mimes:jpg,jpeg,png,webp|max:5120',
+            'existing_images' => 'nullable|array|max:6',
+            'existing_images.*' => 'string|max:2048',
             // Nếu user chỉ update lat/lng (từ map) mà không update dia_diem thì ok.
             // Nếu update dia_diem mà bỏ lat/lng thì sẽ auto geocode.
             'dia_diem' => [

@@ -3,8 +3,8 @@
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Notification;
-use Illuminate\Notifications\Messages\DatabaseMessage;
 
 class ReplyCommentNotification extends Notification
 {
@@ -20,7 +20,7 @@ class ReplyCommentNotification extends Notification
 
     public function via($notifiable)
     {
-        return ['database']; // lưu DB
+        return ['database', 'broadcast']; // lưu DB + broadcast realtime
     }
 
     public function toDatabase($notifiable)
@@ -33,5 +33,10 @@ class ReplyCommentNotification extends Notification
             'nguoi_reply_ten' => $this->nguoi_reply_ten,
             'noi_dung' => $this->noi_dung,
         ];
+    }
+
+    public function toBroadcast($notifiable): BroadcastMessage
+    {
+        return new BroadcastMessage($this->toDatabase($notifiable));
     }
 }

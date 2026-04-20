@@ -28,8 +28,8 @@ class PostCommentController extends Controller
             ->where('id_cha', null)
             ->with(['nguoiDung:id,ho_ten,anh_dai_dien', 'replies.nguoiDung:id,ho_ten,anh_dai_dien'])
             
-            ->orderByDesc('created_at')
-            ->orderByDesc('id')
+            ->orderBy('created_at', 'asc')
+            ->orderBy('id','asc')
             ->paginate($perPage);
 
         $paginator->getCollection()->transform(fn(BinhLuanBaiDang $c) => $this->formatComment($c));

@@ -23,3 +23,7 @@ Broadcast::channel('cuoc-tro-chuyen.{cuocTroChuyenId}', function ($user, int $cu
 Broadcast::channel('user.{id}', function ($user, $id) {
     return (int) $user->id === (int) $id;
 });
+
+Broadcast::channel('App.Models.user.{id}', function ($user, $id) {
+    return (int) $user->id === (int) $id;
+});
