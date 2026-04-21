@@ -44,6 +44,8 @@ Route::middleware('auth:sanctum')->group(function(){
         return Broadcast::auth($request);
     });
     Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
     Route::post('/posts/{id}/like', [PostController::class, 'toggleLike'])->whereNumber('id');
     Route::post('/posts/{id}/comments', [PostCommentController::class, 'store'])->whereNumber('id');
     Route::post('/comments/{id}', [PostCommentController::class, 'destroy'])->whereNumber('id');
@@ -133,7 +135,7 @@ Route::middleware('auth:sanctum')->group(function(){
         // CRUD posts
         Route::post('/posts', [PostController::class, 'store']);
         Route::get('/posts/me', [PostController::class, 'me']);
-        Route::put('/posts/{id}', [PostController::class, 'update'])->whereNumber('id');
+        Route::post('/posts/{id}', [PostController::class, 'update'])->whereNumber('id');
         Route::delete('/posts/{id}', [PostController::class, 'destroy'])->whereNumber('id');
 
         // AI matching

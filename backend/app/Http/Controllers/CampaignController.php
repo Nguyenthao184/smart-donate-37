@@ -305,7 +305,13 @@ class CampaignController extends Controller
 
         $user = $campaign->toChuc->user;
 
-        $user->notify(new ApprovalNotification('approve', 'Chiến dịch'));
+        $user->notify(new ApprovalNotification(
+            'approve',
+            'Chiến dịch',
+            null,
+            'campaign',
+            (int) $campaign->id
+        ));
 
         return response()->json([
             'message' => 'Đã duyệt chiến dịch'
@@ -321,7 +327,13 @@ class CampaignController extends Controller
 
         $user = $campaign->toChuc->user;
 
-        $user->notify(new ApprovalNotification('reject', 'Chiến dịch', $request->ly_do));
+        $user->notify(new ApprovalNotification(
+            'reject',
+            'Chiến dịch',
+            $request->ly_do,
+            'campaign',
+            (int) $campaign->id
+        ));
 
         return response()->json([
             'message' => 'Đã từ chối chiến dịch'

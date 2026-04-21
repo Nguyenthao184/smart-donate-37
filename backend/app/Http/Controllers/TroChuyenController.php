@@ -178,9 +178,8 @@ class TroChuyenController extends Controller
             }
         }
 
-        $totalUnread =  count(array_filter($unreadMap, fn($c) => $c > 0));;
-
         $rows = [];
+        $visibleUnread = [];
         foreach ($cuocs as $c) {
             $cid = (int) $c->id;
             $otherId = $otherIdByConv[$cid] ?? null;
@@ -223,6 +222,11 @@ class TroChuyenController extends Controller
                 ];
             }
 
+            // Đã "xóa hết lịch sử phía tôi" và chưa có tin mới => ẩn cuộc trò chuyện khỏi danh sách.
+            if ($last === null) {
+                continue;
+            }
+
             $rows[] = [
                 'cuoc_tro_chuyen_id' => $cid,
                 'updated_at' => $c->updated_at?->toIso8601String(),
@@ -235,7 +239,11 @@ class TroChuyenController extends Controller
                 ] : null,
                 'tin_nhan_cuoi' => $last,
             ];
+
+            $visibleUnread[$cid] = (int) ($unreadMap[$cid] ?? 0);
         }
+
+        $totalUnread = count(array_filter($visibleUnread, static fn ($c) => $c > 0));
 
         return response()->json([
             'data' => $rows,
@@ -462,6 +470,10 @@ class TroChuyenController extends Controller
         event(new TinNhanBiXoaHet(
             cuoc_tro_chuyen_id: (int) $id,
             nguoi_dung_id: $userId,
+        ));
+        event(new ConversationListUpdated(
+            cuoc_tro_chuyen_id: (int) $id,
+            nguoi_nhan_id: $userId,
         ));
 
         return response()->json([

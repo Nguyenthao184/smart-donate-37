@@ -23,7 +23,7 @@ class ConversationListUpdated implements ShouldBroadcastNow
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('User.' . $this->nguoi_nhan_id),
+            new PrivateChannel('user.' . $this->nguoi_nhan_id),
         ];
     }
     /**
@@ -34,5 +34,6 @@ class ConversationListUpdated implements ShouldBroadcastNow
     public function broadcastAs(): string
     {
         return 'ConversationListUpdated';
+        
     }
 }

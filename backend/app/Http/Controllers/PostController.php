@@ -380,17 +380,35 @@ class PostController extends Controller
             }
         }
 
+        $oldPaths = array_values(array_filter(
+            is_array($post->hinh_anh) ? $post->hinh_anh : [],
+            static fn ($p) => is_string($p) && $p !== ''
+        ));
+        $oldSet = array_flip($oldPaths);
+
+        $existingImageUrls = $request->input('existing_images', []);
+        if (!is_array($existingImageUrls)) {
+            $existingImageUrls = [];
+        }
+
+        $keepPaths = [];
+        foreach ($existingImageUrls as $img) {
+            $path = $this->normalizeStoragePath(is_string($img) ? $img : null);
+            if ($path !== null && isset($oldSet[$path])) {
+                $keepPaths[] = $path;
+            }
+        }
+        $keepPaths = array_values(array_unique($keepPaths));
+
+        foreach ($oldPaths as $op) {
+            if (!in_array($op, $keepPaths, true) && Storage::disk('public')->exists($op)) {
+                Storage::disk('public')->delete($op);
+            }
+        }
+
+        $newPaths = [];
         $files = $request->file('hinh_anh');
         if ($files) {
-            // delete old images
-            $oldPaths = is_array($post->hinh_anh) ? $post->hinh_anh : [];
-            foreach ($oldPaths as $op) {
-                if (is_string($op) && $op !== '' && Storage::disk('public')->exists($op)) {
-                    Storage::disk('public')->delete($op);
-                }
-            }
-
-            $newPaths = [];
             $files = is_array($files) ? $files : [$files];
             foreach ($files as $f) {
                 if ($f) {
@@ -400,7 +418,11 @@ class PostController extends Controller
                     }
                 }
             }
-            $data['hinh_anh'] = $newPaths === [] ? null : $newPaths;
+        }
+
+        if ($request->has('existing_images') || $files) {
+            $mergedPaths = array_values(array_unique(array_merge($keepPaths, $newPaths)));
+            $data['hinh_anh'] = $mergedPaths === [] ? null : $mergedPaths;
         }
 
         $post->update($data);
@@ -660,6 +682,29 @@ class PostController extends Controller
         }
 
         return $map;
+    }
+
+    private function normalizeStoragePath(?string $value): ?string
+    {
+        if (!is_string($value) || trim($value) === '') {
+            return null;
+        }
+
+        $raw = trim($value);
+        $path = parse_url($raw, PHP_URL_PATH);
+        if (!is_string($path) || $path === '') {
+            $path = $raw;
+        }
+
+        $path = ltrim($path, '/');
+        $storagePrefix = 'storage/';
+
+        if (str_starts_with($path, $storagePrefix)) {
+            return substr($path, strlen($storagePrefix));
+        }
+
+        // FE có thể gửi trực tiếp relative path trong DB.
+        return $path;
     }
 
     private function applyPostLikeAggregates($query): void
