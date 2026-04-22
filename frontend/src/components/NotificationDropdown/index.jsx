@@ -13,6 +13,7 @@ import { formatPostTime } from "../../utils/formatTime";
 import { getPostDetail } from "../../api/postService";
 import PostDetailModal from "../PostModal/index";
 import useNotificationStore from "../../store/notificationStore";
+import useAuthStore from "../../store/authStore";
 import "./styles.scss";
 
 /* ------------------------------------------------------------------ */
@@ -150,6 +151,7 @@ const timeAgo = (dateStr) => {
 /*  Component chính                                                     */
 /* ------------------------------------------------------------------ */
 export default function NotificationDropdown() {
+  const { user } = useAuthStore();
   const {
     notifications,
     unreadCount,
@@ -157,13 +159,25 @@ export default function NotificationDropdown() {
     fetchNotifications,
     markAsRead,
     markAllAsRead,
+    subscribeNotifications,
+    unsubscribeNotifications,
   } = useNotificationStore();
   const [selectedPost, setSelectedPost] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
 
   useEffect(() => {
     fetchNotifications();
-  }, []);
+
+    if (user?.id) {
+      subscribeNotifications(user.id);
+    }
+
+    return () => {
+      if (user?.id) {
+        unsubscribeNotifications(user.id);
+      }
+    };
+  }, [user?.id]);
 
   const handleClickNotif = async (notif) => {
     if (!notif.read_at) await markAsRead(notif.id);

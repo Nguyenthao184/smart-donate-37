@@ -26,4 +26,9 @@ class GiaoDichQuy extends Model
     {
         return $this->belongsTo(ChienDichGayQuy::class, 'chien_dich_gay_quy_id');
     }
+
+    public function chiTieu()
+    {
+        return $this->hasOne(ChiTieuChienDich::class, 'giao_dich_quy_id');
+    }
 }

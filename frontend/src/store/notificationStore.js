@@ -1,5 +1,12 @@
 import { create } from "zustand";
-import { getNotificationsAPI, markAsReadAPI, markAllAsReadAPI } from "../api/notificationService";
+import {
+  getNotificationsAPI,
+  markAsReadAPI,
+  markAllAsReadAPI,
+} from "../api/notificationService";
+import echo from "../socket";
+
+let notifChannel = null;
 
 const useNotificationStore = create((set) => ({
   notifications: [],
@@ -26,7 +33,7 @@ const useNotificationStore = create((set) => ({
       await markAsReadAPI(id);
       set((state) => ({
         notifications: state.notifications.map((n) =>
-          n.id === id ? { ...n, read_at: new Date().toISOString() } : n
+          n.id === id ? { ...n, read_at: new Date().toISOString() } : n,
         ),
         unreadCount: Math.max(0, state.unreadCount - 1),
       }));
@@ -48,6 +55,38 @@ const useNotificationStore = create((set) => ({
     } catch (err) {
       console.error("Lỗi đánh dấu tất cả đọc:", err);
     }
+  },
+
+  subscribeNotifications: (userId) => {
+    if (notifChannel) {
+      console.log("⚠️ Đã subscribe rồi, bỏ qua");
+      return;
+    }
+
+    console.log("🔔 Subscribing notification for user:", userId);
+    notifChannel = echo
+      .private(`App.Models.User.${userId}`)
+      .notification((payload) => {
+        console.log("📩 Nhận notification realtime:", payload);
+        set((state) => ({
+          notifications: [
+            {
+              id: payload.id,
+              type: payload.type,
+              data: payload,
+              read_at: null,
+              created_at: new Date().toISOString(),
+            },
+            ...state.notifications,
+          ],
+          unreadCount: state.unreadCount + 1,
+        }));
+      });
+  },
+
+  unsubscribeNotifications: (userId) => {
+    echo.leave(`App.Models.User.${userId}`);
+    notifChannel = null; 
   },
 }));
 

@@ -81,8 +81,10 @@ export default function PostCard({ post, style, onDelete }) {
         { label: "Đã nhận đủ", value: "DA_NHAN", icon: <FaCheckCircle /> },
       ];
 
-  const hasAiSuggestions = post.aiSuggestions?.length > 0;
-  const isMyPost = user?.id === post.user?.id;
+  const postOwnerId = post?.user?.id;
+  const isMyPost = Number(postOwnerId) === Number(user?.id);
+  const hasAiSuggestions = isMyPost && post.aiSuggestions?.length > 0;
+  const aiSuggestions = isMyPost ? post.aiSuggestions : [];
   const images = post.images || [];
   const imgCount = images.length;
 
@@ -536,7 +538,7 @@ export default function PostCard({ post, style, onDelete }) {
               </span>
             </div>
             <div className="post-card__ai-list">
-              {post.aiSuggestions.map((sug) => (
+              {aiSuggestions.map((sug) => (
                 <div key={sug.id} className="post-card__ai-item">
                   <div className="post-card__ai-item-icon">{sug.icon}</div>
                   <div className="post-card__ai-item-info">
