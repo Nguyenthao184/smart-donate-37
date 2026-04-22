@@ -35,7 +35,7 @@ Route::get('/posts/{id}', [PostController::class, 'show'])->whereNumber('id');
 Route::get('/posts/{id}/comments', [PostCommentController::class, 'index'])->whereNumber('id');
 
 // ds danh mục
-Route::get('/categories', [CampaignController::class, 'getDanhMuc']);
+Route::get('/categories', [CampaignController::class, 'getDanhMuc']);;
 
 Route::middleware('auth:sanctum')->group(function(){
     Route::get('/me', [AuthController::class, 'me']);
@@ -121,6 +121,8 @@ Route::middleware('auth:sanctum')->group(function(){
         //chiến dịch
         Route::post('/campaigns', [CampaignController::class, 'store']);
         Route::get('/campaigns/me', [CampaignController::class, 'myCampaigns']);
+        Route::get('/campaigns/update/{id}', [CampaignController::class, 'edit']);
+        Route::post('/campaigns/update/{id}', [CampaignController::class, 'update']);
 
         //thống kê
         Route::get('/dashboard', [DashboardController::class, 'index']);
@@ -128,6 +130,10 @@ Route::middleware('auth:sanctum')->group(function(){
         Route::get('/dashboard/monthly-statistics', [DashboardController::class, 'monthlyStatistics']);
         Route::get('/dashboard/active-campaigns', [DashboardController::class, 'activeCampaigns']);
         Route::get('/dashboard/recent-activities', [DashboardController::class, 'recentActivities']);
+
+        //hoạt động
+        Route::post('/campaigns/{id}/expenses', [CampaignController::class, 'storeExpense']);
+        Route::get('/campaigns/{id}/withdraw-transactions', [CampaignController::class, 'getWithdrawTransactions']);
    });
 
     // Feed - user và tổ chức: đăng/cập nhật/xóa 

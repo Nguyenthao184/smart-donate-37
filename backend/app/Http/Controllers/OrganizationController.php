@@ -360,8 +360,6 @@ class OrganizationController extends Controller
                     'phan_tram' => $phanTram,
                     'trang_thai' => $cd->trang_thai,
                     'so_ngay_con_lai' => $soNgayConLai,
-
-                    // giống UI
                     'so_luot_ung_ho' => $soLuotUngHo,
                 ];
             });
@@ -391,6 +389,17 @@ class OrganizationController extends Controller
 
         $tk = $org->taiKhoanGayQuy;
 
+        $expenseSummary = DB::table('chi_tieu_chien_dich')
+            ->join('chien_dich_gay_quy', 'chi_tieu_chien_dich.chien_dich_gay_quy_id', '=', 'chien_dich_gay_quy.id')
+            ->where('chien_dich_gay_quy.to_chuc_id', $id)
+            ->select(
+                'ten_hoat_dong',
+                DB::raw('SUM(so_tien) as tong_tien')
+            )
+            ->groupBy('ten_hoat_dong')
+            ->orderByDesc('tong_tien')
+            ->get();
+
         return response()->json([
             // thông tin tổ chức
             'id' => $org->id,
@@ -417,6 +426,8 @@ class OrganizationController extends Controller
             'tong_chi' => (float) $tongChi,
             'tong_chien_dich' => $tongChienDich,
             'tong_luot_ung_ho' => $tongLuotUngHo,
+
+            'expense_summary' => $expenseSummary,
         ]);
     }
 
