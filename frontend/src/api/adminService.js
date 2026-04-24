@@ -2,7 +2,7 @@ import api from "./authService";
 
 // ===== USERS =====
 export const getAdminUsers = async () => {
-  const res = await api.get("/admin/users");
+  const res = await api.get("/admin/users?per_page=1000");
   return res.data;
 };
 
@@ -32,8 +32,9 @@ export const approveOrganization = async (id) => {
   return res.data;
 };
 
-export const rejectOrganization = async (id) => {
-  const res = await api.post(`/admin/organization/${id}/reject`);
+// BE bắt buộc ly_do khi reject tổ chức
+export const rejectOrganization = async (id, ly_do) => {
+  const res = await api.post(`/admin/organization/${id}/reject`, { ly_do });
   return res.data;
 };
 
@@ -45,7 +46,7 @@ export const lockFundAccount = async (id) => {
 
 // ===== POSTS =====
 export const getAdminPosts = async () => {
-  const res = await api.get("/admin/posts");
+  const res = await api.get("/admin/posts?per_page=1000");
   return res.data;
 };
 
@@ -54,9 +55,21 @@ export const getAdminPostDetail = async (id) => {
   return res.data;
 };
 
+// ===== POST REPORTS — GET /admin/post-reports =====
+export const getAdminPostReports = async () => {
+  const res = await api.get("/admin/post-reports?limit=100");
+  return res.data;
+};
+
+// POST /admin/post-reports/{id} — trang_thai: CHO_XU_LY | DA_XU_LY | TU_CHOI
+export const updateAdminPostReport = async (id, trang_thai) => {
+  const res = await api.post(`/admin/post-reports/${id}`, { trang_thai });
+  return res.data;
+};
+
 // ===== CAMPAIGNS =====
 export const getAdminCampaigns = async () => {
-  const res = await api.get("/admin/campaigns");
+  const res = await api.get("/admin/campaigns?per_page=1000");
   return res.data;
 };
 

@@ -9,11 +9,12 @@ import useAdminStore from "../../../store/adminStore";
 import "./Projects.scss";
 
 const STATUS_MAP = {
-  HOAT_DONG:   { label: "Đang chạy",   cls: "green" },
-  TAM_DUNG:    { label: "Tạm dừng",    cls: "yellow" },
-  DA_KET_THUC: { label: "Đã kết thúc", cls: "blue" },
-  HOAN_THANH:  { label: "Hoàn thành",  cls: "green" },
-  TU_CHOI:     { label: "Từ chối",      cls: "red" },
+  CHO_DUYET:   { label: "Chờ duyệt",  cls: "yellow" },
+  HOAT_DONG:   { label: "Đang chạy",  cls: "green" },
+  TAM_DUNG:    { label: "Tạm dừng",   cls: "yellow" },
+  DA_KET_THUC: { label: "Đã kết thúc",cls: "blue" },
+  HOAN_THANH:  { label: "Hoàn thành", cls: "green" },
+  TU_CHOI:     { label: "Từ chối",    cls: "red" },
 };
 
 export default function Projects() {
@@ -37,20 +38,20 @@ export default function Projects() {
   async function approve(id) {
     const ok = await handleApproveCampaign(id);
     if (ok) notification.success({ message: "Duyệt chiến dịch thành công", placement: "topRight" });
-    else notification.error({ message: "Duyệt chiến dịch thất bại", placement: "topRight" });
+    else    notification.error({ message: "Duyệt chiến dịch thất bại", placement: "topRight" });
   }
 
   async function reject(id) {
     const ok = await handleRejectCampaign(id);
     if (ok) notification.success({ message: "Từ chối chiến dịch thành công", placement: "topRight" });
-    else notification.error({ message: "Từ chối chiến dịch thất bại", placement: "topRight" });
+    else    notification.error({ message: "Từ chối chiến dịch thất bại", placement: "topRight" });
   }
 
   const stats = [
-    { label: "Tổng",       val: campaigns.length,                                        c: "#dfdbfd" },
-    { label: "Đang chạy",  val: campaigns.filter(p => p.trang_thai === "HOAT_DONG").length, c: "#d6fce4" },
-    { label: "Tạm dừng",   val: campaigns.filter(p => p.trang_thai === "TAM_DUNG").length,  c: "#f8ebd4" },
-    { label: "Hoàn thành", val: campaigns.filter(p => p.trang_thai === "HOAN_THANH").length, c: "#d6fce4" },
+    { label: "Tổng",       val: campaigns.length,                                           c: "#dfdbfd" },
+    { label: "Chờ duyệt",  val: campaigns.filter(p => p.trang_thai === "CHO_DUYET").length,  c: "#fef9c3" },
+    { label: "Đang chạy",  val: campaigns.filter(p => p.trang_thai === "HOAT_DONG").length,  c: "#d6fce4" },
+    { label: "Hoàn thành", val: campaigns.filter(p => p.trang_thai === "HOAN_THANH").length, c: "#dbeafe" },
   ];
 
   return (
@@ -89,10 +90,12 @@ export default function Projects() {
             </div>
             <select className="adm-select" value={filter} onChange={e => setFilter(e.target.value)}>
               <option value="all">Tất cả</option>
+              <option value="CHO_DUYET">Chờ duyệt</option>
               <option value="HOAT_DONG">Đang chạy</option>
               <option value="TAM_DUNG">Tạm dừng</option>
               <option value="HOAN_THANH">Hoàn thành</option>
               <option value="DA_KET_THUC">Đã kết thúc</option>
+              <option value="TU_CHOI">Từ chối</option>
             </select>
           </div>
         </div>
@@ -109,14 +112,15 @@ export default function Projects() {
                   <th>Tiến độ</th>
                   <th>Còn lại</th>
                   <th>Trạng thái</th>
-                  <th>Thao tác</th>
+                  <th>Duyệt</th>
+                  <th>Xem</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
-                  <tr><td colSpan={6}><div className="adm-empty"><div className="adm-empty__icon">📂</div><div className="adm-empty__text">Không có chiến dịch</div></div></td></tr>
+                  <tr><td colSpan={7}><div className="adm-empty"><div className="adm-empty__icon">📂</div><div className="adm-empty__text">Không có chiến dịch</div></div></td></tr>
                 ) : filtered.map((p, i) => {
-                  const pct = p.muc_tieu_tien > 0 ? Math.round((p.so_tien_da_nhan || 0) * 100 / p.muc_tieu_tien) : 0;
+                  const pct    = p.muc_tieu_tien > 0 ? Math.round((p.so_tien_da_nhan || 0) * 100 / p.muc_tieu_tien) : 0;
                   const status = STATUS_MAP[p.trang_thai] || { label: p.trang_thai, cls: "green" };
                   return (
                     <tr key={p.id} style={{ animationDelay: `${i * 0.05}s` }}>
@@ -142,12 +146,27 @@ export default function Projects() {
                         </div>
                       </td>
                       <td><span className={`adm-tag adm-tag--${status.cls}`}>{status.label}</span></td>
+
+                      {/* Cột duyệt */}
                       <td>
-                        <div className="prj__actions">
-                          <button className="adm-btn adm-btn--ghost adm-btn--sm adm-btn--icon" title="Xem chi tiết" onClick={() => setSelected(p)}>
-                            <FiEye size={13} />
-                          </button>
-                        </div>
+                        {p.trang_thai === "CHO_DUYET" ? (
+                          <div style={{ display: "flex", gap: 6 }}>
+                            <button className="adm-btn adm-btn--success adm-btn--sm" onClick={() => approve(p.id)}>
+                              <FiCheck size={12} /> Duyệt
+                            </button>
+                            <button className="adm-btn adm-btn--danger adm-btn--sm" onClick={() => reject(p.id)}>
+                              <FiX size={12} /> Từ chối
+                            </button>
+                          </div>
+                        ) : (
+                          <span style={{ color: "#aaa", fontSize: 12 }}>—</span>
+                        )}
+                      </td>
+
+                      <td>
+                        <button className="adm-btn adm-btn--ghost adm-btn--sm adm-btn--icon" title="Xem chi tiết" onClick={() => setSelected(p)}>
+                          <FiEye size={13} />
+                        </button>
                       </td>
                     </tr>
                   );
@@ -158,8 +177,9 @@ export default function Projects() {
         </div>
       </div>
 
+      {/* Modal chi tiết */}
       {selected && (() => {
-        const pct = selected.muc_tieu_tien > 0 ? Math.round((selected.so_tien_da_nhan || 0) * 100 / selected.muc_tieu_tien) : 0;
+        const pct    = selected.muc_tieu_tien > 0 ? Math.round((selected.so_tien_da_nhan || 0) * 100 / selected.muc_tieu_tien) : 0;
         const status = STATUS_MAP[selected.trang_thai] || { label: selected.trang_thai, cls: "green" };
         return (
           <div
@@ -206,11 +226,11 @@ export default function Projects() {
                   <div style={{ fontSize: 12, fontWeight: 600, color: "#888", marginBottom: 10, letterSpacing: "0.5px" }}>THÔNG TIN CHI TIẾT</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 1, borderRadius: 10, overflow: "hidden", border: "1px solid #f0f0f0" }}>
                     {[
-                      { icon: <FiTarget size={13} />, label: "Mục tiêu", value: Number(selected.muc_tieu_tien || 0).toLocaleString() + " đ" },
-                      { icon: <FiTrendingUp size={13} />, label: "Đã nhận", value: Number(selected.so_tien_da_nhan || 0).toLocaleString() + " đ" },
-                      { icon: <FiUser size={13} />, label: "Lượt ủng hộ", value: selected.so_luot_ung_ho || 0 },
-                      { icon: <FiClock size={13} />, label: "Còn lại", value: `${selected.so_ngay_con_lai || 0} ngày` },
-                      { icon: <FiCalendar size={13} />, label: "Phần trăm", value: `${selected.phan_tram || pct}%` },
+                      { icon: <FiTarget size={13} />,     label: "Mục tiêu",     value: Number(selected.muc_tieu_tien || 0).toLocaleString() + " đ" },
+                      { icon: <FiTrendingUp size={13} />, label: "Đã nhận",      value: Number(selected.so_tien_da_nhan || 0).toLocaleString() + " đ" },
+                      { icon: <FiUser size={13} />,       label: "Lượt ủng hộ", value: selected.so_luot_ung_ho || 0 },
+                      { icon: <FiClock size={13} />,      label: "Còn lại",      value: `${selected.so_ngay_con_lai || 0} ngày` },
+                      { icon: <FiCalendar size={13} />,   label: "Phần trăm",    value: `${selected.phan_tram || pct}%` },
                     ].map((row, i) => (
                       <div key={i} style={{ display: "flex", alignItems: "center", padding: "11px 14px", background: "#fafafa", gap: 10, borderBottom: "1px solid #f0f0f0" }}>
                         <span style={{ color: "#888", width: 18, display: "flex", justifyContent: "center" }}>{row.icon}</span>
@@ -221,10 +241,29 @@ export default function Projects() {
                   </div>
                 </div>
 
-                <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 4 }}>
+                {/* Nút duyệt/từ chối trong modal */}
+                <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 4, flexWrap: "wrap" }}>
                   <button style={{ padding: "10px 22px", border: "1px solid #e0e0e0", borderRadius: 8, background: "none", fontSize: 13, color: "#888", cursor: "pointer" }} onClick={() => setSelected(null)}>
                     Đóng
                   </button>
+                  {selected.trang_thai === "CHO_DUYET" && (
+                    <>
+                      <button
+                        className="adm-btn adm-btn--success"
+                        style={{ padding: "10px 22px", borderRadius: 8, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}
+                        onClick={() => { approve(selected.id); setSelected(null); }}
+                      >
+                        <FiCheck size={13} /> Duyệt chiến dịch
+                      </button>
+                      <button
+                        className="adm-btn adm-btn--danger"
+                        style={{ padding: "10px 22px", borderRadius: 8, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}
+                        onClick={() => { reject(selected.id); setSelected(null); }}
+                      >
+                        <FiX size={13} /> Từ chối
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

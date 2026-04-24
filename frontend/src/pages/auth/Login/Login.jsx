@@ -16,22 +16,16 @@ export default function Login() {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const { setAuth } = useAuthStore();
-
   const hasVerified = useRef(false);
 
   useEffect(() => {
     const token = params.get("verify_token");
-
     if (!token || hasVerified.current) return;
-
     hasVerified.current = true;
-
     const verify = async () => {
       try {
         await axios.get(`${API_URL}/verify-register?token=${token}`);
-
         sessionStorage.setItem("verify_success", "true");
-
         window.location.replace("/dang-nhap");
       } catch (err) {
         notification.error({
@@ -40,19 +34,16 @@ export default function Login() {
         });
       }
     };
-
     verify();
   }, [params]);
 
   useEffect(() => {
     const isVerified = sessionStorage.getItem("verify_success");
-
     if (isVerified) {
       notification.success({
         title: "Xác minh thành công!",
         description: "Bạn có thể đăng nhập ngay bây giờ",
       });
-
       sessionStorage.removeItem("verify_success");
     }
   }, []);
@@ -60,12 +51,7 @@ export default function Login() {
   const handleSubmit = async (values) => {
     try {
       setLoading(true);
-
-      const res = await loginAPI({
-        email: values.email,
-        password: values.password,
-      });
-
+      const res = await loginAPI({ email: values.email, password: values.password });
       const remember = values.remember;
 
       if (remember) {
@@ -79,17 +65,16 @@ export default function Login() {
       }
 
       setAuth(res.data);
+      notification.success({ message: "Đăng nhập thành công!" });
 
-      notification.success({
-        message: "Đăng nhập thành công!",
-      });
-
-      navigate("/bang-tin");
+      // Nếu là ADMIN thì vào thẳng trang admin
+      const roles = res.data.roles || [];
+      const isAdmin = roles.some(r => r === "ADMIN" || r?.ten_vai_tro === "ADMIN" || r?.ten === "ADMIN");
+      navigate(isAdmin ? "/admin" : "/bang-tin");
     } catch (err) {
       notification.error({
         message: "Đăng nhập thất bại!",
-        description:
-          err.response?.data?.message || "Sai tài khoản hoặc mật khẩu!",
+        description: err.response?.data?.message || "Sai tài khoản hoặc mật khẩu!",
       });
     } finally {
       setLoading(false);
@@ -116,37 +101,18 @@ export default function Login() {
               <p className="form-subtitle">Nhập thông tin để tiếp tục</p>
             </div>
 
-            <Form
-              form={form}
-              onFinish={handleSubmit}
-              layout="vertical"
-              className="auth-form"
-            >
-              <Form.Item
-                name="email"
-                label="Email"
-                rules={[
-                  { required: true, message: "Vui lòng nhập email!" },
-                  { type: "email", message: "Email không hợp lệ!" },
-                ]}
-              >
-                <Input
-                  prefix={<MailOutlined />}
-                  placeholder="Nhập địa chỉ email"
-                  size="large"
-                />
+            <Form form={form} onFinish={handleSubmit} layout="vertical" className="auth-form">
+              <Form.Item name="email" label="Email" rules={[
+                { required: true, message: "Vui lòng nhập email!" },
+                { type: "email", message: "Email không hợp lệ!" },
+              ]}>
+                <Input prefix={<MailOutlined />} placeholder="Nhập địa chỉ email" size="large" />
               </Form.Item>
 
-              <Form.Item
-                name="password"
-                label="Mật khẩu"
-                rules={[{ required: true, message: "Vui lòng nhập mật khẩu!" }]}
-              >
-                <Input.Password
-                  prefix={<LockOutlined />}
-                  placeholder="Nhập mật khẩu"
-                  size="large"
-                />
+              <Form.Item name="password" label="Mật khẩu" rules={[
+                { required: true, message: "Vui lòng nhập mật khẩu!" }
+              ]}>
+                <Input.Password prefix={<LockOutlined />} placeholder="Nhập mật khẩu" size="large" />
               </Form.Item>
 
               <Form.Item>
@@ -154,21 +120,12 @@ export default function Login() {
                   <Form.Item name="remember" valuePropName="checked" noStyle>
                     <Checkbox>Ghi nhớ tôi</Checkbox>
                   </Form.Item>
-                  <a href="/quen-mat-khau" className="forgot-link">
-                    Quên mật khẩu?
-                  </a>
+                  <a href="/quen-mat-khau" className="forgot-link">Quên mật khẩu?</a>
                 </div>
               </Form.Item>
 
               <Form.Item>
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  size="large"
-                  block
-                  loading={loading}
-                  className="submit-btn"
-                >
+                <Button type="primary" htmlType="submit" size="large" block loading={loading} className="submit-btn">
                   Đăng Nhập
                 </Button>
               </Form.Item>
@@ -176,12 +133,7 @@ export default function Login() {
               <div className="divider-text">hoặc</div>
 
               <Form.Item style={{ marginBottom: 8 }}>
-                <Button
-                  block
-                  size="large"
-                  className="google-btn"
-                  onClick={loginGoogleAPI}
-                >
+                <Button block size="large" className="google-btn" onClick={loginGoogleAPI}>
                   <FcGoogle />
                   Đăng nhập bằng tài khoản Google
                 </Button>
@@ -189,9 +141,7 @@ export default function Login() {
 
               <div className="form-footer">
                 <span>Bạn chưa có tài khoản? </span>
-                <a href="/dang-ky" className="link-highlight">
-                  Đăng ký ngay
-                </a>
+                <a href="/dang-ky" className="link-highlight">Đăng ký ngay</a>
               </div>
             </Form>
           </div>

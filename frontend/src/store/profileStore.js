@@ -4,34 +4,38 @@ import {
   getProfile,
   updateProfile,
   changePassword,
+  updateDiaChi,
   getDonateHistory,
   getMyPosts,
+  getMyCampaigns,
 } from "../api/profileService";
 
 let profilePromise = null;
 let donatePromise = null;
 let postsPromise = null;
+let campaignsPromise = null;
 
 const useProfileStore = create((set, get) => ({
   profile: null,
   donations: [],
   myPosts: [],
+  myCampaigns: [],
 
   loadingProfile: false,
   loadingDonations: false,
   loadingPosts: false,
+  loadingCampaigns: false,
 
   isFetchedProfile: false,
   isFetchedDonations: false,
   isFetchedPosts: false,
+  isFetchedCampaigns: false,
 
-  // ===== FETCH PROFILE =====
+  // ===== FETCH PROFILE — GET /user/profile =====
   fetchProfile: async (force = false) => {
     if (!force && get().isFetchedProfile) return;
     if (profilePromise) return profilePromise;
-
     set({ loadingProfile: true });
-
     profilePromise = (async () => {
       try {
         const data = await getProfile();
@@ -44,17 +48,14 @@ const useProfileStore = create((set, get) => ({
         profilePromise = null;
       }
     })();
-
     return profilePromise;
   },
 
-  // ===== FETCH DONATE HISTORY =====
+  // ===== FETCH DONATE HISTORY — GET /donate/history =====
   fetchDonations: async () => {
     if (get().isFetchedDonations) return;
     if (donatePromise) return donatePromise;
-
     set({ loadingDonations: true });
-
     donatePromise = (async () => {
       try {
         const data = await getDonateHistory();
@@ -66,26 +67,22 @@ const useProfileStore = create((set, get) => ({
         donatePromise = null;
       }
     })();
-
     return donatePromise;
   },
 
-  // ===== FETCH MY POSTS =====
+  // ===== FETCH MY POSTS — GET /posts/me =====
   fetchMyPosts: async (userId) => {
     if (get().isFetchedPosts) return;
     if (postsPromise) return postsPromise;
-
     set({ loadingPosts: true });
-
     postsPromise = (async () => {
       try {
         let posts = [];
         try {
-          // thử gọi API riêng trước
           const data = await getMyPosts();
           posts = data?.data || data || [];
         } catch {
-          // fallback: lấy all rồi filter
+          // fallback filter theo userId
           const res = await axiosClient.get("/posts");
           const all = res.data?.data?.data || res.data?.data || [];
           posts = userId ? all.filter((p) => p.nguoi_dung_id === userId) : all;
@@ -98,11 +95,31 @@ const useProfileStore = create((set, get) => ({
         postsPromise = null;
       }
     })();
-
     return postsPromise;
   },
 
-  // ===== UPDATE PROFILE =====
+  // ===== FETCH MY CAMPAIGNS — GET /campaigns/me (chỉ tổ chức) =====
+  fetchMyCampaigns: async () => {
+    if (get().isFetchedCampaigns) return;
+    if (campaignsPromise) return campaignsPromise;
+    set({ loadingCampaigns: true });
+    campaignsPromise = (async () => {
+      try {
+        const data = await getMyCampaigns();
+        const list = data?.data || data || [];
+        set({ myCampaigns: Array.isArray(list) ? list : [], loadingCampaigns: false, isFetchedCampaigns: true });
+      } catch (err) {
+        // Nếu không phải tổ chức (403) thì bỏ qua
+        console.error("Lỗi fetch my campaigns:", err);
+        set({ myCampaigns: [], loadingCampaigns: false, isFetchedCampaigns: true });
+      } finally {
+        campaignsPromise = null;
+      }
+    })();
+    return campaignsPromise;
+  },
+
+  // ===== UPDATE PROFILE — POST /user/profile =====
   handleUpdateProfile: async (formData) => {
     try {
       const data = await updateProfile(formData);
@@ -115,7 +132,7 @@ const useProfileStore = create((set, get) => ({
     }
   },
 
-  // ===== CHANGE PASSWORD =====
+  // ===== CHANGE PASSWORD — POST /user/change-password =====
   handleChangePassword: async (payload) => {
     try {
       const data = await changePassword(payload);
@@ -126,11 +143,24 @@ const useProfileStore = create((set, get) => ({
     }
   },
 
+  // ===== UPDATE DIA CHI — POST /user/update-diachi =====
+  handleUpdateDiaChi: async (dia_chi) => {
+    try {
+      const data = await updateDiaChi(dia_chi);
+      set({ isFetchedProfile: false });
+      await get().fetchProfile(true);
+      return { ok: true, data };
+    } catch (err) {
+      console.error("Lỗi update địa chỉ:", err);
+      return { ok: false, err };
+    }
+  },
+
   reset: () => {
     set({
-      profile: null, donations: [], myPosts: [],
-      loadingProfile: false, loadingDonations: false, loadingPosts: false,
-      isFetchedProfile: false, isFetchedDonations: false, isFetchedPosts: false,
+      profile: null, donations: [], myPosts: [], myCampaigns: [],
+      loadingProfile: false, loadingDonations: false, loadingPosts: false, loadingCampaigns: false,
+      isFetchedProfile: false, isFetchedDonations: false, isFetchedPosts: false, isFetchedCampaigns: false,
     });
   },
 }));
