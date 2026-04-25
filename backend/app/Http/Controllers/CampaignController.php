@@ -477,6 +477,7 @@ class CampaignController extends Controller
             'id' => $chienDich->id,
             'ten_chien_dich' => $chienDich->ten_chien_dich,
             'mo_ta' => $chienDich->mo_ta,
+            'danh_muc_id' => $chienDich->danh_muc_id,
             'ten_danh_muc' => $chienDich->danhMuc->ten_danh_muc ?? null,
             'trang_thai' => $chienDich->trang_thai,
 
@@ -652,7 +653,56 @@ class CampaignController extends Controller
         );
     }
 
-    //tạo hoạt động cho giao dịch rút
+    //Lấy danh sách giao dịch rút + chi tiêu
+    public function getWithdrawWithExpenses($campaignId)
+    {
+        $data = DB::table('giao_dich_quy as gd')
+            ->leftJoin('chi_tieu_chien_dich as ct', 'gd.id', '=', 'ct.giao_dich_quy_id')
+            ->where('gd.chien_dich_gay_quy_id', $campaignId)
+            ->where('gd.loai_giao_dich', 'RUT')
+            ->select(
+                'gd.id as giao_dich_id',
+                'gd.so_tien as tong_tien_rut',
+                'gd.created_at',
+                'gd.mo_ta',
+
+                'ct.id as chi_tieu_id',
+                'ct.ten_hoat_dong',
+                'ct.so_tien',
+                'ct.mo_ta as mo_ta_chi_tieu'
+            )
+            ->orderByDesc('gd.created_at')
+            ->get()
+            ->groupBy('giao_dich_id')
+            ->map(function ($items) {
+
+                $first = $items->first();
+
+                return [
+                    'giao_dich_id' => $first->giao_dich_id,
+                    'tong_tien_rut' => (float) $first->tong_tien_rut,
+                    'thoi_gian' => \Carbon\Carbon::parse($first->created_at)->format('d/m/Y H:i'),
+                    'mo_ta' => $first->mo_ta,
+
+                    'chi_tieu' => collect($items)
+                        ->filter(fn($i) => $i->chi_tieu_id != null)
+                        ->map(function ($i) {
+                            return [
+                                'id' => $i->chi_tieu_id,
+                                'ten_hoat_dong' => $i->ten_hoat_dong,
+                                'so_tien' => (float) $i->so_tien,
+                                'mo_ta' => $i->mo_ta_chi_tieu
+                            ];
+                        })
+                        ->values()
+                ];
+            })
+            ->values();
+
+        return response()->json($data);
+    }
+
+    //tạo, cập nhật hoạt động cho giao dịch rút
     public function storeExpense(StoreExpenseRequest $request, $campaignId)
     {
         $user = auth()->user();
@@ -694,19 +744,38 @@ class CampaignController extends Controller
             $data = [];
 
             foreach ($request->chi_tiet as $item) {
-                $data[] = ChiTieuChienDich::create([
-                    'chien_dich_gay_quy_id' => $chienDich->id,
-                    'giao_dich_quy_id' => $giaoDich->id,
-                    'ten_hoat_dong' => $item['ten_hoat_dong'],
-                    'so_tien' => $item['so_tien'],
-                    'mo_ta' => $request->mo_ta
-                ]);
+                //update
+                if (!empty($item['id'])) {
+                    $chiTieu = ChiTieuChienDich::where('id', $item['id'])
+                        ->where('giao_dich_quy_id', $giaoDich->id)
+                        ->first();
+
+                    if ($chiTieu) {
+                        $chiTieu->update([
+                            'ten_hoat_dong' => $item['ten_hoat_dong'],
+                            'so_tien' => $item['so_tien'],
+                            'mo_ta' => $item['mo_ta'] ?? null
+                        ]);
+                    }
+
+                    $data[] = $chiTieu;
+                }
+                // create
+                else {
+                    $data[] = ChiTieuChienDich::create([
+                        'chien_dich_gay_quy_id' => $chienDich->id,
+                        'giao_dich_quy_id' => $giaoDich->id,
+                        'ten_hoat_dong' => $item['ten_hoat_dong'],
+                        'so_tien' => $item['so_tien'],
+                        'mo_ta' => $item['mo_ta'] ?? null
+                    ]);
+                }
             }
 
             DB::commit();
 
             return response()->json([
-                'message' => 'Khai báo chi tiêu thành công',
+                'message' => 'Cập nhật chi tiêu thành công',
                 'data' => $data
             ]);
 

@@ -230,9 +230,9 @@ class DonateController extends Controller
             )
             ->where('uh.nguoi_dung_id', $userId)
             ->orderByDesc('uh.created_at')
-            ->get()
-            ->map(function ($item) {
-            // lấy ảnh đầu tiên từ JSON
+            ->paginate(6);
+
+        $data->getCollection()->transform(function ($item) {
             $images = json_decode($item->hinh_anh, true);
 
             $item->anh = isset($images[0])

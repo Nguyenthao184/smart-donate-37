@@ -132,6 +132,7 @@ Route::middleware('auth:sanctum')->group(function(){
         Route::get('/dashboard/recent-activities', [DashboardController::class, 'recentActivities']);
 
         //hoạt động
+        Route::get('/campaigns/{id}/withdraw-expenses', [CampaignController::class, 'getWithdrawWithExpenses']);
         Route::post('/campaigns/{id}/expenses', [CampaignController::class, 'storeExpense']);
         Route::get('/campaigns/{id}/withdraw-transactions', [CampaignController::class, 'getWithdrawTransactions']);
    });
