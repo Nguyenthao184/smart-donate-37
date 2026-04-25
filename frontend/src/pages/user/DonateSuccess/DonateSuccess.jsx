@@ -22,15 +22,19 @@ export default function DonateSuccess() {
   const [donateDetail, setDonateDetail] = useState(null);
   const { fetchDonateDetail } = useDonateStore();
 
-  const orderId = searchParams.get("orderId");
-  const method = searchParams.get("method");
-  const status = searchParams.get("status");
+  const orderId = searchParams.get("orderId") || searchParams.get("vnp_TxnRef");
+  const resultCode = searchParams.get("resultCode");
+  const vnpResponseCode = searchParams.get("vnp_ResponseCode");
 
   const amount = donateDetail?.so_tien || 0;
   const donor = donateDetail?.ho_ten || "Ẩn danh";
   const methodLabel =
     donateDetail?.phuong_thuc_thanh_toan === "momo" ? "MoMo" : "VNPay";
-  const txId = donateDetail?.gateway_transaction_id || orderId;
+  const txId =
+    donateDetail?.gateway_transaction_id ||
+    searchParams.get("vnp_TransactionNo") ||
+    orderId;
+  const campaignId = donateDetail?.chien_dich_id;
   const campaignName = donateDetail?.ten_chien_dich || "—";
   const orgName = donateDetail?.ten_to_chuc || "—";
   const thoiGian = donateDetail?.created_at;
@@ -38,39 +42,76 @@ export default function DonateSuccess() {
   useEffect(() => {
     async function fetchData() {
       // ===== VNPAY =====
-      if (status) {
-        setRealStatus(status);
-        setLoading(false);
+      if (vnpResponseCode) {
+        if (vnpResponseCode === "00") {
+          try {
+            // retry giống MoMo (do BE có thể chưa update kịp)
+            for (let i = 0; i < 5; i++) {
+              try {
+                const data = await fetchDonateDetail(orderId);
+
+                if (data) {
+                  setDonateDetail(data);
+                  setRealStatus("success");
+                  setLoading(false);
+                  return;
+                }
+              } catch {
+                // retry
+              }
+
+              await new Promise((r) => setTimeout(r, 1000));
+            }
+
+            // fallback nếu chưa có data
+            setRealStatus("pending");
+            setLoading(false);
+          } catch {
+            setRealStatus("failed");
+            setLoading(false);
+          }
+        } else {
+          setRealStatus("failed");
+          setLoading(false);
+        }
+
         return;
       }
 
       // ===== MOMO =====
-      if (method === "momo" && orderId) {
-        try {
-          for (let i = 0; i < 5; i++) {
-            try {
-              const data = await fetchDonateDetail(orderId);
+      if (resultCode) {
+        if (resultCode === "0") {
+          // thành công → gọi API lấy chi tiết
+          try {
+            for (let i = 0; i < 5; i++) {
+              try {
+                const data = await fetchDonateDetail(orderId);
 
-              if (data) {
-                setDonateDetail(data);
-                setRealStatus("success");
-                setLoading(false);
-                return;
+                if (data) {
+                  setDonateDetail(data);
+                  setRealStatus("success");
+                  setLoading(false);
+                  return;
+                }
+              } catch {
+                // chưa THANH_CONG → retry
               }
-            } catch {
-              // nếu BE trả 403 thì bỏ qua, retry tiếp
+
+              await new Promise((r) => setTimeout(r, 1000));
             }
 
-            await new Promise((r) => setTimeout(r, 1000));
+            setRealStatus("pending");
+            setLoading(false);
+          } catch {
+            setRealStatus("failed");
+            setLoading(false);
           }
-
-          setRealStatus("pending");
-          setLoading(false);
-        } catch (err) {
-          console.error(err);
+        } else {
           setRealStatus("failed");
           setLoading(false);
         }
+
+        return;
       }
     }
 
@@ -95,9 +136,15 @@ export default function DonateSuccess() {
           <div className="ds-actions" style={{ padding: "24px" }}>
             <button
               className="ds-btn ds-btn--outline"
-              onClick={() => navigate("/chien-dich")}
+              onClick={() => {
+                if (campaignId) {
+                  navigate(`/chien-dich/chi-tiet/${campaignId}`);
+                } else {
+                  navigate("/chien-dich");
+                }
+              }}
             >
-              <FiHome size={15} /> Về trang chủ
+              <FiHome size={15} /> Về chiến dịch
             </button>
           </div>
         </div>
@@ -112,7 +159,7 @@ export default function DonateSuccess() {
           <div className="ds-header">
             <div className="ds-header__title">Đang xử lý giao dịch</div>
             <div className="ds-header__sub">
-              Hệ thống đang xác nhận thanh toán từ MoMo, vui lòng chờ thêm
+              Hệ thống đang xác nhận thanh toán, vui lòng chờ thêm
             </div>
           </div>
         </div>
@@ -223,11 +270,15 @@ export default function DonateSuccess() {
         <div className="ds-actions">
           <button
             className="ds-btn ds-btn--outline"
-            onClick={() =>
-              navigate("/chien-dich", { state: { refresh: true } })
-            }
+            onClick={() => {
+              if (campaignId) {
+                navigate(`/chien-dich/chi-tiet/${campaignId}`);
+              } else {
+                navigate("/chien-dich");
+              }
+            }}
           >
-            <FiHome size={15} /> Về trang chủ
+            <FiHome size={15} /> Về chiến dịch
           </button>
           <button className="ds-btn ds-btn--primary">
             <FiShare2 size={15} /> Chia sẻ
