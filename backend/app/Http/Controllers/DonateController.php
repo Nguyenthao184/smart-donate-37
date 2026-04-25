@@ -248,7 +248,8 @@ class DonateController extends Controller
         ]);
     }
 
-    private function removeVietnameseAccents($str) {
+    private function removeVietnameseAccents($str) 
+    {
         $str = mb_strtolower($str, 'UTF-8');
 
         $accents = [
