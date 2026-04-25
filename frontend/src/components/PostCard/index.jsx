@@ -392,13 +392,28 @@ export default function PostCard({ post, style, onDelete }) {
         {/* Header */}
         <div className="post-card__header">
           <div
-            className="post-card__avatar"
-            style={{ background: post.user.color }}
-          >
-            {post.user.avatar}
-          </div>
-          <div className="post-card__user-info">
-            <div className="post-card__username">{post.user.name}</div>
+  className="post-card__avatar"
+  style={{ background: post.user.color, cursor: "pointer" }}
+  onClick={(e) => {
+    e.stopPropagation();
+    const uid = post.nguoi_dung_id ?? post.user?.id;
+    if (uid) navigate(`/nguoi-dung/${uid}`);
+  }}
+>
+  {post.user.avatar}
+</div>
+<div className="post-card__user-info">
+  <div
+    className="post-card__username"
+    style={{ cursor: "pointer" }}
+    onClick={(e) => {
+      e.stopPropagation();
+      const uid = post.nguoi_dung_id ?? post.user?.id;
+      if (uid) navigate(`/nguoi-dung/${uid}`);
+    }}
+  >
+    {post.user.name}
+  </div>
             <div className="post-card__meta">
               <span className="post-card__location">
                 <FiMapPin size={11} /> {post.location}
