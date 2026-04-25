@@ -1,215 +1,444 @@
-import { useState, useMemo} from "react";
-import { Input, Select, Pagination, Empty } from "antd";
+import { useState, useEffect } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { Pagination } from "antd";
 import {
-  FiSearch, FiFilter, FiX, FiClock,
-  FiTrendingUp, FiStar, FiMapPin,
-  FiSliders, FiChevronDown,
+  FiX,
+  FiClock,
+  FiTrendingUp,
+  FiStar,
+  FiSliders,
+  FiChevronDown,
+  FiUser,
+  FiFileText,
+  FiHeart,
 } from "react-icons/fi";
-import { RiSparklingLine } from "react-icons/ri";
 import Header from "../../../components/Header/index";
 import Footer from "../../../components/Footer/index";
 import CampaignCard from "../../../components/CampaignCard/index.jsx";
+import PostCard from "../../../components/PostCard/index.jsx";
+import useCampaignStore from "../../../store/campaignStore.js";
+import useCategoryStore from "../../../store/categoryStore.js";
 import "./Search.scss";
 
-const { Option } = Select;
-
-// ── Mock data ──────────────────────────────────────────────────────────
-const ALL_CAMPAIGNS = [
-  { id: 1,  title: "Giảm thiệt hại thiên tai miền Trung",    daysLeft: 3,  raised: 750000000,  goal: 1000000000, image: null, category: "Thiên tai",  location: "Đà Nẵng" },
-  { id: 2,  title: "Xây trường cho trẻ em vùng cao",          daysLeft: 4,  raised: 350000000,  goal: 1000000000, image: null, category: "Giáo dục",   location: "Hà Giang" },
-  { id: 3,  title: "Hội người khuyết tật Đà Nẵng",            daysLeft: 2,  raised: 750000000,  goal: 1000000000, image: null, category: "Xóa nghèo",  location: "Đà Nẵng" },
-  { id: 4,  title: "Gây quỹ bữa ăn cho trẻ em",              daysLeft: 6,  raised: 120000000,  goal: 300000000,  image: null, category: "Trẻ em",     location: "TP.HCM" },
-  { id: 5,  title: "Hỗ trợ người già neo đơn Hà Nội",        daysLeft: 10, raised: 200000000,  goal: 500000000,  image: null, category: "Xóa nghèo",  location: "Hà Nội" },
-  { id: 6,  title: "Trồng rừng phòng hộ miền Bắc",           daysLeft: 14, raised: 80000000,   goal: 400000000,  image: null, category: "Môi trường", location: "Lào Cai" },
-  { id: 7,  title: "Học bổng trẻ em vùng sâu",               daysLeft: 8,  raised: 180000000,  goal: 600000000,  image: null, category: "Giáo dục",   location: "Cà Mau" },
-  { id: 8,  title: "Nước sạch cho bản làng Tây Bắc",         daysLeft: 20, raised: 95000000,   goal: 250000000,  image: null, category: "Môi trường", location: "Sơn La" },
-  { id: 9,  title: "Xây cầu cho trẻ em miền núi",            daysLeft: 3,  raised: 680000000,  goal: 1000000000, image: null, category: "Trẻ em",     location: "Nghệ An" },
-  { id: 10, title: "Hỗ trợ học sinh vùng lũ Quảng Nam",      daysLeft: 5,  raised: 420000000,  goal: 800000000,  image: null, category: "Thiên tai",  location: "Quảng Nam" },
-  { id: 11, title: "Phẫu thuật tim miễn phí cho trẻ",        daysLeft: 7,  raised: 290000000,  goal: 500000000,  image: null, category: "Trẻ em",     location: "TP.HCM" },
-  { id: 12, title: "Cứu trợ lũ lụt miền núi phía Bắc",      daysLeft: 1,  raised: 890000000,  goal: 1000000000, image: null, category: "Thiên tai",  location: "Yên Bái" },
+const TABS = [
+  { key: "campaigns", label: "Chiến dịch", icon: <FiHeart size={15} /> },
+  { key: "posts", label: "Bài viết", icon: <FiFileText size={15} /> },
+  { key: "users", label: "Người dùng", icon: <FiUser size={15} /> },
 ];
 
-const CATEGORIES = ["Tất cả", "Thiên tai", "Giáo dục", "Trẻ em", "Xóa nghèo", "Môi trường", "Giảm đói"];
-const SORT_OPTIONS = [
-  { value: "newest",    label: "Mới nhất",       icon: <FiClock size={13} /> },
-  { value: "ending",    label: "Sắp kết thúc",   icon: <FiClock size={13} /> },
-  { value: "trending",  label: "Nổi bật",         icon: <FiTrendingUp size={13} /> },
-  { value: "complete",  label: "Sắp hoàn thành",  icon: <FiStar size={13} /> },
+const STATUS_OPTIONS = [
+  { value: null, label: "Tất cả" },
+  { value: "HOAT_DONG", label: "Đang hoạt động" },
+  { value: "HOAN_THANH", label: "Hoàn thành" },
+  { value: "TAM_DUNG", label: "Tạm dừng" },
+  { value: "DA_KET_THUC", label: "Đã kết thúc" },
 ];
-const RECENT_SEARCHES = ["trẻ em", "thiên tai", "giáo dục vùng cao", "nước sạch"];
-const PAGE_SIZE = 6;
 
-function sortCampaigns(list, sortKey) {
-  const cloned = [...list];
-  if (sortKey === "ending")   return cloned.sort((a,b) => a.daysLeft - b.daysLeft);
-  if (sortKey === "trending") return cloned.sort((a,b) => (b.raised + b.goal) - (a.raised + a.goal));
-  if (sortKey === "complete") return cloned.sort((a,b) => (b.raised/b.goal) - (a.raised/a.goal));
-  return cloned;
+const PAGE_SIZE = 8;
+
+// ── Mock data (thay bằng API thật sau) ───────────────────────────────
+const MOCK_POSTS = Array.from({ length: 10 }, (_, i) => ({
+  id: i + 1,
+  title: `Bài viết số ${i + 1}`,
+  content: "Nội dung bài viết...",
+  created_at: new Date().toISOString(),
+}));
+
+const MOCK_USERS = Array.from({ length: 9 }, (_, i) => ({
+  id: i + 1,
+  ho_ten: `Người dùng ${i + 1}`,
+  avatar: null,
+  email: `user${i + 1}@example.com`,
+  chien_dich_count: Math.floor(Math.random() * 10),
+}));
+
+// ── Async mock fetchers ───────────────────────────────────────────────
+async function fetchMockPosts(keyword) {
+  await new Promise((r) => setTimeout(r, 400));
+  return keyword
+    ? MOCK_POSTS.filter((p) => p.title.includes(keyword))
+    : MOCK_POSTS;
 }
 
-export default function SearchCampaign() {
-  const [query, setQuery]           = useState("");
-  const [category, setCategory]     = useState("Tất cả");
-  const [sortKey, setSortKey]       = useState("newest");
-  const [page, setPage]             = useState(1);
+async function fetchMockUsers(keyword) {
+  await new Promise((r) => setTimeout(r, 400));
+  return keyword
+    ? MOCK_USERS.filter((u) => u.ho_ten.includes(keyword))
+    : MOCK_USERS;
+}
+
+export default function SearchPage() {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const keyword = searchParams.get("keyword") ?? "";
+
+  const { campaigns, pagination, loading, fetchCampaigns } = useCampaignStore();
+  const { categories, fetchCategories } = useCategoryStore();
+
+  const [activeTab, setActiveTab] = useState("campaigns");
+  const [categoryId, setCategoryId] = useState(null);
+  const [trangThai, setTrangThai] = useState(null);
+  const [page, setPage] = useState(1);
   const [showFilter, setShowFilter] = useState(false);
 
-  function handleCategoryChange(cat) {
-    setCategory(cat);
+  const [posts, setPosts] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [loadingPosts, setLoadingPosts] = useState(false);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  // Campaigns
+  useEffect(() => {
+    if (activeTab !== "campaigns") return;
+    fetchCampaigns({
+      page,
+      keyword: keyword || undefined,
+      danh_muc_id: categoryId || undefined,
+      trang_thai: trangThai || undefined,
+    });
+  }, [page, keyword, categoryId, trangThai, activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== "posts") return;
+    let cancelled = false;
+    (async () => {
+      setLoadingPosts(true);
+      try {
+        const data = await fetchMockPosts(keyword);
+        if (!cancelled) setPosts(data);
+      } finally {
+        if (!cancelled) setLoadingPosts(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, keyword]);
+
+  useEffect(() => {
+    if (activeTab !== "users") return;
+    let cancelled = false;
+    (async () => {
+      setLoadingUsers(true);
+      try {
+        const data = await fetchMockUsers(keyword);
+        if (!cancelled) setUsers(data);
+      } finally {
+        if (!cancelled) setLoadingUsers(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, keyword]);
+
+  function handleTabChange(tab) {
+    setActiveTab(tab);
     setPage(1);
+    setCategoryId(null);
+    setTrangThai(null);
+    setShowFilter(false);
   }
 
   function clearAll() {
-    setQuery(""); 
-    setCategory("Tất cả"); setSortKey("newest");
+    setCategoryId(null);
+    setTrangThai(null);
     setPage(1);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("keyword");
+      return next;
+    });
   }
 
   const activeFilters = [
-    query && { key: "q", label: `"${query}"`, clear: () => { setQuery(""); } },
-    category !== "Tất cả" && { key: "cat", label: category, clear: () => setCategory("Tất cả") },
-    sortKey !== "newest" && { key: "sort", label: SORT_OPTIONS.find(s => s.value === sortKey)?.label, clear: () => setSortKey("newest") },
+    keyword && {
+      key: "q",
+      label: `"${keyword}"`,
+      clear: () => {
+        setSearchParams((prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete("keyword");
+          return next;
+        });
+        setPage(1);
+      },
+    },
+    categoryId && {
+      key: "cat",
+      label: categories.find((c) => c.id === categoryId)?.ten_danh_muc,
+      clear: () => {
+        setCategoryId(null);
+        setPage(1);
+      },
+    },
+    trangThai && {
+      key: "trang_thai",
+      label: STATUS_OPTIONS.find((s) => s.value === trangThai)?.label,
+      clear: () => {
+        setTrangThai(null);
+        setPage(1);
+      },
+    },
   ].filter(Boolean);
 
-  const filtered = useMemo(() => {
-    let result = ALL_CAMPAIGNS;
-    if (query) result = result.filter(c => c.title.toLowerCase().includes(query.toLowerCase()) || c.location.toLowerCase().includes(query.toLowerCase()));
-    if (category !== "Tất cả") result = result.filter(c => c.category === category);
-    return sortCampaigns(result, sortKey);
-  }, [query, category, sortKey]);
-
-  const paginated = useMemo(() => {
-    return filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  }, [filtered, page]);
+  const isLoadingCurrent =
+    activeTab === "campaigns"
+      ? loading
+      : activeTab === "posts"
+        ? loadingPosts
+        : loadingUsers;
 
   return (
     <>
-    <Header />
-       <div className="sc-page">
-
-      {/* ── Main ── */}
-      <div className="sc-main">
-
-        {/* Toolbar */}
-        <div className="sc-toolbar">
-          <div className="sc-toolbar__left">
-            <span className="sc-toolbar__count">
-              <span className="sc-toolbar__count-dot" />
-              <strong>{filtered.length}</strong> chiến dịch
-              {query && <span className="sc-toolbar__query"> cho "{query}"</span>}
-            </span>
-
-            {/* Active filter tags */}
-            {activeFilters.length > 0 && (
-              <div className="sc-toolbar__tags">
-                {activeFilters.map(f => (
-                  <span key={f.key} className="sc-toolbar__tag">
-                    {f.label}
-                    <button onClick={f.clear}><FiX size={11} /></button>
-                  </span>
-                ))}
-                <button className="sc-toolbar__clear-all" onClick={clearAll}>
-                  Xóa tất cả
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className="sc-toolbar__right">
-            {/* Filter toggle */}
-            <button
-              className={`sc-toolbar__filter-btn${showFilter ? " active" : ""}`}
-              onClick={() => setShowFilter(!showFilter)}
-            >
-              <FiSliders size={14} /> Lọc
-              {activeFilters.length > 0 && (
-                <span className="sc-toolbar__filter-badge">{activeFilters.length}</span>
-              )}
-            </button>
-
-            {/* Sort */}
-            <div className="sc-sort">
-              <Select
-                className="sc-sort__select"
-                value={sortKey}
-                onChange={v => { setSortKey(v); setPage(1); }}
-                suffixIcon={<FiChevronDown size={14} />}
-              >
-                {SORT_OPTIONS.map(o => (
-                  <Option key={o.value} value={o.value}>
-                    <span className="sc-sort__option">
-                      {o.icon} {o.label}
-                    </span>
-                  </Option>
-                ))}
-              </Select>
+      <Header />
+      <div className="sp-page">
+        {/* ── Hero search header ── */}
+        {keyword && (
+          <div className="sp-hero">
+            <div className="sp-hero__inner">
+              <p className="sp-hero__label">Kết quả tìm kiếm</p>
+              <h1 className="sp-hero__keyword">"{keyword}"</h1>
             </div>
+          </div>
+        )}
+
+        {/* ── Tabs ── */}
+        <div className="sp-tabs">
+          <div className="sp-tabs__inner">
+            {TABS.map((tab) => (
+              <button
+                key={tab.key}
+                className={`sp-tabs__btn${activeTab === tab.key ? " active" : ""}`}
+                onClick={() => handleTabChange(tab.key)}
+              >
+                {tab.icon}
+                <span>{tab.label}</span>
+                {activeTab === tab.key && (
+                  <span className="sp-tabs__indicator" />
+                )}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Filter panel */}
-        {showFilter && (
-          <div className="sc-filter-panel">
-            <div className="sc-filter-panel__group">
-              <div className="sc-filter-panel__label">Danh mục</div>
-              <div className="sc-filter-panel__pills">
-                {CATEGORIES.map(cat => (
-                  <button
-                    key={cat}
-                    className={`sc-filter-panel__pill${category === cat ? " active" : ""}`}
-                    onClick={() => handleCategoryChange(cat)}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Grid */}
-        {paginated.length > 0 ? (
-          <>
-            <div className="sc-grid">
-              {paginated.map((c, i) => (
-                <div
-                  key={c.id}
-                  className="sc-grid__item"
-                  style={{ animationDelay: `${i * 0.07}s` }}
-                >
-                  <CampaignCard campaign={c} index={i} />
+        <div className="sp-main">
+          {/* ── Toolbar — campaigns only ── */}
+          {activeTab === "campaigns" && (
+            <>
+              <div className="sp-toolbar">
+                <div className="sp-toolbar__left">
+                  <span className="sp-toolbar__count">
+                    <span className="sp-toolbar__dot" />
+                    <strong>{pagination?.total ?? 0}</strong> chiến dịch
+                  </span>
+                  {activeFilters.length > 0 && (
+                    <div className="sp-toolbar__tags">
+                      {activeFilters.map((f) => (
+                        <span key={f.key} className="sp-toolbar__tag">
+                          {f.label}
+                          <button onClick={f.clear}>
+                            <FiX size={11} />
+                          </button>
+                        </span>
+                      ))}
+                      <button className="sp-toolbar__clear" onClick={clearAll}>
+                        Xóa tất cả
+                      </button>
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
-
-            {filtered.length > PAGE_SIZE && (
-              <div className="sc-pagination">
-                <Pagination
-                  current={page}
-                  pageSize={PAGE_SIZE}
-                  total={filtered.length}
-                  onChange={p => { setPage(p); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-                  showSizeChanger={false}
-                />
+                <div className="sp-toolbar__right">
+                  <button
+                    className={`sp-toolbar__filter-btn${showFilter ? " active" : ""}`}
+                    onClick={() => setShowFilter((v) => !v)}
+                  >
+                    <FiSliders size={14} />
+                    <span>Lọc</span>
+                    {activeFilters.length > 0 && (
+                      <span className="sp-toolbar__badge">
+                        {activeFilters.length}
+                      </span>
+                    )}
+                  </button>
+                  <div className="sp-sort">
+                    <select
+                      value={trangThai ?? ""}
+                      onChange={(e) => {
+                        setTrangThai(e.target.value || null);
+                        setPage(1);
+                      }}
+                    >
+                      {STATUS_OPTIONS.map((o) => (
+                        <option key={o.value ?? "all"} value={o.value ?? ""}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                    <FiChevronDown size={13} />
+                  </div>
+                </div>
               </div>
-            )}
-          </>
-        ) : (
-          <div className="sc-empty">
-            <div className="sc-empty__icon">🔍</div>
-            <div className="sc-empty__title">Không tìm thấy kết quả</div>
-            <div className="sc-empty__sub">
-              Thử tìm với từ khóa khác hoặc xóa bộ lọc để xem tất cả chiến dịch
+
+              {showFilter && (
+                <div className="sp-filter">
+                  <div className="sp-filter__label">Danh mục</div>
+                  <div className="sp-filter__pills">
+                    <button
+                      className={`sp-filter__pill${!categoryId ? " active" : ""}`}
+                      onClick={() => {
+                        setCategoryId(null);
+                        setPage(1);
+                      }}
+                    >
+                      Tất cả
+                    </button>
+                    {categories.map((cat) => (
+                      <button
+                        key={cat.id}
+                        className={`sp-filter__pill${categoryId === cat.id ? " active" : ""}`}
+                        onClick={() => {
+                          setCategoryId(cat.id);
+                          setPage(1);
+                        }}
+                      >
+                        {cat.ten_danh_muc}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* ── Content ── */}
+          {isLoadingCurrent ? (
+            <div
+              className={`sp-skeleton-grid${activeTab === "users" ? " sp-skeleton-grid--users" : ""}`}
+            >
+              {Array.from({ length: activeTab === "users" ? 6 : 8 }).map(
+                (_, i) => (
+                  <div
+                    key={i}
+                    className={`sp-skeleton sp-skeleton--${activeTab === "users" ? "user" : "card"}`}
+                  />
+                ),
+              )}
             </div>
-            <button className="sc-empty__btn" onClick={clearAll}>
-              Xóa bộ lọc
-            </button>
-          </div>
-        )}
+          ) : (
+            <>
+              {activeTab === "campaigns" &&
+                (campaigns.length > 0 ? (
+                  <>
+                    <div className="sp-grid">
+                      {campaigns.map((c, i) => (
+                        <div
+                          key={c.id}
+                          className="sp-grid__item"
+                          style={{ animationDelay: `${i * 0.06}s` }}
+                        >
+                          <CampaignCard campaign={c} index={i} />
+                        </div>
+                      ))}
+                    </div>
+                    {pagination?.total > PAGE_SIZE && (
+                      <div className="sp-pagination">
+                        <Pagination
+                          current={page}
+                          pageSize={PAGE_SIZE}
+                          total={pagination.total}
+                          onChange={(p) => {
+                            setPage(p);
+                            window.scrollTo({ top: 0, behavior: "smooth" });
+                          }}
+                          showSizeChanger={false}
+                        />
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <EmptyState keyword={keyword} onClear={clearAll} />
+                ))}
+
+              {activeTab === "posts" &&
+                (posts.length > 0 ? (
+                  <div className="sp-posts">
+                    {posts.map((p, i) => (
+                      <div
+                        key={p.id}
+                        className="sp-posts__item"
+                        style={{ animationDelay: `${i * 0.06}s` }}
+                      >
+                        <PostCard post={p} />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState keyword={keyword} label="bài viết" />
+                ))}
+
+              {activeTab === "users" &&
+                (users.length > 0 ? (
+                  <div className="sp-users">
+                    {users.map((u, i) => (
+                      <div
+                        key={u.id}
+                        className="sp-users__card"
+                        style={{ animationDelay: `${i * 0.05}s` }}
+                        onClick={() => navigate(`/nguoi-dung/${u.id}`)}
+                      >
+                        <div className="sp-users__avatar">
+                          {u.avatar ? (
+                            <img src={u.avatar} alt={u.ho_ten} />
+                          ) : (
+                            <span>{u.ho_ten?.[0]?.toUpperCase()}</span>
+                          )}
+                        </div>
+                        <div className="sp-users__info">
+                          <div className="sp-users__name">{u.ho_ten}</div>
+                          <div className="sp-users__meta">{u.email}</div>
+                        </div>
+                        <div className="sp-users__stat">
+                          <span className="sp-users__stat-num">
+                            {u.chien_dich_count}
+                          </span>
+                          <span className="sp-users__stat-label">
+                            chiến dịch
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState keyword={keyword} label="người dùng" />
+                ))}
+            </>
+          )}
+        </div>
       </div>
-    </div> 
-    <Footer />
+      <Footer />
     </>
-    
+  );
+}
+
+function EmptyState({ keyword, label = "kết quả", onClear }) {
+  return (
+    <div className="sp-empty">
+      <div className="sp-empty__icon">🔍</div>
+      <div className="sp-empty__title">Không tìm thấy {label}</div>
+      <div className="sp-empty__sub">
+        {keyword
+          ? `Không có ${label} nào khớp với "${keyword}"`
+          : `Chưa có ${label} nào`}
+      </div>
+      {onClear && (
+        <button className="sp-empty__btn" onClick={onClear}>
+          Xóa bộ lọc
+        </button>
+      )}
+    </div>
   );
 }

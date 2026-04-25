@@ -13,6 +13,7 @@ import "./styles.scss";
 export default function Header() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [searchValue, setSearchValue] = useState("");
   const totalUnread = useChatStore((s) => s.totalUnread);
   const [openLoginModal, setOpenLoginModal] = useState(false);
   const { user, token } = useAuthStore();
@@ -82,6 +83,13 @@ export default function Header() {
     return [];
   };
 
+  const handleSearch = (value) => {
+    if (!value.trim()) return;
+    navigate(
+      `/chien-dich/tim-kiem?keyword=${encodeURIComponent(value.trim())}`,
+    );
+  };
+
   const handleLogout = async () => {
     try {
       await logoutAPI();
@@ -99,28 +107,18 @@ export default function Header() {
       navigate(`/${clickedItem.key}`);
     }
   };
-const roles = useAuthStore((s) => s.roles);
-const isOrg = Array.isArray(roles)
-  ? roles.some((r) => r === "TO_CHUC" || r?.ten === "TO_CHUC")
-  : false;
 
-const items = [
-  {
-    key: "profile",
-    label: "Thông tin cá nhân",
-    onClick: () => navigate("/profile"),
-  },
-  ...(isOrg ? [{
-    key: "thong-ke",
-    label: "Thống kê tổ chức",
-    onClick: () => navigate("/thong-ke"),
-  }] : []),
-  {
-    key: "logout",
-    label: "Đăng xuất",
-    onClick: handleLogout,
-  },
-];
+  const items = [
+    {
+      key: "profile",
+      label: "Thông tin cá nhân",
+    },
+    {
+      key: "logout",
+      label: "Đăng xuất",
+      onClick: handleLogout,
+    },
+  ];
 
   return (
     <header className="app-header full-bleed">
@@ -133,7 +131,16 @@ const items = [
           <Input
             placeholder="Tìm kiếm chiến dịch..."
             allowClear
-            suffix={<FiSearch size={18} />}
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+            onPressEnter={() => handleSearch(searchValue)}
+            suffix={
+              <FiSearch
+                size={18}
+                style={{ cursor: "pointer" }}
+                onClick={() => handleSearch(searchValue)}
+              />
+            }
             className="app-header__searchInput"
           />
         </div>

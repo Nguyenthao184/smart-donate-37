@@ -22,15 +22,13 @@ import NewsFeed from "../pages/guest/NewsFeed/NewsFeed.jsx";
 import CreatePost from "../pages/user/CreatePost/CreatePost.jsx";
 import Chat from "../pages/user/Chat/Chat.jsx";
 import Profile from "../pages/user/Profile/Profile.jsx";
-import RegisterOrg from "../pages/user/RegisterOrg/RegisterOrg.jsx"
-import Donate from "../pages/user/Donate/Donate.jsx"
-import DonateSuccess from "../pages/user/DonateSuccess/DonateSuccess.jsx"
+import RegisterOrg from "../pages/user/RegisterOrg/RegisterOrg.jsx";
+import Donate from "../pages/user/Donate/Donate.jsx";
+import DonateSuccess from "../pages/user/DonateSuccess/DonateSuccess.jsx";
 import AdminPanel from "../pages/admin/AdminPanel/AdminPanel.jsx";
 import Login from "../pages/auth/Login/Login.jsx";
 import Register from "../pages/auth/Register/Register.jsx";
 import ForgotPassword from "../pages/auth/ForgotPassword/Forgot.jsx";
-import UserProfile from "../pages/guest/UserProfile/UserProfile.jsx";
-import OrgDashboard from "../pages/organization/Dashboard/OrgDashboard.jsx";
 // ================== PUBLIC ROUTES ==================
 const publicRoutes = [
   {
@@ -66,7 +64,7 @@ const publicRoutes = [
     ),
   },
   {
-    path: "/tim-kiem",
+    path: "/chien-dich/tim-kiem",
     element: (
       <PublicRoute>
         <Search />
@@ -121,9 +119,7 @@ const publicRoutes = [
     path: "/bang-tin",
     element: (
       <PublicRoute>
-        <MainLayout>
-          <NewsFeed />
-        </MainLayout>
+        <NewsFeed />
       </PublicRoute>
     ),
   },
@@ -161,7 +157,7 @@ const publicRoutes = [
     path: "/thanh-cong",
     element: (
       <PublicRoute>
-          <DonateSuccess />
+        <DonateSuccess />
       </PublicRoute>
     ),
   },
@@ -169,26 +165,6 @@ const publicRoutes = [
 
 // ================== PRIVATE ROUTES ==================
 const privateRoutes = [
-  {
-  path: "/thong-ke",
-  element: (
-    <ProtectedRoute>
-      <MainLayout>
-        <OrgDashboard />
-      </MainLayout>
-    </ProtectedRoute>
-  ),
-},
-  {
-  path: "/nguoi-dung/:id",
-  element: (
-    <ProtectedRoute>
-      <MainLayout>
-        <UserProfile />
-      </MainLayout>
-    </ProtectedRoute>
-  ),
-},
   {
     path: "/chien-dich/tao-moi",
     element: (

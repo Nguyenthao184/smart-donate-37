@@ -99,7 +99,7 @@ class CampaignController extends Controller
 
             'ten_chien_dich' => $request->ten_chien_dich,
             'mo_ta' => $request->mo_ta,
-            'hinh_anh' => $images,
+            'hinh_anh' => json_encode($images),
 
             'muc_tieu_tien' => $request->muc_tieu_tien,
             'so_tien_da_nhan' => 0,
@@ -266,7 +266,7 @@ class CampaignController extends Controller
             'danh_muc_id' => $request->danh_muc_id,
             'ten_chien_dich' => $request->ten_chien_dich,
             'mo_ta' => $request->mo_ta,
-            'hinh_anh' => $finalImages,
+            'hinh_anh' => json_encode($finalImages),
 
             'muc_tieu_tien' => $request->muc_tieu_tien,
             'ngay_ket_thuc' => $request->ngay_ket_thuc,
@@ -398,7 +398,7 @@ class CampaignController extends Controller
     //chi tiết chiến dịch
     public function show($id)
     {
-        $chienDich = ChienDichGayQuy::with(['toChuc', 'danhMuc'])
+        $chienDich = ChienDichGayQuy::with(['toChuc', 'danhMuc', 'chiTieus.giaoDich'])
             ->find($id);
 
         if (!$chienDich) {
@@ -452,11 +452,12 @@ class CampaignController extends Controller
             ->where('chien_dich_gay_quy_id', $chienDich->id)
             ->count();
 
-        $expensesGrouped = $chienDich->chiTieus
+        $expensesGrouped = collect($chienDich->chiTieus ?? [])
             ->groupBy('giao_dich_quy_id')
             ->map(function ($items, $giaoDichId) {
 
-                $giaoDich = $items->first()->giaoDich;
+                $first = $items->first();
+                $giaoDich = optional($first)->giaoDich;
 
                 return [
                     'giao_dich_id' => $giaoDichId,

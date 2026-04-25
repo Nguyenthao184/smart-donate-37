@@ -170,7 +170,7 @@ class UserProfileController extends Controller
     public function show($id)
     {
         // 1. Người dùng
-        $user = User::select('ho_ten', 'ten_tai_khoan', 'anh_dai_dien')
+        $user = User::select('ho_ten', 'ten_tai_khoan', 'anh_dai_dien', 'create_at')
             ->findOrFail($id);
 
         if ($user->anh_dai_dien) {

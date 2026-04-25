@@ -11,6 +11,9 @@ import {
   createPostComment,
   deletePostComment,
   reportPost,
+  searchPosts,
+  getRelatedPosts,
+  getCommunityStats,
 } from "../api/postService";
 
 let currentPage = 1;
@@ -18,13 +21,20 @@ let currentKey = "";
 const detailPromises = {};
 
 const usePostStore = create((set, get) => ({
+  related: {},
+  relatedStatus: {},
+  matchesStatus: {},
   posts: [],
   postDetail: {},
   matches: {},
+  searchResults: [],
+  searchLoading: false,
+  communityStats: null,
+  statsLoading: false,
   loadingMatches: null,
   loading: false,
   hasMore: true,
-  comments: {}, 
+  comments: {},
   loadingComments: null,
 
   fetchPosts: async (params = {}, loadMore = false) => {
@@ -158,6 +168,8 @@ const usePostStore = create((set, get) => ({
   fetchMatches: async (id, force = false) => {
     const key = String(id);
 
+    if (!force && get().matchesStatus[key] === "empty") return;
+
     if (!force && get().matches[key]) {
       return get().matches[key];
     }
@@ -168,13 +180,20 @@ const usePostStore = create((set, get) => ({
 
     try {
       const res = await getPostMatches(id);
+      console.log("fetchMatches raw res:", res);
+      console.log("fetchMatches res.data:", res?.data);
 
       const data = res?.data || [];
+      const matchStatus = data.length === 0 ? "empty" : "ok";
 
       set({
         matches: {
           ...get().matches,
           [key]: data,
+        },
+        matchesStatus: {
+          ...get().matchesStatus,
+          [key]: matchStatus,
         },
         loadingMatches: null,
       });
@@ -302,7 +321,7 @@ const usePostStore = create((set, get) => ({
 
         const updated = old
           .map((c) => {
-            if (c.id === commentId) return null; 
+            if (c.id === commentId) return null;
             const newReplies = (c.replies || []).filter(
               (r) => r.id !== commentId,
             );
@@ -343,6 +362,75 @@ const usePostStore = create((set, get) => ({
     } catch (err) {
       console.error("Lỗi report:", err);
       throw err;
+    }
+  },
+
+  fetchRelated: async (postId) => {
+    const key = String(postId);
+
+    if (get().relatedStatus[key] === "loading") return;
+
+    set((state) => ({
+      relatedStatus: {
+        ...state.relatedStatus,
+        [key]: "loading",
+      },
+    }));
+
+    try {
+      const res = await getRelatedPosts(postId);
+
+      const rawData = res?.data ?? [];
+      const data = rawData.map((item) => ({
+        ...item.post,
+        distance_km: item.distance_km,
+        match_percent: item.match_percent,
+        score: item.score,
+      }));
+
+      set((state) => ({
+        related: {
+          ...state.related,
+          [key]: data,
+        },
+        relatedStatus: {
+          ...state.relatedStatus,
+          [key]: data.length ? "ok" : "empty",
+        },
+      }));
+    } catch {
+      set((state) => ({
+        relatedStatus: {
+          ...state.relatedStatus,
+          [key]: "empty",
+        },
+      }));
+    }
+  },
+
+  fetchSearch: async (params = {}) => {
+    set({ searchLoading: true });
+    try {
+      const res = await searchPosts(params);
+      const data = res?.data?.data || res?.data || [];
+      set({ searchResults: data, searchLoading: false });
+      return data;
+    } catch (err) {
+      console.error("Lỗi search:", err);
+      set({ searchLoading: false });
+      return [];
+    }
+  },
+
+  fetchCommunityStats: async () => {
+    set({ statsLoading: true });
+    try {
+      const res = await getCommunityStats();
+      set({ communityStats: res, statsLoading: false });
+      return res;
+    } catch (err) {
+      console.error("Lỗi fetch stats:", err);
+      set({ statsLoading: false });
     }
   },
 }));

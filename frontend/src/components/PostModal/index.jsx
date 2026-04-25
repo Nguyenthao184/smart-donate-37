@@ -8,7 +8,7 @@ import {
   FiX,
   FiChevronRight,
   FiCornerDownRight,
-  FiPackage
+  FiPackage,
 } from "react-icons/fi";
 import {
   FaHeart,
@@ -96,7 +96,8 @@ export default function PostDetailModal({ post, visible, onClose }) {
   const liked = postFromStore?.liked ?? false;
   const likeCount = postFromStore?.so_luot_thich ?? 0;
   const cmtCount = postFromStore?.so_binh_luan ?? 0;
-
+  const [activePostId, setActivePostId] = useState(null);
+  const { fetchPostDetail, postDetail } = usePostStore();
   const [commentText, setCommentText] = useState("");
   const [replyingTo, setReplyingTo] = useState(null);
   const [expandedReplies, setExpandedReplies] = useState({});
@@ -115,8 +116,54 @@ export default function PostDetailModal({ post, visible, onClose }) {
   const rawStatus = post?.trang_thai;
   const soLuong = post?.so_luong ?? post?.quantity ?? null;
   const showQuantityTag = soLuong !== null && soLuong !== 0 && soLuong !== "";
-
   const isDone = rawStatus === "DA_NHAN" || rawStatus === "DA_TANG";
+  const fetchMatches = usePostStore((s) => s.fetchMatches);
+  const myUserId = useAuthStore((s) => Number(s.user?.id || 0));
+
+  useEffect(() => {
+    if (activePostId && activePostId !== post.id) {
+      fetchPostDetail(activePostId);
+    }
+  }, [activePostId]);
+
+  useEffect(() => {
+    if (!post?.id) return;
+    if (post.nguoi_dung_id === myUserId) {
+      fetchMatches(post.id);
+    }
+  }, [post?.id]);
+
+  const fetchedPost = postDetail[String(activePostId)];
+
+  const activePost =
+    activePostId === null
+      ? null
+      : activePostId === post.id
+        ? post
+        : fetchedPost
+          ? {
+              id: fetchedPost.id,
+              type: fetchedPost.loai_bai?.toLowerCase(),
+              user: {
+                id: fetchedPost.nguoi_dung?.id,
+                name: fetchedPost.nguoi_dung?.ho_ten,
+                avatar: fetchedPost.nguoi_dung?.ho_ten?.charAt(0) || "?",
+                color: "#1890ff",
+              },
+              location: fetchedPost.dia_diem,
+              time: formatPostTime(fetchedPost.created_at),
+              title: fetchedPost.tieu_de,
+              desc: fetchedPost.mo_ta,
+              images: fetchedPost.hinh_anh_urls || [],
+              trang_thai: fetchedPost.trang_thai,
+              nguoi_dung_id: fetchedPost.nguoi_dung?.id,
+              liked: fetchedPost.da_thich ?? false,
+              so_luot_thich: fetchedPost.so_luot_thich ?? 0,
+              aiSuggestions: [],
+            }
+          : null;
+
+  const displayPost = activePost || post;
 
   const statusLabelMap = {
     CON_TANG: "Còn tặng",
@@ -163,7 +210,7 @@ export default function PostDetailModal({ post, visible, onClose }) {
   };
 
   const handleLikePost = async () => {
-    await toggleLike(post.id);
+    await toggleLike(displayPost.id);
   };
 
   const handleReply = (commentId, userName) => {
@@ -236,13 +283,18 @@ export default function PostDetailModal({ post, visible, onClose }) {
     }));
   };
 
+  const handleClose = () => {
+    setActivePostId(null);
+    onClose();
+  };
+
   return createPortal(
-    <div className="pdc__overlay" onClick={onClose}>
+    <div className="pdc__overlay" onClick={handleClose}>
       <div
         className={`pdc${hasAiSuggestions ? " pdc--ai" : ""}`}
         onClick={(e) => e.stopPropagation()}
       >
-        <button className="pdc__close-btn" onClick={onClose}>
+        <button className="pdc__close-btn" onClick={handleClose}>
           <FiX size={20} />
         </button>
 
@@ -252,26 +304,26 @@ export default function PostDetailModal({ post, visible, onClose }) {
             <div className="pdc__header">
               <div
                 className="pdc__avatar"
-                style={{ background: post.user.color }}
+                style={{ background: displayPost.user.color }}
               >
-                {post.user.avatar}
+                {displayPost.user.avatar}
               </div>
               <div className="pdc__user-info">
-                <div className="pdc__username">{post.user.name}</div>
+                <div className="pdc__username">{displayPost.user.name}</div>
                 <div className="pdc__meta">
                   <span className="pdc__location">
-                    <FiMapPin size={11} /> {post.location}
+                    <FiMapPin size={11} /> {displayPost.location}
                   </span>
                   <span className="pdc__meta-dot">·</span>
                   <span className="pdc__time">
-                    <FiClock size={11} /> {post.time}
+                    <FiClock size={11} /> {displayPost.time}
                   </span>
                 </div>
               </div>
             </div>
 
-            <h2 className="pdc__title">{post.title}</h2>
-            <p className="pdc__desc">{post.desc}</p>
+            <h2 className="pdc__title">{displayPost.title}</h2>
+            <p className="pdc__desc">{displayPost.desc}</p>
 
             {images.length > 0 && (
               <div
@@ -322,7 +374,8 @@ export default function PostDetailModal({ post, visible, onClose }) {
                 {showQuantityTag && (
                   <span className="pdc__quantity-tag">
                     {/* giống PostCard */}
-                    {post?.loai_bai === "CHO" || post?.type === "cho" ? (
+                    {displayPost?.loai_bai === "CHO" ||
+                    displayPost?.type === "cho" ? (
                       <>
                         <FiPackage size={11} style={{ marginRight: 3 }} />
                         Tặng: <span>{soLuong}</span>
@@ -371,46 +424,6 @@ export default function PostDetailModal({ post, visible, onClose }) {
                 <span>Chia sẻ</span>
               </button>
             </div>
-
-            {hasAiSuggestions && (
-              <>
-                <div className="pdc__divider" />
-                <div className="pdc__ai-box">
-                  <div className="pdc__ai-box-header">
-                    <div className="pdc__ai-box-title">
-                      <div className="pdc__ai-robot-icon">
-                        <RiRobot2Line size={15} />
-                        <span className="pdc__ai-ping" />
-                      </div>
-                      <span>Gợi ý phù hợp cho bạn</span>
-                      <RiSparklingLine size={12} className="pdc__ai-sparkle" />
-                    </div>
-                    <span className="pdc__ai-count">
-                      {post.aiSuggestions.length} kết quả
-                    </span>
-                  </div>
-                  <div className="pdc__ai-list">
-                    {post.aiSuggestions.map((sug) => (
-                      <div key={sug.id} className="pdc__ai-item">
-                        <div className="pdc__ai-item-icon">{sug.icon}</div>
-                        <div className="pdc__ai-item-info">
-                          <div className="pdc__ai-item-title">{sug.title}</div>
-                          <div className="pdc__ai-item-loc">
-                            <FiMapPin size={10} /> {sug.location}
-                            <span className="pdc__ai-item-score">
-                              {sug.matchScore}% khớp
-                            </span>
-                          </div>
-                        </div>
-                        <button className="pdc__ai-view-btn">
-                          Xem ngay <FiChevronRight size={12} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
           </div>
         </div>
 
