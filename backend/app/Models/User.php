@@ -21,6 +21,8 @@ class User extends Authenticatable
         'mat_khau',
         'anh_dai_dien',
         'dia_chi',
+        'lat',
+        'lng',
         'trang_thai'
     ];
 
