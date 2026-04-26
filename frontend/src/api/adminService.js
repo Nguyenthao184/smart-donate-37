@@ -1,8 +1,9 @@
 import api from "./authService";
 
 // ===== USERS =====
-export const getAdminUsers = async () => {
-  const res = await api.get("/admin/users");
+// params: { page, per_page, search, role, status }
+export const getAdminUsers = async (params = {}) => {
+  const res = await api.get("/admin/users", { params });
   return res.data;
 };
 
@@ -17,8 +18,8 @@ export const unlockUser = async (id) => {
 };
 
 // ===== ORGANIZATIONS =====
-export const getAdminOrganizations = async () => {
-  const res = await api.get("/admin/organizations");
+export const getAdminOrganizations = async (params = {}) => {
+  const res = await api.get("/admin/organizations", { params });
   return res.data;
 };
 
@@ -32,8 +33,9 @@ export const approveOrganization = async (id) => {
   return res.data;
 };
 
-export const rejectOrganization = async (id) => {
-  const res = await api.post(`/admin/organization/${id}/reject`);
+// BE bắt buộc ly_do khi reject tổ chức
+export const rejectOrganization = async (id, ly_do) => {
+  const res = await api.post(`/admin/organization/${id}/reject`, { ly_do });
   return res.data;
 };
 
@@ -44,8 +46,9 @@ export const lockFundAccount = async (id) => {
 };
 
 // ===== POSTS =====
-export const getAdminPosts = async () => {
-  const res = await api.get("/admin/posts");
+// params: { page, per_page, search, loai_bai }
+export const getAdminPosts = async (params = {}) => {
+  const res = await api.get("/admin/posts", { params });
   return res.data;
 };
 
@@ -54,9 +57,22 @@ export const getAdminPostDetail = async (id) => {
   return res.data;
 };
 
+// ===== POST REPORTS =====
+export const getAdminPostReports = async (params = { limit: 100 }) => {
+  const res = await api.get("/admin/post-reports", { params });
+  return res.data;
+};
+
+// trang_thai: CHO_XU_LY | DA_XU_LY | TU_CHOI
+export const updateAdminPostReport = async (id, trang_thai) => {
+  const res = await api.post(`/admin/post-reports/${id}`, { trang_thai });
+  return res.data;
+};
+
 // ===== CAMPAIGNS =====
-export const getAdminCampaigns = async () => {
-  const res = await api.get("/admin/campaigns");
+// params: { page, per_page, keyword, trang_thai, danh_muc_id }
+export const getAdminCampaigns = async (params = {}) => {
+  const res = await api.get("/admin/campaigns", { params });
   return res.data;
 };
 

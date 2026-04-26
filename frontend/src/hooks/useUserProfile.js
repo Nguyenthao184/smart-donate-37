@@ -1,24 +1,48 @@
 import { useEffect } from "react";
-import useUserProfileStore from "../store/userProfileStore";
+import useProfileStore from "../store/profileStore";
+import useAuthStore from "../store/authStore";
 
-export default function useUserProfile(id) {
+const useProfile = () => {
+  const { user } = useAuthStore();
+
   const {
-    profiles, posts, loading, loadingPosts,
-    fetchUserProfile, fetchUserPosts,
-  } = useUserProfileStore();
-
-  const sid = String(id);
+    profile,
+    donations,
+    myPosts,
+    myCampaigns,
+    loadingProfile,
+    loadingDonations,
+    loadingPosts,
+    loadingCampaigns,
+    fetchProfile,
+    fetchDonations,
+    fetchMyPosts,
+    fetchMyCampaigns,
+    handleUpdateProfile,
+    handleChangePassword,
+    handleUpdateDiaChi,
+  } = useProfileStore();
 
   useEffect(() => {
-    if (!id) return;
-    fetchUserProfile(id);
-    fetchUserPosts(id);
-  }, [id]);
+    fetchProfile();
+    fetchDonations();
+    fetchMyPosts(user?.id);
+    fetchMyCampaigns(); // fetch luôn, BE trả 403 nếu không phải tổ chức
+  }, [user?.id]);
 
   return {
-    profileData: profiles[sid] || null,
-    posts: posts[sid] || [],
-    loading: loading[sid] || false,
-    loadingPosts: loadingPosts[sid] || false,
+    profile,
+    donations,
+    myPosts,
+    myCampaigns,
+    loading: loadingProfile,
+    loadingDonations,
+    loadingPosts,
+    loadingCampaigns,
+    handleUpdateProfile,
+    handleChangePassword,
+    handleUpdateDiaChi,
   };
-}
+};
+
+export default useProfile;

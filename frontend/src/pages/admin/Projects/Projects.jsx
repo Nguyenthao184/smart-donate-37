@@ -3,54 +3,94 @@ import { notification } from "antd";
 import {
   FiSearch, FiCheck, FiX, FiEye,
   FiFolder, FiClock, FiCheckCircle, FiXCircle,
-  FiTarget, FiUser, FiCalendar, FiTrendingUp,
+  FiTarget, FiUser, FiCalendar, FiTrendingUp, FiHome,
 } from "react-icons/fi";
 import useAdminStore from "../../../store/adminStore";
+import { getAdminCampaignDetail } from "../../../api/adminService";
+import Pagination from "../../../components/Pagination";
 import "./Projects.scss";
 
 const STATUS_MAP = {
-  HOAT_DONG:   { label: "Đang chạy",   cls: "green" },
-  TAM_DUNG:    { label: "Tạm dừng",    cls: "yellow" },
-  DA_KET_THUC: { label: "Đã kết thúc", cls: "blue" },
-  HOAN_THANH:  { label: "Hoàn thành",  cls: "green" },
-  TU_CHOI:     { label: "Từ chối",      cls: "red" },
+  CHO_XU_LY:   { label: "Chờ duyệt",  cls: "yellow" },
+  HOAT_DONG:   { label: "Đang chạy",  cls: "green"  },
+  TAM_DUNG:    { label: "Tạm dừng",   cls: "yellow" },
+  DA_KET_THUC: { label: "Đã kết thúc",cls: "blue"   },
+  HOAN_THANH:  { label: "Hoàn thành", cls: "green"  },
+  TU_CHOI:     { label: "Từ chối",    cls: "red"    },
 };
 
 export default function Projects() {
-  const [search, setSearch]     = useState("");
-  const [filter, setFilter]     = useState("all");
-  const [selected, setSelected] = useState(null);
+  const [searchInput, setSearchInput] = useState("");
+  const [filter, setFilter]           = useState("all");
+  const [selected, setSelected]       = useState(null);
+  const [detail, setDetail]           = useState(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
 
   const {
-    campaigns, loadingCampaigns, fetchCampaigns,
+    campaigns, campaignsMeta, campaignsParams, campaignsSummary, loadingCampaigns,
+    fetchCampaigns, fetchCampaignsSummary,
     handleApproveCampaign, handleRejectCampaign,
   } = useAdminStore();
 
-  useEffect(() => { fetchCampaigns(); }, []);
+  // Fetch lần đầu
+  useEffect(() => {
+    fetchCampaigns({ page: 1 });
+    fetchCampaignsSummary();
+  }, []);
 
-  const filtered = campaigns.filter(p => {
-    const m = (p.ten_chien_dich || "").toLowerCase().includes(search.toLowerCase());
-    const f = filter === "all" ? true : p.trang_thai === filter;
-    return m && f;
-  });
+  // Debounce search
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (searchInput !== campaignsParams.keyword) {
+        fetchCampaigns({ page: 1, keyword: searchInput });
+      }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  // Filter trạng thái → server-side
+  useEffect(() => {
+    fetchCampaigns({ page: 1, trang_thai: filter === "all" ? "" : filter });
+  }, [filter]);
 
   async function approve(id) {
     const ok = await handleApproveCampaign(id);
-    if (ok) notification.success({ message: "Duyệt chiến dịch thành công", placement: "topRight" });
-    else notification.error({ message: "Duyệt chiến dịch thất bại", placement: "topRight" });
+    if (ok) {
+      notification.success({ message: "Duyệt chiến dịch thành công", placement: "topRight" });
+      fetchCampaignsSummary();
+    }
+    else    notification.error({ message: "Duyệt chiến dịch thất bại", placement: "topRight" });
   }
 
   async function reject(id) {
     const ok = await handleRejectCampaign(id);
-    if (ok) notification.success({ message: "Từ chối chiến dịch thành công", placement: "topRight" });
-    else notification.error({ message: "Từ chối chiến dịch thất bại", placement: "topRight" });
+    if (ok) {
+      notification.success({ message: "Từ chối chiến dịch thành công", placement: "topRight" });
+      fetchCampaignsSummary();
+    }
+    else    notification.error({ message: "Từ chối chiến dịch thất bại", placement: "topRight" });
   }
 
+  async function openDetail(c) {
+    setSelected(c);
+    setDetail(null);
+    setLoadingDetail(true);
+    try {
+      const res = await getAdminCampaignDetail(c.id);
+      setDetail(res.data || res);
+    } catch (e) {
+      console.error("Lỗi lấy chi tiết chiến dịch:", e);
+    } finally {
+      setLoadingDetail(false);
+    }
+  }
+
+  // Stats từ summary (không phụ thuộc page hiện tại)
   const stats = [
-    { label: "Tổng",       val: campaigns.length,                                        c: "#dfdbfd" },
-    { label: "Đang chạy",  val: campaigns.filter(p => p.trang_thai === "HOAT_DONG").length, c: "#d6fce4" },
-    { label: "Tạm dừng",   val: campaigns.filter(p => p.trang_thai === "TAM_DUNG").length,  c: "#f8ebd4" },
-    { label: "Hoàn thành", val: campaigns.filter(p => p.trang_thai === "HOAN_THANH").length, c: "#d6fce4" },
+    { label: "Tổng",       val: campaignsSummary.total,     c: "#dfdbfd" },
+    { label: "Chờ duyệt",  val: campaignsSummary.pending,   c: "#fef9c3" },
+    { label: "Đang chạy",  val: campaignsSummary.active,    c: "#d6fce4" },
+    { label: "Hoàn thành", val: campaignsSummary.completed, c: "#dbeafe" },
   ];
 
   return (
@@ -75,24 +115,26 @@ export default function Projects() {
         <div className="adm-box__head">
           <span className="adm-box__title">
             <FiFolder size={15} /> Danh sách chiến dịch
-            <span className="adm-box__badge">{filtered.length}</span>
+            <span className="adm-box__badge">{campaignsSummary.total}</span>
           </span>
           <div className="adm-box__actions">
             <div className="prj__search">
               <FiSearch size={14} />
               <input
                 placeholder="Tìm chiến dịch..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
+                value={searchInput}
+                onChange={e => setSearchInput(e.target.value)}
                 style={{ background: "none", border: "none", outline: "none", color: "#e2e8f0", fontSize: 13, width: 150 }}
               />
             </div>
             <select className="adm-select" value={filter} onChange={e => setFilter(e.target.value)}>
               <option value="all">Tất cả</option>
+              <option value="CHO_XU_LY">Chờ duyệt</option>
               <option value="HOAT_DONG">Đang chạy</option>
               <option value="TAM_DUNG">Tạm dừng</option>
               <option value="HOAN_THANH">Hoàn thành</option>
               <option value="DA_KET_THUC">Đã kết thúc</option>
+              <option value="TU_CHOI">Từ chối</option>
             </select>
           </div>
         </div>
@@ -106,23 +148,37 @@ export default function Projects() {
                 <tr>
                   <th>ID</th>
                   <th>Chiến dịch</th>
+                  <th>Tổ chức</th>
                   <th>Tiến độ</th>
                   <th>Còn lại</th>
                   <th>Trạng thái</th>
-                  <th>Thao tác</th>
+                  <th>Duyệt</th>
+                  <th>Xem</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.length === 0 ? (
-                  <tr><td colSpan={6}><div className="adm-empty"><div className="adm-empty__icon">📂</div><div className="adm-empty__text">Không có chiến dịch</div></div></td></tr>
-                ) : filtered.map((p, i) => {
-                  const pct = p.muc_tieu_tien > 0 ? Math.round((p.so_tien_da_nhan || 0) * 100 / p.muc_tieu_tien) : 0;
+                {campaigns.length === 0 ? (
+                  <tr><td colSpan={8}><div className="adm-empty"><div className="adm-empty__icon">📂</div><div className="adm-empty__text">Không có chiến dịch</div></div></td></tr>
+                ) : campaigns.map((p, i) => {
+                  const pct    = p.muc_tieu_tien > 0 ? Math.round((p.so_tien_da_nhan || 0) * 100 / p.muc_tieu_tien) : 0;
                   const status = STATUS_MAP[p.trang_thai] || { label: p.trang_thai, cls: "green" };
+                  const isPending = p.trang_thai === "CHO_XU_LY";
+                  const orgName = p.to_chuc?.ten_to_chuc || p.ten_to_chuc || null;
                   return (
                     <tr key={p.id} style={{ animationDelay: `${i * 0.05}s` }}>
                       <td style={{ color: "#333", fontSize: 12 }}>{String(p.id).padStart(3, "0")}</td>
                       <td>
                         <div style={{ fontWeight: 700, fontSize: 13.5, marginBottom: 3 }}>{p.ten_chien_dich}</div>
+                      </td>
+                      <td style={{ minWidth: 140 }}>
+                        {orgName ? (
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "#555" }}>
+                            <FiHome size={12} style={{ color: "#7c6df0" }} />
+                            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 140 }}>{orgName}</span>
+                          </div>
+                        ) : (
+                          <span style={{ color: "#bbb", fontSize: 12 }}>—</span>
+                        )}
                       </td>
                       <td style={{ minWidth: 160 }}>
                         <div className="prj__progress">
@@ -142,12 +198,26 @@ export default function Projects() {
                         </div>
                       </td>
                       <td><span className={`adm-tag adm-tag--${status.cls}`}>{status.label}</span></td>
+
                       <td>
-                        <div className="prj__actions">
-                          <button className="adm-btn adm-btn--ghost adm-btn--sm adm-btn--icon" title="Xem chi tiết" onClick={() => setSelected(p)}>
-                            <FiEye size={13} />
-                          </button>
-                        </div>
+                        {isPending ? (
+                          <div style={{ display: "flex", gap: 6 }}>
+                            <button className="adm-btn adm-btn--success adm-btn--sm" onClick={() => approve(p.id)}>
+                              <FiCheck size={12} /> Duyệt
+                            </button>
+                            <button className="adm-btn adm-btn--danger adm-btn--sm" onClick={() => reject(p.id)}>
+                              <FiX size={12} /> Từ chối
+                            </button>
+                          </div>
+                        ) : (
+                          <span style={{ color: "#aaa", fontSize: 12 }}>—</span>
+                        )}
+                      </td>
+
+                      <td>
+                        <button className="adm-btn adm-btn--ghost adm-btn--sm adm-btn--icon" title="Xem chi tiết" onClick={() => openDetail(p)}>
+                          <FiEye size={13} />
+                        </button>
                       </td>
                     </tr>
                   );
@@ -156,25 +226,31 @@ export default function Projects() {
             </table>
           )}
         </div>
+
+        <Pagination
+          meta={campaignsMeta}
+          loading={loadingCampaigns}
+          onChange={(page) => fetchCampaigns({ page })}
+        />
       </div>
 
       {selected && (() => {
-        const pct = selected.muc_tieu_tien > 0 ? Math.round((selected.so_tien_da_nhan || 0) * 100 / selected.muc_tieu_tien) : 0;
-        const status = STATUS_MAP[selected.trang_thai] || { label: selected.trang_thai, cls: "green" };
+        const view = detail || selected;
+        const pct = view.muc_tieu_tien > 0 ? Math.round((view.so_tien_da_nhan || 0) * 100 / view.muc_tieu_tien) : 0;
+        const status = STATUS_MAP[view.trang_thai] || { label: view.trang_thai, cls: "green" };
+        const orgName = view.to_chuc?.ten_to_chuc || view.ten_to_chuc;
+        const images = Array.isArray(view.hinh_anh) ? view.hinh_anh : (view.hinh_anh ? [view.hinh_anh] : []);
+
         return (
           <div
             style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}
             onClick={(e) => e.target === e.currentTarget && setSelected(null)}
           >
-            <div style={{ background: "#fff", borderRadius: 16, width: "100%", maxWidth: 500, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 16px 48px rgba(0,0,0,0.15)" }}>
-              <div style={{ padding: "20px 22px 16px", borderBottom: "1px solid #f0f0f0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{ width: 42, height: 42, borderRadius: 10, background: "#fff7ed", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <FiFolder size={18} color="#f59e0b" />
-                  </div>
-                  <div style={{ maxWidth: 350 }}>
-                    <div style={{ fontSize: 15, fontWeight: 600, color: "#1a1a1a", lineHeight: 1.3 }}>{selected.ten_chien_dich}</div>
-                  </div>
+            <div style={{ background: "#fff", borderRadius: 16, width: "100%", maxWidth: 540, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 16px 48px rgba(0,0,0,0.15)" }}>
+              <div style={{ padding: "20px 22px 16px", borderBottom: "1px solid #f0f0f0", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+                <div>
+                  <div style={{ fontSize: 16, fontWeight: 600, color: "#1a1a1a", lineHeight: 1.4 }}>{view.ten_chien_dich}</div>
+                  {orgName && <div style={{ fontSize: 12.5, color: "#7c6df0", marginTop: 4, display: "flex", alignItems: "center", gap: 5 }}><FiHome size={12} /> {orgName}</div>}
                 </div>
                 <button onClick={() => setSelected(null)} style={{ background: "#f5f5f5", border: "none", borderRadius: "50%", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#888", flexShrink: 0 }}>
                   <FiX size={16} />
@@ -186,15 +262,26 @@ export default function Projects() {
               </div>
 
               <div style={{ padding: "16px 22px", display: "flex", flexDirection: "column", gap: 16 }}>
-                {selected.hinh_anh && (
-                  <img src={selected.hinh_anh} alt="" style={{ width: "100%", borderRadius: 10, maxHeight: 200, objectFit: "cover" }} />
+                {loadingDetail && (
+                  <div style={{ textAlign: "center", color: "#888", fontSize: 13, padding: 8 }}>Đang tải chi tiết...</div>
+                )}
+
+                {images[0] && (
+                  <img src={images[0]} alt="" style={{ width: "100%", borderRadius: 10, maxHeight: 220, objectFit: "cover" }} />
+                )}
+
+                {view.mo_ta && (
+                  <div style={{ background: "#fafafa", borderRadius: 10, padding: "12px 14px", border: "1px solid #f0f0f0" }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: "#888", marginBottom: 6, letterSpacing: "0.5px" }}>MÔ TẢ</div>
+                    <div style={{ fontSize: 13, color: "#444", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{view.mo_ta}</div>
+                  </div>
                 )}
 
                 <div style={{ background: "#fffbeb", borderRadius: 10, padding: "12px 14px", border: "1px solid #fde68a" }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: "#92400e", marginBottom: 8, letterSpacing: "0.5px" }}>TIẾN ĐỘ GÂY QUỸ</div>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                     <span style={{ fontSize: 13, color: "#78350f" }}>Đã gây được</span>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: "#d97706" }}>{Number(selected.so_tien_da_nhan || 0).toLocaleString()} / {Number(selected.muc_tieu_tien || 0).toLocaleString()} đ</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "#d97706" }}>{Number(view.so_tien_da_nhan || 0).toLocaleString()} / {Number(view.muc_tieu_tien || 0).toLocaleString()} đ</span>
                   </div>
                   <div style={{ height: 8, background: "#fde68a", borderRadius: 999, overflow: "hidden" }}>
                     <div style={{ height: "100%", width: `${Math.min(pct, 100)}%`, background: "#f59e0b", borderRadius: 999 }} />
@@ -206,25 +293,43 @@ export default function Projects() {
                   <div style={{ fontSize: 12, fontWeight: 600, color: "#888", marginBottom: 10, letterSpacing: "0.5px" }}>THÔNG TIN CHI TIẾT</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 1, borderRadius: 10, overflow: "hidden", border: "1px solid #f0f0f0" }}>
                     {[
-                      { icon: <FiTarget size={13} />, label: "Mục tiêu", value: Number(selected.muc_tieu_tien || 0).toLocaleString() + " đ" },
-                      { icon: <FiTrendingUp size={13} />, label: "Đã nhận", value: Number(selected.so_tien_da_nhan || 0).toLocaleString() + " đ" },
-                      { icon: <FiUser size={13} />, label: "Lượt ủng hộ", value: selected.so_luot_ung_ho || 0 },
-                      { icon: <FiClock size={13} />, label: "Còn lại", value: `${selected.so_ngay_con_lai || 0} ngày` },
-                      { icon: <FiCalendar size={13} />, label: "Phần trăm", value: `${selected.phan_tram || pct}%` },
-                    ].map((row, i) => (
+                      { icon: <FiTarget size={13} />,     label: "Mục tiêu",    value: Number(view.muc_tieu_tien || 0).toLocaleString() + " đ" },
+                      { icon: <FiTrendingUp size={13} />, label: "Đã nhận",     value: Number(view.so_tien_da_nhan || 0).toLocaleString() + " đ" },
+                      { icon: <FiUser size={13} />,       label: "Lượt ủng hộ", value: view.so_luot_ung_ho || 0 },
+                      { icon: <FiClock size={13} />,      label: "Còn lại",     value: `${view.so_ngay_con_lai || 0} ngày` },
+                      { icon: <FiCalendar size={13} />,   label: "Ngày kết thúc", value: view.ngay_ket_thuc?.substring(0, 10) },
+                    ].filter(r => r.value !== undefined && r.value !== null).map((row, i) => (
                       <div key={i} style={{ display: "flex", alignItems: "center", padding: "11px 14px", background: "#fafafa", gap: 10, borderBottom: "1px solid #f0f0f0" }}>
                         <span style={{ color: "#888", width: 18, display: "flex", justifyContent: "center" }}>{row.icon}</span>
-                        <span style={{ fontSize: 13, color: "#888", width: 90 }}>{row.label}</span>
+                        <span style={{ fontSize: 13, color: "#888", width: 110 }}>{row.label}</span>
                         <span style={{ fontSize: 13, fontWeight: 500, color: "#1a1a1a" }}>{row.value}</span>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 4 }}>
+                <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 4, flexWrap: "wrap" }}>
                   <button style={{ padding: "10px 22px", border: "1px solid #e0e0e0", borderRadius: 8, background: "none", fontSize: 13, color: "#888", cursor: "pointer" }} onClick={() => setSelected(null)}>
                     Đóng
                   </button>
+                  {view.trang_thai === "CHO_XU_LY" && (
+                    <>
+                      <button
+                        className="adm-btn adm-btn--success"
+                        style={{ padding: "10px 22px", borderRadius: 8, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}
+                        onClick={() => { approve(view.id); setSelected(null); }}
+                      >
+                        <FiCheck size={13} /> Duyệt chiến dịch
+                      </button>
+                      <button
+                        className="adm-btn adm-btn--danger"
+                        style={{ padding: "10px 22px", borderRadius: 8, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}
+                        onClick={() => { reject(view.id); setSelected(null); }}
+                      >
+                        <FiX size={13} /> Từ chối
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

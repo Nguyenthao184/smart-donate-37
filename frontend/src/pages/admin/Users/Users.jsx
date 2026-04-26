@@ -6,11 +6,11 @@ import {
 } from "react-icons/fi";
 import useAdminStore from "../../../store/adminStore";
 import { getAdminOrganizationDetail } from "../../../api/adminService";
+import Pagination from "../../../components/Pagination";
 import "./Users.scss";
 
 const STATUS_MAP = {
   HOAT_DONG: { label: "Hoạt động", cls: "green" },
-  CHO_DUYET: { label: "Chờ duyệt", cls: "yellow" },
   BI_CAM:    { label: "Đã khóa",   cls: "red" },
 };
 
@@ -20,34 +20,60 @@ const ROLE_MAP = {
   ADMIN:      { label: "Admin",      cls: "red" },
 };
 
+// Một user được coi là "chờ duyệt TC" khi BE trả status_label = "Chờ duyệt"
+// (BE check: nếu user có XacMinhToChuc với trang_thai = CHO_XU_LY thì hiển thị "Chờ duyệt")
+const isPendingOrg = (u) => u.status_label === "Chờ duyệt";
+
 export default function Users() {
-  const [search, setSearch]       = useState("");
-  const [filter, setFilter]       = useState("all");
-  const [selected, setSelected]   = useState(null);
-  const [orgDetail, setOrgDetail] = useState(null);
-  const [loadingOrg, setLoadingOrg] = useState(false);
+  const [searchInput, setSearchInput] = useState("");
+  const [filter, setFilter]           = useState("all"); // all | org | user | blocked | pending
+  const [selected, setSelected]       = useState(null);
+  const [orgDetail, setOrgDetail]     = useState(null);
+  const [loadingOrg, setLoadingOrg]   = useState(false);
 
   const {
-    users, loadingUsers, fetchUsers,
-    handleLockUser, handleUnlockUser, handleApproveOrg,
+    users, usersMeta, usersParams, usersSummary, loadingUsers,
+    fetchUsers, fetchUsersSummary,
+    handleLockUser, handleUnlockUser, handleApproveOrg, handleRejectOrg,
   } = useAdminStore();
 
-  useEffect(() => { fetchUsers(); }, []);
+  // Fetch lần đầu
+  useEffect(() => {
+    fetchUsers({ page: 1 });
+    fetchUsersSummary();
+  }, []);
 
-  const filtered = users.filter(u => {
-    const matchSearch = (u.name || "").toLowerCase().includes(search.toLowerCase()) ||
-                        (u.email || "").toLowerCase().includes(search.toLowerCase());
-    const matchFilter = filter === "all"     ? true :
-                        filter === "org"     ? u.role === "TO_CHUC" :
-                        filter === "pending" ? u.status === "CHO_DUYET" :
-                        filter === "blocked" ? u.status === "BI_CAM" : true;
-    return matchSearch && matchFilter;
-  });
+  // Debounce search
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (searchInput !== usersParams.search) {
+        fetchUsers({ page: 1, search: searchInput });
+      }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  // Khi filter đổi → gọi lại với role/status
+  useEffect(() => {
+    let role = "", status = "";
+    if (filter === "org")     role = "TO_CHUC";
+    if (filter === "user")    role = "NGUOI_DUNG";
+    if (filter === "blocked") status = "BI_CAM";
+    // "pending" filter chỉ filter client-side trên kết quả vì BE chưa hỗ trợ
+    if (filter !== "pending") {
+      fetchUsers({ page: 1, role, status });
+    } else {
+      fetchUsers({ page: 1, role: "", status: "" });
+    }
+  }, [filter]);
+
+  // Filter "Chờ duyệt" client-side (vì BE chưa có param riêng cho org status)
+  const visibleUsers = filter === "pending" ? users.filter(isPendingOrg) : users;
 
   async function handleSelect(u) {
     setSelected(u);
     setOrgDetail(null);
-    if (u.role === "TO_CHUC") {
+    if (u.role === "TO_CHUC" || isPendingOrg(u)) {
       setLoadingOrg(true);
       try {
         const res = await getAdminOrganizationDetail(u.id);
@@ -74,41 +100,44 @@ export default function Users() {
 
   async function approveOrg(id) {
     const ok = await handleApproveOrg(id);
-    if (ok) {
-      notification.success({ message: "Duyệt tổ chức thành công", placement: "topRight" });
-      fetchUsers();
-    } else {
-      notification.error({ message: "Duyệt tổ chức thất bại", placement: "topRight" });
-    }
+    if (ok) notification.success({ message: "Duyệt tổ chức thành công", placement: "topRight" });
+    else    notification.error({ message: "Duyệt tổ chức thất bại", placement: "topRight" });
   }
 
-  const statusCounts = {
-    total: users.length,
-    active: users.filter(u => u.status === "HOAT_DONG").length,
-    pending: users.filter(u => u.status === "CHO_DUYET").length,
-    blocked: users.filter(u => u.status === "BI_CAM").length,
-  };
+  async function rejectOrg(id) {
+    const ly_do = window.prompt("Nhập lý do từ chối:");
+    if (!ly_do?.trim()) return;
+    const ok = await handleRejectOrg(id, ly_do.trim());
+    if (ok) notification.success({ message: "Đã từ chối tổ chức", placement: "topRight" });
+    else    notification.error({ message: "Từ chối thất bại", placement: "topRight" });
+  }
 
   return (
     <div className="usr">
       <div className="adm-ph">
         <div>
           <h1 className="adm-ph__title">👥 Người dùng</h1>
-          <p className="adm-ph__sub">{users.length} tài khoản trong hệ thống</p>
+          <p className="adm-ph__sub">{usersSummary.total} tài khoản trong hệ thống</p>
         </div>
       </div>
 
       <div className="usr__mini-stats">
         {[
-          { label: "Tổng",      val: statusCounts.total,   c: "#dfdbfd" },
-          { label: "Hoạt động", val: statusCounts.active,  c: "#d6fce4" },
-          { label: "Chờ duyệt", val: statusCounts.pending, c: "#f8ebd4" },
-          { label: "Đã khóa",   val: statusCounts.blocked, c: "#f9d0d0" },
+          { label: "Tổng",       val: usersSummary.total,    c: "#dfdbfd", filter: "all"     },
+          { label: "Người dùng", val: usersSummary.user,     c: "#dbeafe", filter: "user"    },
+          { label: "Tổ chức",    val: usersSummary.org,      c: "#ede9fe", filter: "org"     },
+          { label: "Chờ duyệt",  val: users.filter(isPendingOrg).length, c: "#fef9c3", filter: "pending" },
+          { label: "Đã khóa",    val: usersSummary.blocked,  c: "#fee2e2", filter: "blocked" },
         ].map((s, i) => (
-          <div key={i} className="usr__mini-stat" style={{ background: s.c }}>
+          <button
+            key={i}
+            className={`usr__mini-stat${filter === s.filter ? " usr__mini-stat--active" : ""}`}
+            style={{ background: s.c }}
+            onClick={() => setFilter(s.filter)}
+          >
             <div className="usr__mini-val">{s.val}</div>
             <div className="usr__mini-label">{s.label}</div>
-          </div>
+          </button>
         ))}
       </div>
 
@@ -116,7 +145,7 @@ export default function Users() {
         <div className="adm-box__head">
           <span className="adm-box__title">
             <FiUser size={15} /> Danh sách tài khoản
-            <span className="adm-box__badge">{filtered.length}</span>
+            <span className="adm-box__badge">{visibleUsers.length}</span>
           </span>
           <div className="adm-box__actions">
             <div className="usr__search">
@@ -124,15 +153,16 @@ export default function Users() {
               <input
                 className="adm-input"
                 placeholder="Tìm theo tên, email..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
+                value={searchInput}
+                onChange={e => setSearchInput(e.target.value)}
                 style={{ border: "none", background: "none", outline: "none", color: "#e2e8f0", fontSize: 13, width: 160 }}
               />
             </div>
             <select className="adm-select" value={filter} onChange={e => setFilter(e.target.value)}>
               <option value="all">Tất cả</option>
+              <option value="user">Người dùng</option>
               <option value="org">Tổ chức</option>
-              <option value="pending">Chờ duyệt</option>
+              <option value="pending">Chờ duyệt TC</option>
               <option value="blocked">Đã khóa</option>
             </select>
           </div>
@@ -155,11 +185,12 @@ export default function Users() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.length === 0 ? (
+                {visibleUsers.length === 0 ? (
                   <tr><td colSpan={7}><div className="adm-empty"><div className="adm-empty__icon">👤</div><div className="adm-empty__text">Không tìm thấy người dùng</div></div></td></tr>
-                ) : filtered.map((u, i) => {
-                  const role = ROLE_MAP[u.role] || { label: u.role_label || u.role, cls: "blue" };
+                ) : visibleUsers.map((u, i) => {
+                  const role   = ROLE_MAP[u.role] || { label: u.role_label || u.role, cls: "blue" };
                   const status = STATUS_MAP[u.status] || { label: u.status_label || u.status, cls: "green" };
+                  const pending = isPendingOrg(u);
                   return (
                     <tr key={u.id} style={{ animationDelay: `${i * 0.05}s` }}>
                       <td style={{ color: "#333", fontSize: 12 }}>{String(u.id).padStart(3, "0")}</td>
@@ -175,7 +206,11 @@ export default function Users() {
                         </div>
                       </td>
                       <td><span className={`adm-tag adm-tag--${role.cls}`}>{role.label}</span></td>
-                      <td><span className={`adm-tag adm-tag--${status.cls}`}>{status.label}</span></td>
+                      <td>
+                        {pending
+                          ? <span className="adm-tag adm-tag--yellow">⏳ Chờ duyệt TC</span>
+                          : <span className={`adm-tag adm-tag--${status.cls}`}>{status.label}</span>}
+                      </td>
                       <td style={{ fontSize: 12.5, color: "var(--adm-text-sub)" }}>{u.joined_at?.substring(0, 10)}</td>
                       <td>
                         {(u.violation_count || 0) > 0
@@ -188,12 +223,17 @@ export default function Users() {
                           <button className="adm-btn adm-btn--ghost adm-btn--sm adm-btn--icon" title="Xem chi tiết" onClick={() => handleSelect(u)}>
                             <FiEye size={13} />
                           </button>
-                          {u.status === "CHO_DUYET" && u.role === "TO_CHUC" && (
-                            <button className="adm-btn adm-btn--success adm-btn--sm" onClick={() => approveOrg(u.id)}>
-                              <FiShield size={12} /> Duyệt
-                            </button>
+                          {pending && (
+                            <>
+                              <button className="adm-btn adm-btn--success adm-btn--sm" onClick={() => approveOrg(u.id)}>
+                                <FiShield size={12} /> Duyệt
+                              </button>
+                              <button className="adm-btn adm-btn--danger adm-btn--sm" onClick={() => rejectOrg(u.id)}>
+                                <FiX size={12} /> Từ chối
+                              </button>
+                            </>
                           )}
-                          {u.role !== "ADMIN" && (
+                          {u.role !== "ADMIN" && !pending && (
                             <button
                               className={`adm-btn adm-btn--sm ${u.status === "BI_CAM" ? "adm-btn--success" : "adm-btn--danger"}`}
                               onClick={() => toggleBlock(u.id, u.status)}
@@ -213,6 +253,12 @@ export default function Users() {
             </table>
           )}
         </div>
+
+        <Pagination
+          meta={usersMeta}
+          loading={loadingUsers}
+          onChange={(page) => fetchUsers({ page })}
+        />
       </div>
 
       {selected && (
@@ -238,7 +284,9 @@ export default function Users() {
 
             <div style={{ padding: "12px 22px 0", display: "flex", gap: 6, flexWrap: "wrap" }}>
               <span className={`adm-tag adm-tag--${(ROLE_MAP[selected.role] || { cls: "blue" }).cls}`}>{selected.role_label || selected.role}</span>
-              <span className={`adm-tag adm-tag--${(STATUS_MAP[selected.status] || { cls: "green" }).cls}`}>{selected.status_label || selected.status}</span>
+              {isPendingOrg(selected)
+                ? <span className="adm-tag adm-tag--yellow">⏳ Chờ duyệt TC</span>
+                : <span className={`adm-tag adm-tag--${(STATUS_MAP[selected.status] || { cls: "green" }).cls}`}>{selected.status_label || selected.status}</span>}
             </div>
 
             <div style={{ padding: "16px 22px", display: "flex", flexDirection: "column", gap: 16 }}>
@@ -271,7 +319,7 @@ export default function Users() {
                 </div>
               </div>
 
-              {selected.role === "TO_CHUC" && (
+              {(selected.role === "TO_CHUC" || isPendingOrg(selected)) && (
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 600, color: "#7c3aed", marginBottom: 10, letterSpacing: "0.5px" }}>THÔNG TIN TỔ CHỨC</div>
                   {loadingOrg ? (
@@ -284,6 +332,8 @@ export default function Users() {
                           { icon: <FiShield size={13} />, label: "Mã số thuế", value: orgDetail.ma_so_thue },
                           { icon: <FiUser size={13} />, label: "Người đại diện", value: orgDetail.nguoi_dai_dien },
                           { icon: <FiTag size={13} />, label: "Loại hình", value: orgDetail.loai_hinh },
+                          { icon: <FiMail size={13} />, label: "Email TC", value: orgDetail.email },
+                          { icon: <FiHome size={13} />, label: "Địa chỉ", value: orgDetail.dia_chi },
                         ].filter(r => r.value).map((row, i) => (
                           <div key={i} style={{ display: "flex", alignItems: "center", padding: "11px 14px", background: "#faf8ff", gap: 10, borderBottom: "1px solid #ede9fe" }}>
                             <span style={{ color: "#7c3aed", width: 18, display: "flex", justifyContent: "center" }}>{row.icon}</span>
@@ -292,6 +342,12 @@ export default function Users() {
                           </div>
                         ))}
                       </div>
+                      {orgDetail.mo_ta && (
+                        <div style={{ marginTop: 10, background: "#faf8ff", borderRadius: 10, padding: "12px 14px", border: "1px solid #ede9fe" }}>
+                          <div style={{ fontSize: 12, fontWeight: 500, color: "#7c3aed", marginBottom: 6 }}>Mô tả</div>
+                          <div style={{ fontSize: 13, color: "#444", lineHeight: 1.5 }}>{orgDetail.mo_ta}</div>
+                        </div>
+                      )}
                       {orgDetail.giay_phep && (
                         <div style={{ marginTop: 10, background: "#f0fdf4", borderRadius: 10, padding: "12px 14px", border: "1px solid #bbf7d0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -316,16 +372,21 @@ export default function Users() {
                 </div>
               )}
 
-              <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 4 }}>
+              <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 4, flexWrap: "wrap" }}>
                 <button style={{ padding: "10px 22px", border: "1px solid #e0e0e0", borderRadius: 8, background: "none", fontSize: 13, color: "#888", cursor: "pointer" }} onClick={() => setSelected(null)}>
                   Đóng
                 </button>
-                {selected.status === "CHO_DUYET" && selected.role === "TO_CHUC" && (
-                  <button className="adm-btn adm-btn--success" style={{ padding: "10px 22px", borderRadius: 8, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }} onClick={() => { approveOrg(selected.id); setSelected(null); }}>
-                    <FiShield size={13} /> Duyệt tổ chức
-                  </button>
+                {isPendingOrg(selected) && (
+                  <>
+                    <button className="adm-btn adm-btn--success" style={{ padding: "10px 22px", borderRadius: 8, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }} onClick={() => { approveOrg(selected.id); setSelected(null); }}>
+                      <FiShield size={13} /> Duyệt tổ chức
+                    </button>
+                    <button className="adm-btn adm-btn--danger" style={{ padding: "10px 22px", borderRadius: 8, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }} onClick={() => { rejectOrg(selected.id); setSelected(null); }}>
+                      <FiX size={13} /> Từ chối
+                    </button>
+                  </>
                 )}
-                {selected.role !== "ADMIN" && (
+                {selected.role !== "ADMIN" && !isPendingOrg(selected) && (
                   <button
                     className={`adm-btn ${selected.status === "BI_CAM" ? "adm-btn--success" : "adm-btn--danger"}`}
                     style={{ padding: "10px 22px", borderRadius: 8, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}

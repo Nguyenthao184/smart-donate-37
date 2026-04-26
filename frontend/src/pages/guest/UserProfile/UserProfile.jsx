@@ -17,9 +17,9 @@ export default function UserProfile() {
     useUserProfileStore();
 
   const sid = String(id);
-  const profileData = profiles[sid] || null;
-  const userPosts = posts[sid] || [];
-  const isLoading = loading[sid] || false;
+  const profileData  = profiles[sid]  || null;
+  const userPosts    = posts[sid]     || [];
+  const isLoading    = loading[sid]   || false;
   const isLoadingPosts = loadingPosts[sid] || false;
 
   useEffect(() => {
@@ -76,11 +76,6 @@ export default function UserProfile() {
     toChuc?.loai_hinh === "DOANH_NGHIEP"     ? "Doanh nghiệp" :
     toChuc?.loai_hinh === "TO_CHUC_NHA_NUOC" ? "Tổ chức nhà nước" : "Tổ chức";
 
-  // Ngày tham gia
-  const joinDate = nguoiDung?.created_at
-    ? new Date(nguoiDung.created_at).toLocaleDateString("vi-VN", { month: "numeric", year: "numeric" })
-    : null;
-
   return (
     <div className="up-page">
       <div className="up-card">
@@ -97,42 +92,19 @@ export default function UserProfile() {
             <div className="up-info">
               <div className="up-info__name">
                 {displayName}
-                {isOrg
-                  ? <span className="up-badge up-badge--org">🏢 Tổ chức</span>
-                  : <span className="up-badge up-badge--verified">✓ Xác minh</span>
-                }
+                {isOrg && <span className="up-badge up-badge--org">🏢 Tổ chức</span>}
               </div>
               <div className="up-info__sub">@{username}</div>
             </div>
           </div>
 
           <div className="up-top__actions">
-            {/* Mini stats bên cạnh nút nhắn tin */}
             <div className="up-top-stats">
               <div className="up-top-stats__item">
                 <strong>{userPosts.length}</strong>
                 <span>Bài đăng</span>
               </div>
-              {isOrg && (
-                <>
-                  <div className="up-top-stats__divider" />
-                  <div className="up-top-stats__item">
-                    <strong>{toChuc?.so_chien_dich ?? "—"}</strong>
-                    <span>Chiến dịch</span>
-                  </div>
-                </>
-              )}
-              {joinDate && (
-                <>
-                  <div className="up-top-stats__divider" />
-                  <div className="up-top-stats__item">
-                    <strong style={{ fontSize: 12 }}>{joinDate}</strong>
-                    <span>Tham gia</span>
-                  </div>
-                </>
-              )}
             </div>
-
             <button className="up-btn up-btn--msg" onClick={handleChat}>
               <FiMessageSquare size={14} /> Nhắn tin
             </button>
@@ -148,16 +120,12 @@ export default function UserProfile() {
         {isOrg ? (
           <div className="up-org-strip">
             <div className="up-org-strip__logo">
-              {toChuc?.logo
-                ? <img src={toChuc.logo} alt="" />
-                : "🏢"}
+              {toChuc?.logo ? <img src={toChuc.logo} alt="" /> : "🏢"}
             </div>
             <div className="up-org-strip__info">
               <div className="up-org-strip__role">Chủ tổ chức</div>
               <div className="up-org-strip__name">{orgName}</div>
-              <div className="up-org-strip__meta">
-                {loaiHinhLabel} · Đã xác minh ✓
-              </div>
+              <div className="up-org-strip__meta">{loaiHinhLabel} · Đã xác minh ✓</div>
             </div>
             {toChuc?.id && (
               <button className="up-btn up-btn--org" onClick={handleViewOrg}>

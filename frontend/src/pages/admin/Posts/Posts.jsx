@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { notification } from "antd";
 import {
   FiSearch, FiEye, FiFileText,
-  FiGift, FiPackage, FiX, FiUser, FiMapPin, FiClock,
+  FiGift, FiPackage, FiX, FiUser, FiMapPin, FiClock, FiAlertTriangle,
 } from "react-icons/fi";
 import useAdminStore from "../../../store/adminStore";
+import { getAdminPostDetail } from "../../../api/adminService";
+import Pagination from "../../../components/Pagination";
 import "./Posts.scss";
 
 const STATUS_MAP = {
@@ -16,27 +17,59 @@ const STATUS_MAP = {
 };
 
 export default function Posts() {
-  const [search, setSearch]     = useState("");
-  const [filter, setFilter]     = useState("all");
-  const [selected, setSelected] = useState(null);
+  const [searchInput, setSearchInput] = useState("");
+  const [filter, setFilter]           = useState("all");
+  const [selected, setSelected]       = useState(null);
+  const [detail, setDetail]           = useState(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
 
-  const { posts, loadingPosts, fetchPosts } = useAdminStore();
+  const {
+    posts, postsMeta, postsParams, postsSummary, loadingPosts,
+    fetchPosts, fetchPostsSummary,
+  } = useAdminStore();
 
-  useEffect(() => { fetchPosts(); }, []);
+  useEffect(() => {
+    fetchPosts({ page: 1 });
+    fetchPostsSummary();
+  }, []);
 
-  const filtered = posts.filter(p => {
-    const m = (p.tieu_de || "").toLowerCase().includes(search.toLowerCase()) ||
-              (p.nguoi_dung_ten || "").toLowerCase().includes(search.toLowerCase());
-    const f = filter === "all"  ? true :
-              filter === "cho"  ? p.loai_bai === "CHO" :
-              filter === "nhan" ? p.loai_bai === "NHAN" : true;
-    return m && f;
-  });
+  // Debounce search
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (searchInput !== postsParams.search) {
+        fetchPosts({ page: 1, search: searchInput });
+      }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  // Filter loại bài
+  useEffect(() => {
+    let loai_bai = "";
+    if (filter === "cho")  loai_bai = "CHO";
+    if (filter === "nhan") loai_bai = "NHAN";
+    fetchPosts({ page: 1, loai_bai });
+  }, [filter]);
+
+  async function openDetail(p) {
+    setSelected(p);
+    setDetail(null);
+    setLoadingDetail(true);
+    try {
+      const res = await getAdminPostDetail(p.id);
+      setDetail(res.data || res);
+    } catch (e) {
+      console.error("Lỗi lấy chi tiết bài đăng:", e);
+    } finally {
+      setLoadingDetail(false);
+    }
+  }
 
   const stats = [
-    { label: "Tổng bài", val: posts.length,                                c: "#dfdbfd" },
-    { label: "Cho đồ",   val: posts.filter(p => p.loai_bai === "CHO").length, c: "#d6fce4" },
-    { label: "Nhận đồ",  val: posts.filter(p => p.loai_bai === "NHAN").length, c: "#f8ebd4" },
+    { label: "Tổng bài", val: postsSummary.total,   c: "#dfdbfd" },
+    { label: "Cho đồ",   val: postsSummary.cho,     c: "#d6fce4" },
+    { label: "Nhận đồ",  val: postsSummary.nhan,    c: "#f8ebd4" },
+    { label: "Vi phạm",  val: postsSummary.vi_pham, c: "#fee2e2" },
   ];
 
   return (
@@ -61,15 +94,15 @@ export default function Posts() {
         <div className="adm-box__head">
           <span className="adm-box__title">
             <FiFileText size={15} /> Danh sách bài đăng
-            <span className="adm-box__badge">{filtered.length}</span>
+            <span className="adm-box__badge">{postsSummary.total}</span>
           </span>
           <div className="adm-box__actions">
             <div className="pst__search">
               <FiSearch size={14} />
               <input
                 placeholder="Tìm bài đăng..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
+                value={searchInput}
+                onChange={e => setSearchInput(e.target.value)}
                 style={{ background: "none", border: "none", outline: "none", color: "#e2e8f0", fontSize: 13, width: 150 }}
               />
             </div>
@@ -98,9 +131,9 @@ export default function Posts() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.length === 0 ? (
+                {posts.length === 0 ? (
                   <tr><td colSpan={7}><div className="adm-empty"><div className="adm-empty__icon">📝</div><div className="adm-empty__text">Không có bài đăng</div></div></td></tr>
-                ) : filtered.map((p, i) => {
+                ) : posts.map((p, i) => {
                   const status = STATUS_MAP[p.trang_thai] || { label: p.trang_thai, cls: "green" };
                   return (
                     <tr key={p.id} style={{ animationDelay: `${i * 0.05}s` }}>
@@ -119,7 +152,7 @@ export default function Posts() {
                       <td style={{ fontSize: 12, color: "rgba(51,51,51,0.6)", whiteSpace: "nowrap" }}>{p.created_at?.substring(0, 10)}</td>
                       <td>
                         <div className="pst__actions">
-                          <button className="adm-btn adm-btn--ghost adm-btn--sm adm-btn--icon" title="Xem" onClick={() => setSelected(p)}>
+                          <button className="adm-btn adm-btn--ghost adm-btn--sm adm-btn--icon" title="Xem" onClick={() => openDetail(p)}>
                             <FiEye size={13} />
                           </button>
                         </div>
@@ -131,72 +164,92 @@ export default function Posts() {
             </table>
           )}
         </div>
+
+        <Pagination
+          meta={postsMeta}
+          loading={loadingPosts}
+          onChange={(page) => fetchPosts({ page })}
+        />
       </div>
 
-      {selected && (
-        <div
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}
-          onClick={(e) => e.target === e.currentTarget && setSelected(null)}
-        >
-          <div style={{ background: "#fff", borderRadius: 16, width: "100%", maxWidth: 480, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 16px 48px rgba(0,0,0,0.15)" }}>
-            <div style={{ padding: "20px 22px 16px", borderBottom: "1px solid #f0f0f0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ width: 42, height: 42, borderRadius: 10, background: selected.loai_bai === "CHO" ? "#f0fdf4" : "#eff6ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  {selected.loai_bai === "CHO" ? <FiGift size={18} color="#22c55e" /> : <FiPackage size={18} color="#3b82f6" />}
-                </div>
-                <div>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: "#1a1a1a" }}>{selected.tieu_de}</div>
-                  <div style={{ fontSize: 12, color: "#888" }}>{selected.dia_diem}</div>
-                </div>
-              </div>
-              <button onClick={() => setSelected(null)} style={{ background: "#f5f5f5", border: "none", borderRadius: "50%", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#888" }}>
-                <FiX size={16} />
-              </button>
-            </div>
+      {selected && (() => {
+        const view = detail || selected;
+        const status = STATUS_MAP[view.trang_thai] || { label: view.trang_thai, cls: "green" };
+        const images = Array.isArray(view.hinh_anh) ? view.hinh_anh
+                     : Array.isArray(view.hinh_anhs) ? view.hinh_anhs
+                     : (view.hinh_anh ? [view.hinh_anh] : []);
 
-            <div style={{ padding: "12px 22px 0", display: "flex", gap: 6 }}>
-              <span className={`adm-tag ${selected.loai_bai === "CHO" ? "adm-tag--green" : "adm-tag--blue"}`}>
-                {selected.loai_bai === "CHO" ? "Cho đồ" : "Nhận đồ"}
-              </span>
-              <span className={`adm-tag adm-tag--${(STATUS_MAP[selected.trang_thai] || { cls: "green" }).cls}`}>
-                {(STATUS_MAP[selected.trang_thai] || { label: selected.trang_thai }).label}
-              </span>
-            </div>
-
-            <div style={{ padding: "16px 22px", display: "flex", flexDirection: "column", gap: 16 }}>
-              {selected.mo_ta && (
-                <div style={{ background: "#f9fafb", borderRadius: 10, padding: "12px 14px", border: "1px solid #f0f0f0" }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: "#888", marginBottom: 6 }}>MÔ TẢ</div>
-                  <div style={{ fontSize: 13, color: "#333", lineHeight: 1.6 }}>{selected.mo_ta}</div>
+        return (
+          <div
+            style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}
+            onClick={(e) => e.target === e.currentTarget && setSelected(null)}
+          >
+            <div style={{ background: "#fff", borderRadius: 16, width: "100%", maxWidth: 480, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 16px 48px rgba(0,0,0,0.15)" }}>
+              <div style={{ padding: "20px 22px 16px", borderBottom: "1px solid #f0f0f0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ width: 42, height: 42, borderRadius: 10, background: view.loai_bai === "CHO" ? "#f0fdf4" : "#eff6ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    {view.loai_bai === "CHO" ? <FiGift size={18} color="#22c55e" /> : <FiPackage size={18} color="#3b82f6" />}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: "#1a1a1a" }}>{view.tieu_de}</div>
+                    <div style={{ fontSize: 12, color: "#888" }}>{view.dia_diem}</div>
+                  </div>
                 </div>
-              )}
-
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: "#888", marginBottom: 10, letterSpacing: "0.5px" }}>THÔNG TIN BÀI ĐĂNG</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 1, borderRadius: 10, overflow: "hidden", border: "1px solid #f0f0f0" }}>
-                  {[
-                    { icon: <FiUser size={13} />, label: "Tác giả", value: selected.nguoi_dung_ten || "—" },
-                    { icon: <FiMapPin size={13} />, label: "Địa điểm", value: selected.dia_diem || "—" },
-                    { icon: <FiClock size={13} />, label: "Thời gian", value: selected.created_at?.substring(0, 10) },
-                  ].map((row, i) => (
-                    <div key={i} style={{ display: "flex", alignItems: "center", padding: "11px 14px", background: "#fafafa", gap: 10, borderBottom: "1px solid #f0f0f0" }}>
-                      <span style={{ color: "#888", width: 18, display: "flex", justifyContent: "center" }}>{row.icon}</span>
-                      <span style={{ fontSize: 13, color: "#888", width: 80 }}>{row.label}</span>
-                      <span style={{ fontSize: 13, fontWeight: 500, color: "#1a1a1a" }}>{row.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 4 }}>
-                <button style={{ padding: "10px 22px", border: "1px solid #e0e0e0", borderRadius: 8, background: "none", fontSize: 13, color: "#888", cursor: "pointer" }} onClick={() => setSelected(null)}>
-                  Đóng
+                <button onClick={() => setSelected(null)} style={{ background: "#f5f5f5", border: "none", borderRadius: "50%", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#888" }}>
+                  <FiX size={16} />
                 </button>
+              </div>
+
+              <div style={{ padding: "12px 22px 0", display: "flex", gap: 6 }}>
+                <span className={`adm-tag ${view.loai_bai === "CHO" ? "adm-tag--green" : "adm-tag--blue"}`}>
+                  {view.loai_bai === "CHO" ? "Cho đồ" : "Nhận đồ"}
+                </span>
+                <span className={`adm-tag adm-tag--${status.cls}`}>{status.label}</span>
+              </div>
+
+              <div style={{ padding: "16px 22px", display: "flex", flexDirection: "column", gap: 16 }}>
+                {loadingDetail && (
+                  <div style={{ textAlign: "center", color: "#888", fontSize: 13, padding: 8 }}>Đang tải chi tiết...</div>
+                )}
+
+                {images[0] && (
+                  <img src={images[0]} alt="" style={{ width: "100%", borderRadius: 10, maxHeight: 220, objectFit: "cover" }} />
+                )}
+
+                {view.mo_ta && (
+                  <div style={{ background: "#f9fafb", borderRadius: 10, padding: "12px 14px", border: "1px solid #f0f0f0" }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: "#888", marginBottom: 6 }}>MÔ TẢ</div>
+                    <div style={{ fontSize: 13, color: "#333", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{view.mo_ta}</div>
+                  </div>
+                )}
+
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "#888", marginBottom: 10, letterSpacing: "0.5px" }}>THÔNG TIN BÀI ĐĂNG</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 1, borderRadius: 10, overflow: "hidden", border: "1px solid #f0f0f0" }}>
+                    {[
+                      { icon: <FiUser size={13} />,   label: "Tác giả",  value: view.nguoi_dung_ten || view.nguoi_dung?.ho_ten || "—" },
+                      { icon: <FiMapPin size={13} />, label: "Địa điểm", value: view.dia_diem || "—" },
+                      { icon: <FiClock size={13} />,  label: "Thời gian", value: view.created_at?.substring(0, 10) },
+                    ].map((row, i) => (
+                      <div key={i} style={{ display: "flex", alignItems: "center", padding: "11px 14px", background: "#fafafa", gap: 10, borderBottom: "1px solid #f0f0f0" }}>
+                        <span style={{ color: "#888", width: 18, display: "flex", justifyContent: "center" }}>{row.icon}</span>
+                        <span style={{ fontSize: 13, color: "#888", width: 80 }}>{row.label}</span>
+                        <span style={{ fontSize: 13, fontWeight: 500, color: "#1a1a1a" }}>{row.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 4 }}>
+                  <button style={{ padding: "10px 22px", border: "1px solid #e0e0e0", borderRadius: 8, background: "none", fontSize: 13, color: "#888", cursor: "pointer" }} onClick={() => setSelected(null)}>
+                    Đóng
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
