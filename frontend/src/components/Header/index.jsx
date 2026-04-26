@@ -25,6 +25,9 @@ export default function Header() {
   const isOrg = Array.isArray(roles)
     ? roles.some((r) => r === "TO_CHUC" || r?.ten === "TO_CHUC" || r?.ten_vai_tro === "TO_CHUC")
     : false;
+  const isAdmin = Array.isArray(roles)
+    ? roles.some((r) => r === "ADMIN" || r?.ten === "ADMIN" || r?.ten_vai_tro === "ADMIN")
+    : false;
 
   const navbar = [
     {
@@ -101,23 +104,36 @@ export default function Header() {
     }
   };
 
-  const items = [
-    {
-      key: "profile",
-      label: "Thông tin cá nhân",
-      onClick: () => navigate("/profile"),
-    },
-    ...(isOrg ? [{
-      key: "thong-ke",
-      label: "📊 Thống kê tổ chức",
-      onClick: () => navigate("/thong-ke"),
-    }] : []),
-    {
-      key: "logout",
-      label: "Đăng xuất",
-      onClick: handleLogout,
-    },
-  ];
+  const items = isAdmin
+    ? [
+        {
+          key: "dashboard",
+          label: "🏠 Trang quản trị",
+          onClick: () => navigate("/admin"),
+        },
+        {
+          key: "logout",
+          label: "Đăng xuất",
+          onClick: handleLogout,
+        },
+      ]
+    : [
+        {
+          key: "profile",
+          label: "Thông tin cá nhân",
+          onClick: () => navigate("/profile"),
+        },
+        ...(isOrg ? [{
+          key: "thong-ke",
+          label: "📊 Thống kê tổ chức",
+          onClick: () => navigate("/thong-ke"),
+        }] : []),
+        {
+          key: "logout",
+          label: "Đăng xuất",
+          onClick: handleLogout,
+        },
+      ];
 
   return (
     <header className="app-header full-bleed">
