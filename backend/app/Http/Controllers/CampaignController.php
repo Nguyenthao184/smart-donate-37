@@ -310,7 +310,7 @@ class CampaignController extends Controller
     {
         $query = ChienDichGayQuy::with(['toChuc', 'danhMuc'])
             ->withCount('ungHos')
-            ->whereIn('trang_thai', ['HOAT_DONG', 'HOAN_THANH', 'TAM_DUNG', 'DA_KET_THUC']);
+            ->whereIn('trang_thai', ['CHO_XU_LY', 'HOAT_DONG', 'HOAN_THANH', 'TU_CHOI', 'TAM_DUNG', 'DA_KET_THUC']);
 
         if ($request->has(['min_lat', 'max_lat', 'min_lng', 'max_lng'])) {
             $query->whereBetween('lat', [$request->min_lat, $request->max_lat])
@@ -331,11 +331,13 @@ class CampaignController extends Controller
 
         $query->orderByRaw("
             CASE 
-                WHEN trang_thai = 'HOAT_DONG' THEN 1
-                WHEN trang_thai = 'HOAN_THANH' THEN 2
-                WHEN trang_thai = 'TAM_DUNG' THEN 3
-                WHEN trang_thai = 'DA_KET_THUC' THEN 4
-                ELSE 5
+                WHEN trang_thai = 'CHO_XU_LY' THEN 1
+                WHEN trang_thai = 'HOAT_DONG' THEN 2
+                WHEN trang_thai = 'HOAN_THANH' THEN 3
+                WHEN trang_thai = 'TU_CHOI' THEN 4
+                WHEN trang_thai = 'TAM_DUNG' THEN 5
+                WHEN trang_thai = 'DA_KET_THUC' THEN 6
+                ELSE 7
             END
         ");
 
@@ -597,6 +599,7 @@ class CampaignController extends Controller
         return [
             'id' => $item->id,
             'ten_chien_dich' => $item->ten_chien_dich,
+            'ten_to_chuc' => $item->toChuc->ten_to_chuc ?? null,
             'hinh_anh' => $image ? asset('storage/' . $image) : null,
             'so_tien_da_nhan' => $soTien,
             'muc_tieu_tien' => $mucTieu,

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\VaiTro;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Requests\Auth\LoginRequest;
@@ -50,7 +51,13 @@ class AuthController extends Controller
             'trang_thai' => 'HOAT_DONG'
         ]);
 
-        $user->roles()->attach(2);
+        $nguoiDungRoleId = VaiTro::where('ten_vai_tro', 'NGUOI_DUNG')->value('id');
+        if (!$nguoiDungRoleId) {
+            return response()->json([
+                'message' => 'Thiếu cấu hình vai trò mặc định'
+            ], 500);
+        }
+        $user->roles()->syncWithoutDetaching([$nguoiDungRoleId]);
 
         Cache::forget('register_' . $request->email);
 
@@ -126,7 +133,13 @@ class AuthController extends Controller
             'trang_thai' => 'HOAT_DONG'
         ]);
 
-        $user->roles()->attach(2);
+        $nguoiDungRoleId = VaiTro::where('ten_vai_tro', 'NGUOI_DUNG')->value('id');
+        if (!$nguoiDungRoleId) {
+            return response()->json([
+                'message' => 'Thiếu cấu hình vai trò mặc định'
+            ], 500);
+        }
+        $user->roles()->syncWithoutDetaching([$nguoiDungRoleId]);
 
         Cache::forget('register_token_' . $token);
 

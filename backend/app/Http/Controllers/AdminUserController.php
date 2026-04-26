@@ -25,7 +25,17 @@ class AdminUserController extends Controller
 
         $subQueryRole = DB::table('nguoi_dung_vai_tro as ndvt')
             ->join('vai_tro as vt', 'vt.id', '=', 'ndvt.vai_tro_id')
-            ->select('ndvt.nguoi_dung_id', DB::raw('MIN(vt.ten_vai_tro) as primary_role'))
+            ->select(
+                'ndvt.nguoi_dung_id',
+                DB::raw("
+                    CASE
+                        WHEN SUM(CASE WHEN vt.ten_vai_tro = 'ADMIN' THEN 1 ELSE 0 END) > 0 THEN 'ADMIN'
+                        WHEN SUM(CASE WHEN vt.ten_vai_tro = 'TO_CHUC' THEN 1 ELSE 0 END) > 0 THEN 'TO_CHUC'
+                        WHEN SUM(CASE WHEN vt.ten_vai_tro = 'NGUOI_DUNG' THEN 1 ELSE 0 END) > 0 THEN 'NGUOI_DUNG'
+                        ELSE NULL
+                    END as primary_role
+                ")
+            )
             ->groupBy('ndvt.nguoi_dung_id');
 
         $subQueryOrg = DB::table('xac_minh_to_chuc as xmtc')
@@ -151,5 +161,35 @@ class AdminUserController extends Controller
             ],
         ]);
     }
-}
 
+    public function showLicense(int $userId)
+    {
+        $license = XacMinhToChuc::where('nguoi_dung_id', $userId)
+            ->latest('id')
+            ->first();
+
+        if (!$license) {
+            return response()->json([
+                'message' => 'Không tìm thấy hồ sơ xác minh'
+            ], 404);
+        }
+
+        return response()->json([
+            'data' => [
+                'id' => (int) $license->id,
+                'nguoi_dung_id' => $license->nguoi_dung_id,
+                'ten_to_chuc' => $license->ten_to_chuc,
+                'ma_so_thue' => $license->ma_so_thue,
+                'nguoi_dai_dien' => $license->nguoi_dai_dien,
+                'giay_phep' => asset('storage/' . $license->giay_phep),
+                'mo_ta' => $license->mo_ta,
+                'dia_chi' => $license->dia_chi,
+                'so_dien_thoai' => $license->so_dien_thoai,
+                'logo' => $license->logo ? asset('storage/' . $license->logo) : null,
+                'loai_hinh' => $license->loai_hinh,
+                'trang_thai' => $license->trang_thai,
+                'created_at' => $license->created_at,
+            ]
+        ]);
+    }
+}
