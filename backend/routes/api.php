@@ -129,6 +129,7 @@ Route::middleware('auth:sanctum')->group(function(){
         Route::get('/dashboard/financial-summary', [DashboardController::class, 'financialSummary']);
         Route::get('/dashboard/monthly-statistics', [DashboardController::class, 'monthlyStatistics']);
         Route::get('/dashboard/active-campaigns', [DashboardController::class, 'activeCampaigns']);
+        Route::get('/campaigns/others', [DashboardController::class, 'otherCampaigns']);
         Route::get('/dashboard/recent-activities', [DashboardController::class, 'recentActivities']);
 
         //hoạt động
