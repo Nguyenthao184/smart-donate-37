@@ -25,7 +25,17 @@ class AdminUserController extends Controller
 
         $subQueryRole = DB::table('nguoi_dung_vai_tro as ndvt')
             ->join('vai_tro as vt', 'vt.id', '=', 'ndvt.vai_tro_id')
-            ->select('ndvt.nguoi_dung_id', DB::raw('MIN(vt.ten_vai_tro) as primary_role'))
+            ->select(
+                'ndvt.nguoi_dung_id',
+                DB::raw("
+                    CASE
+                        WHEN SUM(CASE WHEN vt.ten_vai_tro = 'ADMIN' THEN 1 ELSE 0 END) > 0 THEN 'ADMIN'
+                        WHEN SUM(CASE WHEN vt.ten_vai_tro = 'TO_CHUC' THEN 1 ELSE 0 END) > 0 THEN 'TO_CHUC'
+                        WHEN SUM(CASE WHEN vt.ten_vai_tro = 'NGUOI_DUNG' THEN 1 ELSE 0 END) > 0 THEN 'NGUOI_DUNG'
+                        ELSE NULL
+                    END as primary_role
+                ")
+            )
             ->groupBy('ndvt.nguoi_dung_id');
 
         $subQueryOrg = DB::table('xac_minh_to_chuc as xmtc')
