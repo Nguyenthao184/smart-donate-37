@@ -1,6 +1,6 @@
 .up-page {
   max-width: 1200px;
-  margin: 24px auto;
+  margin: 24px 100px;
   padding: 0 120px 40px;
 }
 
@@ -78,7 +78,7 @@
   width: 72px;
   height: 72px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #7c6df0, #f43f5e);
+  background: rgb(24, 144, 255);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -90,7 +90,7 @@
   overflow: hidden;
 
   &--org {
-    background: linear-gradient(135deg, #0d9668, #3b82f6);
+    background: rgb(24, 144, 255);
     box-shadow: 0 6px 18px rgba(13, 150, 104, 0.28);
   }
 
@@ -127,8 +127,8 @@
 .up-badge {
   font-size: 10px;
   font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 999px;
+  padding: 0 16px;
+  border-radius: 10px;
 
   &--verified {
     background: #3b82f6;
@@ -150,10 +150,7 @@
   margin-right: 4px;
 
   &__item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 6px 14px;
+    padding: 3px 14px;
     background: #f8f8fc;
     border-radius: 12px;
     border: 1px solid rgba(36, 36, 36, 0.07);
@@ -164,10 +161,11 @@
       font-weight: 900;
       color: #1a1a1a;
       line-height: 1.2;
+      padding-right: 5px;
     }
 
     span {
-      font-size: 10px;
+      font-size: 13px;
       color: #aaa;
       font-weight: 600;
       margin-top: 1px;
@@ -286,7 +284,7 @@
   background: linear-gradient(135deg, #e6faf3 0%, #dbeeff 100%);
   border: 1.5px solid rgba(13, 150, 104, 0.22);
   border-radius: 16px;
-  padding: 14px 18px;
+  padding: 6px 10px;
   position: relative;
   overflow: hidden;
 
@@ -303,8 +301,8 @@
   }
 
   &__logo {
-    width: 46px;
-    height: 46px;
+    width: 80px;
+    height: 80px;
     border-radius: 13px;
     background: linear-gradient(135deg, #0d9668, #3b82f6);
     display: flex;
@@ -338,16 +336,10 @@
     display: flex;
     align-items: center;
     gap: 4px;
-
-    &::before {
-      content: "●";
-      font-size: 7px;
-      color: #0d9668;
-    }
   }
 
   &__name {
-    font-size: 14px;
+    font-size: 18px;
     font-weight: 900;
     color: #0a4a38;
     white-space: nowrap;

@@ -19,8 +19,6 @@ export default function Header() {
   const { user, token } = useAuthStore();
   const isLoggedIn = !!token;
   const logoutStore = useAuthStore((state) => state.logout);
-
-  // Kiểm tra role tổ chức
   const roles = useAuthStore((s) => s.roles);
   const isOrg = Array.isArray(roles)
     ? roles.some((r) => r === "TO_CHUC" || r?.ten === "TO_CHUC" || r?.ten_vai_tro === "TO_CHUC")
@@ -50,8 +48,16 @@ export default function Header() {
       key: "ho-tro",
       children: [
         { label: "Hỏi đáp", key: "ho-tro/hoi-dap", to: "/ho-tro/hoi-dap" },
-        { label: "Điều khoản", key: "ho-tro/dieu-khoan", to: "/ho-tro/dieu-khoan" },
-        { label: "Chính sách bảo mật", key: "ho-tro/chinh-sach", to: "/ho-tro/chinh-sach" },
+        {
+          label: "Điều khoản",
+          key: "ho-tro/dieu-khoan",
+          to: "/ho-tro/dieu-khoan",
+        },
+        {
+          label: "Chính sách bảo mật",
+          key: "ho-tro/chinh-sach",
+          to: "/ho-tro/chinh-sach",
+        },
       ],
     },
   ];
@@ -83,7 +89,9 @@ export default function Header() {
 
   const handleSearch = (value) => {
     if (!value.trim()) return;
-    navigate(`/chien-dich/tim-kiem?keyword=${encodeURIComponent(value.trim())}`);
+    navigate(
+      `/chien-dich/tim-kiem?keyword=${encodeURIComponent(value.trim())}`,
+    );
   };
 
   const handleLogout = async () => {
@@ -123,11 +131,15 @@ export default function Header() {
           label: "Thông tin cá nhân",
           onClick: () => navigate("/profile"),
         },
-        ...(isOrg ? [{
-          key: "thong-ke",
-          label: "📊 Thống kê tổ chức",
-          onClick: () => navigate("/thong-ke"),
-        }] : []),
+        ...(isOrg
+          ? [
+              {
+                key: "thong-ke",
+                label: "📊 Thống kê tổ chức",
+                onClick: () => navigate("/thong-ke"),
+              },
+            ]
+          : []),
         {
           key: "logout",
           label: "Đăng xuất",
@@ -212,6 +224,7 @@ export default function Header() {
           )}
         </div>
       </div>
+
       <RequiredLoginModal
         openLoginModal={openLoginModal}
         setOpenLoginModal={setOpenLoginModal}

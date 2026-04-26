@@ -188,8 +188,7 @@ export default function Projects() {
                       </td>
                       <td style={{ minWidth: 140 }}>
                         {orgName ? (
-                          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "#555" }}>
-                            <FiHome size={12} style={{ color: "#7c6df0" }} />
+                          <div style={{ display: "flex", fontWeight: 700, alignItems: "center", gap: 6, fontSize: 13.5, color: "#333" }}>
                             <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 140 }}>{orgName}</span>
                           </div>
                         ) : (
