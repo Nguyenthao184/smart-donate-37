@@ -57,6 +57,7 @@ Route::middleware('auth:sanctum')->group(function(){
             Route::get('/users', [AdminUserController::class, 'index']);
             Route::post('/users/{id}/lock', [AdminUserController::class, 'lock']);
             Route::post('/users/{id}/unlock', [AdminUserController::class, 'unlock']);
+            Route::get('/users/organizations/pending/{id}', [AdminUserController::class, 'showLicense']);
 
             // ADMIN - dashboard
             Route::get('/dashboard/summary', [AdminDashboardController::class, 'summary']);

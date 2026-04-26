@@ -151,5 +151,35 @@ class AdminUserController extends Controller
             ],
         ]);
     }
-}
 
+    public function showLicense(int $userId)
+    {
+        $license = XacMinhToChuc::where('nguoi_dung_id', $userId)
+            ->latest('id')
+            ->first();
+
+        if (!$license) {
+            return response()->json([
+                'message' => 'Không tìm thấy hồ sơ xác minh'
+            ], 404);
+        }
+
+        return response()->json([
+            'data' => [
+                'id' => (int) $license->id,
+                'nguoi_dung_id' => $license->nguoi_dung_id,
+                'ten_to_chuc' => $license->ten_to_chuc,
+                'ma_so_thue' => $license->ma_so_thue,
+                'nguoi_dai_dien' => $license->nguoi_dai_dien,
+                'giay_phep' => asset('storage/' . $license->giay_phep),
+                'mo_ta' => $license->mo_ta,
+                'dia_chi' => $license->dia_chi,
+                'so_dien_thoai' => $license->so_dien_thoai,
+                'logo' => $license->logo ? asset('storage/' . $license->logo) : null,
+                'loai_hinh' => $license->loai_hinh,
+                'trang_thai' => $license->trang_thai,
+                'created_at' => $license->created_at,
+            ]
+        ]);
+    }
+}
