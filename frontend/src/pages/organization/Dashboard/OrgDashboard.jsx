@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import useDashboardStore from "../../../store/dashboardStore";
+import Header from "../../../components/Header/index";
 import "./OrgDashboard.scss";
 
 const FILTER_OPTIONS = [
@@ -77,6 +78,8 @@ export default function OrgDashboard() {
   }
 
   return (
+    <>
+    <Header />
     <div className="od">
       {/* Header */}
       <div className="od-ph">
@@ -219,5 +222,6 @@ export default function OrgDashboard() {
         )}
       </div>
     </div>
+    </>
   );
 }

@@ -80,9 +80,7 @@ const privateRoutes = [
     path: "/thong-ke",
     element: (
       <ProtectedRoute>
-        <MainLayout>
           <OrgDashboard />
-        </MainLayout>
       </ProtectedRoute>
     ),
   },
