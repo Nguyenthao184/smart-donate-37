@@ -177,6 +177,7 @@ export default function UserProfile() {
                   key={item.id}
                   post={{
                     id: item.id,
+                    nguoi_dung_id: item.nguoi_dung?.id,
                     loai_bai: item.loai_bai,
                     user: {
                       id: item.nguoi_dung?.id,
@@ -197,15 +198,17 @@ export default function UserProfile() {
                       ),
                       color: "rgb(24, 144, 255)",
                     },
-
-                    nguoi_dung_id: item.nguoi_dung_id,
                     title: item.tieu_de,
                     desc: item.mo_ta,
                     likeCount: item.so_luot_thich || 0,
                     commentCount: item.so_binh_luan || 0,
                     location: item.dia_diem,
                     time: item.ngay_dang,
-                    images: item.hinh_anh_urls || [],
+                    images: item.hinh_anh_urls?.length
+                      ? item.hinh_anh_urls
+                      : item.hinh_anh_url
+                        ? [item.hinh_anh_url]
+                        : [],
                     so_luong: item.so_luong,
                     trang_thai: item.trang_thai,
                   }}

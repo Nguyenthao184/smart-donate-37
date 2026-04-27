@@ -104,8 +104,9 @@ export default function ProfilePage() {
 
   const toPostCard = (item) => ({
     id: item.id,
-
+    nguoi_dung_id: item.nguoi_dung_id,
     user: {
+      id: item.nguoi_dung_id,
       name: item.nguoi_dung_ten,
       avatar: item.avatar_url
         ? item.avatar_url
