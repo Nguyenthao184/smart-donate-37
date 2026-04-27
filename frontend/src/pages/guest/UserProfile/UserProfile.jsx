@@ -85,137 +85,136 @@ export default function UserProfile() {
 
   return (
     <>
-    <Header />
-    <div className="up-page">
-      <div className="up-card">
-        {/* Top */}
-        <div className="up-top">
-          <div className="up-top__left">
-            <div className={`up-avatar${isOrg ? " up-avatar--org" : ""}`}>
-              {avatarUrl ? (
-                <img src={avatarUrl} alt={displayName} />
-              ) : (
-                <span>{displayName[0]?.toUpperCase()}</span>
-              )}
-            </div>
-            <div className="up-info">
-              <div className="up-info__name">
-                {displayName}
-                {isOrg && (
-                  <span className="up-badge up-badge--org">🏢 Tổ chức</span>
+      <Header />
+      <div className="up-page">
+        <div className="up-card">
+          {/* Top */}
+          <div className="up-top">
+            <div className="up-top__left">
+              <div className={`up-avatar${isOrg ? " up-avatar--org" : ""}`}>
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt={displayName} />
+                ) : (
+                  <span>{displayName[0]?.toUpperCase()}</span>
                 )}
               </div>
-              <div className="up-info__sub">@{username}</div>
-            </div>
-          </div>
-
-          <div className="up-top__actions">
-            <div className="up-top-stats">
-              <div className="up-top-stats__item">
-                <strong>{userPosts.length}</strong>
-                <span>Bài đăng</span>
+              <div className="up-info">
+                <div className="up-info__name">
+                  {displayName}
+                  {isOrg && (
+                    <span className="up-badge up-badge--org">🏢 Tổ chức</span>
+                  )}
+                </div>
+                <div className="up-info__sub">@{username}</div>
               </div>
             </div>
-            <button className="up-btn up-btn--msg" onClick={handleChat}>
-              <FiMessageSquare size={14} /> Nhắn tin
-            </button>
-          </div>
-        </div>
 
-        {/* Bio — chỉ tổ chức */}
-        {isOrg && toChuc?.mo_ta && <div className="up-bio">{toChuc.mo_ta}</div>}
-
-        {/* Org strip | Impact card */}
-        {isOrg ? (
-          <div className="up-org-strip">
-            <div className="up-org-strip__logo">
-              {toChuc?.logo ? <img src={toChuc.logo} alt="" /> : "🏢"}
-            </div>
-            <div className="up-org-strip__info">
-              <div className="up-org-strip__role">Chủ tổ chức</div>
-              <div className="up-org-strip__name">{orgName}</div>
-              <div className="up-org-strip__meta">
-                {loaiHinhLabel} · Đã xác minh ✓
+            <div className="up-top__actions">
+              <div className="up-top-stats">
+                <div className="up-top-stats__item">
+                  <strong>{userPosts.length}</strong>
+                  <span>Bài đăng</span>
+                </div>
               </div>
-            </div>
-            {toChuc?.id && (
-              <button className="up-btn up-btn--org" onClick={handleViewOrg}>
-                Xem tổ chức <FiArrowRight size={12} />
+              <button className="up-btn up-btn--msg" onClick={handleChat}>
+                <FiMessageSquare size={14} /> Nhắn tin
               </button>
-            )}
-          </div>
-        ) : (
-          <div className="up-impact">
-            <div className="up-impact__icon">💚</div>
-            <div className="up-impact__body">
-              <div className="up-impact__title">Tổng tác động cộng đồng</div>
-              <div className="up-impact__sub">
-                Qua ủng hộ + bài đăng cho/nhận
-              </div>
             </div>
-            <div className="up-impact__num">{userPosts.length}</div>
           </div>
-        )}
 
-        {/* Bài đăng */}
-        <div className="up-posts">
-          <div className="up-posts__header">
-            <span>📋</span> Bài đăng gần đây
-          </div>
-          {isLoadingPosts ? (
-            <div className="up-posts__loading">Đang tải bài đăng...</div>
-          ) : userPosts.length === 0 ? (
-            <div className="up-posts__empty">
-              <div>📝</div>
-              <p>Chưa có bài đăng nào</p>
+          {/* Bio — chỉ tổ chức */}
+          {isOrg && toChuc?.mo_ta && (
+            <div className="up-bio">{toChuc.mo_ta}</div>
+          )}
+
+          {/* Org strip | Impact card */}
+          {isOrg ? (
+            <div className="up-org-strip">
+              <div className="up-org-strip__logo">
+                {toChuc?.logo ? <img src={toChuc.logo} alt="" /> : "🏢"}
+              </div>
+              <div className="up-org-strip__info">
+                <div className="up-org-strip__role">Chủ tổ chức</div>
+                <div className="up-org-strip__name">{orgName}</div>
+                <div className="up-org-strip__meta">
+                  {loaiHinhLabel} · Đã xác minh ✓
+                </div>
+              </div>
+              {toChuc?.id && (
+                <button className="up-btn up-btn--org" onClick={handleViewOrg}>
+                  Xem tổ chức <FiArrowRight size={12} />
+                </button>
+              )}
             </div>
           ) : (
-            userPosts.map((item, index) => (
-              <PostCard
-                key={item.id}
-                post={{
-                  id: item.id,
-                  loai_bai: item.loai_bai,
-
-                  user: {
-                    id: item.nguoi_dung?.id,
-                    name: item.nguoi_dung?.ho_ten,
-                    avatar: item.nguoi_dung?.anh_dai_dien ? (
-                      <img
-                        src={item.nguoi_dung.anh_dai_dien}
-                        alt=""
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "cover",
-                          borderRadius: "50%",
-                        }}
-                      />
-                    ) : (
-                      item.nguoi_dung?.ho_ten?.[0]?.toUpperCase()
-                    ),
-                    color: "rgb(24, 144, 255)",
-                  },
-
-                  nguoi_dung_id: item.nguoi_dung_id,
-
-                  title: item.tieu_de,
-                  desc: item.mo_ta,
-
-                  location: item.dia_diem,
-                  time: item.ngay_dang,
-
-                  images: item.hinh_anh_urls || [],
-
-                  so_luong: item.so_luong,
-                  trang_thai: item.trang_thai,
-                }}
-              />
-            ))
+            <div className="up-impact">
+              <div className="up-impact__icon">💚</div>
+              <div className="up-impact__body">
+                <div className="up-impact__title">Tổng tác động cộng đồng</div>
+                <div className="up-impact__sub">
+                  Qua ủng hộ + bài đăng cho/nhận
+                </div>
+              </div>
+              <div className="up-impact__num">{userPosts.length}</div>
+            </div>
           )}
+
+          {/* Bài đăng */}
+          <div className="up-posts">
+            <div className="up-posts__header">
+              <span>📋</span> Bài đăng gần đây
+            </div>
+            {isLoadingPosts ? (
+              <div className="up-posts__loading">Đang tải bài đăng...</div>
+            ) : userPosts.length === 0 ? (
+              <div className="up-posts__empty">
+                <div>📝</div>
+                <p>Chưa có bài đăng nào</p>
+              </div>
+            ) : (
+              userPosts.map((item, index) => (
+                <PostCard
+                  key={item.id}
+                  post={{
+                    id: item.id,
+                    loai_bai: item.loai_bai,
+                    user: {
+                      id: item.nguoi_dung?.id,
+                      name: item.nguoi_dung?.ho_ten,
+                      avatar: item.nguoi_dung?.anh_dai_dien ? (
+                        <img
+                          src={item.nguoi_dung.anh_dai_dien}
+                          alt=""
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
+                            borderRadius: "50%",
+                          }}
+                        />
+                      ) : (
+                        item.nguoi_dung?.ho_ten?.[0]?.toUpperCase()
+                      ),
+                      color: "rgb(24, 144, 255)",
+                    },
+
+                    nguoi_dung_id: item.nguoi_dung_id,
+                    title: item.tieu_de,
+                    desc: item.mo_ta,
+                    likeCount: item.so_luot_thich || 0,
+                    commentCount: item.so_binh_luan || 0,
+                    location: item.dia_diem,
+                    time: item.ngay_dang,
+                    images: item.hinh_anh_urls || [],
+                    so_luong: item.so_luong,
+                    trang_thai: item.trang_thai,
+                  }}
+                />
+              ))
+            )}
+          </div>
         </div>
       </div>
-    </div>
     </>
   );
 }
