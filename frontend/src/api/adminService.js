@@ -28,6 +28,12 @@ export const getAdminOrganizationDetail = async (id) => {
   return res.data;
 };
 
+// Lấy hồ sơ xác minh TC đang chờ duyệt (giấy phép, mã số thuế, người đại diện...)
+export const getPendingOrgLicense = async (userId) => {
+  const res = await api.get(`/admin/users/organizations/pending/${userId}`);
+  return res.data;
+};
+
 export const approveOrganization = async (id) => {
   const res = await api.post(`/admin/organization/${id}/approve`);
   return res.data;

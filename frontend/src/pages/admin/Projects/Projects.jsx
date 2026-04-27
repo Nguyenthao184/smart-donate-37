@@ -24,6 +24,7 @@ export default function Projects() {
   const [filter, setFilter]           = useState("all");
   const [selected, setSelected]       = useState(null);
   const [detail, setDetail]           = useState(null);
+  const [submitting, setSubmitting]   = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
   const {
@@ -54,21 +55,37 @@ export default function Projects() {
   }, [filter]);
 
   async function approve(id) {
-    const ok = await handleApproveCampaign(id);
-    if (ok) {
-      notification.success({ message: "Duyệt chiến dịch thành công", placement: "topRight" });
-      fetchCampaignsSummary();
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const ok = await handleApproveCampaign(id);
+      if (ok) {
+        notification.success({ message: "Duyệt chiến dịch thành công", placement: "topRight" });
+        fetchCampaignsSummary();
+        setSelected(null);
+      } else {
+        notification.error({ message: "Duyệt chiến dịch thất bại", placement: "topRight" });
+      }
+    } finally {
+      setSubmitting(false);
     }
-    else    notification.error({ message: "Duyệt chiến dịch thất bại", placement: "topRight" });
   }
 
   async function reject(id) {
-    const ok = await handleRejectCampaign(id);
-    if (ok) {
-      notification.success({ message: "Từ chối chiến dịch thành công", placement: "topRight" });
-      fetchCampaignsSummary();
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const ok = await handleRejectCampaign(id);
+      if (ok) {
+        notification.success({ message: "Từ chối chiến dịch thành công", placement: "topRight" });
+        fetchCampaignsSummary();
+        setSelected(null);
+      } else {
+        notification.error({ message: "Từ chối chiến dịch thất bại", placement: "topRight" });
+      }
+    } finally {
+      setSubmitting(false);
     }
-    else    notification.error({ message: "Từ chối chiến dịch thất bại", placement: "topRight" });
   }
 
   async function openDetail(c) {
@@ -152,13 +169,12 @@ export default function Projects() {
                   <th>Tiến độ</th>
                   <th>Còn lại</th>
                   <th>Trạng thái</th>
-                  <th>Duyệt</th>
                   <th>Xem</th>
                 </tr>
               </thead>
               <tbody>
                 {campaigns.length === 0 ? (
-                  <tr><td colSpan={8}><div className="adm-empty"><div className="adm-empty__icon">📂</div><div className="adm-empty__text">Không có chiến dịch</div></div></td></tr>
+                  <tr><td colSpan={7}><div className="adm-empty"><div className="adm-empty__icon">📂</div><div className="adm-empty__text">Không có chiến dịch</div></div></td></tr>
                 ) : campaigns.map((p, i) => {
                   const pct    = p.muc_tieu_tien > 0 ? Math.round((p.so_tien_da_nhan || 0) * 100 / p.muc_tieu_tien) : 0;
                   const status = STATUS_MAP[p.trang_thai] || { label: p.trang_thai, cls: "green" };
@@ -197,21 +213,6 @@ export default function Projects() {
                         </div>
                       </td>
                       <td><span className={`adm-tag adm-tag--${status.cls}`}>{status.label}</span></td>
-
-                      <td>
-                        {isPending ? (
-                          <div style={{ display: "flex", gap: 6 }}>
-                            <button className="adm-btn adm-btn--success adm-btn--sm" onClick={() => approve(p.id)}>
-                              <FiCheck size={12} /> Duyệt
-                            </button>
-                            <button className="adm-btn adm-btn--danger adm-btn--sm" onClick={() => reject(p.id)}>
-                              <FiX size={12} /> Từ chối
-                            </button>
-                          </div>
-                        ) : (
-                          <span style={{ color: "#aaa", fontSize: 12 }}>—</span>
-                        )}
-                      </td>
 
                       <td>
                         <button className="adm-btn adm-btn--ghost adm-btn--sm adm-btn--icon" title="Xem chi tiết" onClick={() => openDetail(p)}>
@@ -315,15 +316,17 @@ export default function Projects() {
                     <>
                       <button
                         className="adm-btn adm-btn--success"
-                        style={{ padding: "10px 22px", borderRadius: 8, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}
-                        onClick={() => { approve(view.id); setSelected(null); }}
+                        disabled={submitting}
+                        style={{ padding: "10px 22px", borderRadius: 8, fontSize: 13, display: "flex", alignItems: "center", gap: 6, opacity: submitting ? 0.6 : 1, cursor: submitting ? "not-allowed" : "pointer" }}
+                        onClick={() => approve(view.id)}
                       >
-                        <FiCheck size={13} /> Duyệt chiến dịch
+                        <FiCheck size={13} /> {submitting ? "Đang xử lý..." : "Duyệt chiến dịch"}
                       </button>
                       <button
                         className="adm-btn adm-btn--danger"
-                        style={{ padding: "10px 22px", borderRadius: 8, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}
-                        onClick={() => { reject(view.id); setSelected(null); }}
+                        disabled={submitting}
+                        style={{ padding: "10px 22px", borderRadius: 8, fontSize: 13, display: "flex", alignItems: "center", gap: 6, opacity: submitting ? 0.6 : 1, cursor: submitting ? "not-allowed" : "pointer" }}
+                        onClick={() => reject(view.id)}
                       >
                         <FiX size={13} /> Từ chối
                       </button>

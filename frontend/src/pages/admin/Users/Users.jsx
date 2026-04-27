@@ -5,7 +5,7 @@ import {
   FiMail, FiCalendar, FiAlertTriangle, FiHome, FiTag, FiFile,
 } from "react-icons/fi";
 import useAdminStore from "../../../store/adminStore";
-import { getAdminOrganizationDetail } from "../../../api/adminService";
+import { getPendingOrgLicense } from "../../../api/adminService";
 import Pagination from "../../../components/Pagination";
 import "./Users.scss";
 
@@ -30,6 +30,7 @@ export default function Users() {
   const [selected, setSelected]       = useState(null);
   const [orgDetail, setOrgDetail]     = useState(null);
   const [loadingOrg, setLoadingOrg]   = useState(false);
+  const [submitting, setSubmitting]   = useState(false);
 
   const {
     users, usersMeta, usersParams, usersSummary, loadingUsers,
@@ -76,7 +77,9 @@ export default function Users() {
     if (u.role === "TO_CHUC" || isPendingOrg(u)) {
       setLoadingOrg(true);
       try {
-        const res = await getAdminOrganizationDetail(u.id);
+        // Endpoint showLicense lookup theo nguoi_dung_id, trả full hồ sơ xác minh
+        // → dùng được cho cả TC chờ duyệt + TC đã duyệt
+        const res = await getPendingOrgLicense(u.id);
         setOrgDetail(res.data || res);
       } catch (e) {
         console.error("Lỗi lấy thông tin tổ chức:", e);
@@ -99,17 +102,37 @@ export default function Users() {
   }
 
   async function approveOrg(id) {
-    const ok = await handleApproveOrg(id);
-    if (ok) notification.success({ message: "Duyệt tổ chức thành công", placement: "topRight" });
-    else    notification.error({ message: "Duyệt tổ chức thất bại", placement: "topRight" });
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const ok = await handleApproveOrg(id);
+      if (ok) {
+        notification.success({ message: "Duyệt tổ chức thành công", placement: "topRight" });
+        setSelected(null);
+      } else {
+        notification.error({ message: "Duyệt tổ chức thất bại", placement: "topRight" });
+      }
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   async function rejectOrg(id) {
+    if (submitting) return;
     const ly_do = window.prompt("Nhập lý do từ chối:");
     if (!ly_do?.trim()) return;
-    const ok = await handleRejectOrg(id, ly_do.trim());
-    if (ok) notification.success({ message: "Đã từ chối tổ chức", placement: "topRight" });
-    else    notification.error({ message: "Từ chối thất bại", placement: "topRight" });
+    setSubmitting(true);
+    try {
+      const ok = await handleRejectOrg(id, ly_do.trim());
+      if (ok) {
+        notification.success({ message: "Đã từ chối tổ chức", placement: "topRight" });
+        setSelected(null);
+      } else {
+        notification.error({ message: "Từ chối thất bại", placement: "topRight" });
+      }
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -223,16 +246,6 @@ export default function Users() {
                           <button className="adm-btn adm-btn--ghost adm-btn--sm adm-btn--icon" title="Xem chi tiết" onClick={() => handleSelect(u)}>
                             <FiEye size={13} />
                           </button>
-                          {pending && (
-                            <>
-                              <button className="adm-btn adm-btn--success adm-btn--sm" onClick={() => approveOrg(u.id)}>
-                                <FiShield size={12} /> Duyệt
-                              </button>
-                              <button className="adm-btn adm-btn--danger adm-btn--sm" onClick={() => rejectOrg(u.id)}>
-                                <FiX size={12} /> Từ chối
-                              </button>
-                            </>
-                          )}
                           {u.role !== "ADMIN" && !pending && (
                             <button
                               className={`adm-btn adm-btn--sm ${u.status === "BI_CAM" ? "adm-btn--success" : "adm-btn--danger"}`}
@@ -376,12 +389,12 @@ export default function Users() {
                 <button style={{ padding: "10px 22px", border: "1px solid #e0e0e0", borderRadius: 8, background: "none", fontSize: 13, color: "#888", cursor: "pointer" }} onClick={() => setSelected(null)}>
                   Đóng
                 </button>
-                {isPendingOrg(selected) && (
+                {isPendingOrg(selected) && orgDetail?.id && (
                   <>
-                    <button className="adm-btn adm-btn--success" style={{ padding: "10px 22px", borderRadius: 8, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }} onClick={() => { approveOrg(selected.id); setSelected(null); }}>
-                      <FiShield size={13} /> Duyệt tổ chức
+                    <button className="adm-btn adm-btn--success" disabled={submitting} style={{ padding: "10px 22px", borderRadius: 8, fontSize: 13, display: "flex", alignItems: "center", gap: 6, opacity: submitting ? 0.6 : 1, cursor: submitting ? "not-allowed" : "pointer" }} onClick={() => approveOrg(orgDetail.id)}>
+                      <FiShield size={13} /> {submitting ? "Đang xử lý..." : "Duyệt tổ chức"}
                     </button>
-                    <button className="adm-btn adm-btn--danger" style={{ padding: "10px 22px", borderRadius: 8, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }} onClick={() => { rejectOrg(selected.id); setSelected(null); }}>
+                    <button className="adm-btn adm-btn--danger" disabled={submitting} style={{ padding: "10px 22px", borderRadius: 8, fontSize: 13, display: "flex", alignItems: "center", gap: 6, opacity: submitting ? 0.6 : 1, cursor: submitting ? "not-allowed" : "pointer" }} onClick={() => rejectOrg(orgDetail.id)}>
                       <FiX size={13} /> Từ chối
                     </button>
                   </>
