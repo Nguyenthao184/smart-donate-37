@@ -20,6 +20,11 @@ export const getDashboardActiveCampaigns = async () => {
   return res.data;
 };
 
+export const getDashboardOtherCampaigns = async () => {
+  const res = await api.get("/campaigns/others");
+  return res.data;
+};
+
 export const getDashboardRecentActivities = async () => {
   const res = await api.get("/dashboard/recent-activities");
   return res.data;

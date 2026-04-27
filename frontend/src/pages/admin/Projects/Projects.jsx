@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { notification } from "antd";
 import {
-  FiSearch, FiCheck, FiX, FiEye,
+  FiSearch, FiCheck, FiX, FiEye, FiPause,
   FiFolder, FiClock, FiCheckCircle, FiXCircle,
   FiTarget, FiUser, FiCalendar, FiTrendingUp, FiHome,
 } from "react-icons/fi";
@@ -30,7 +30,7 @@ export default function Projects() {
   const {
     campaigns, campaignsMeta, campaignsParams, campaignsSummary, loadingCampaigns,
     fetchCampaigns, fetchCampaignsSummary,
-    handleApproveCampaign, handleRejectCampaign,
+    handleApproveCampaign, handleRejectCampaign, handlePauseCampaign,
   } = useAdminStore();
 
   // Fetch lần đầu
@@ -82,6 +82,25 @@ export default function Projects() {
         setSelected(null);
       } else {
         notification.error({ message: "Từ chối chiến dịch thất bại", placement: "topRight" });
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function pause(id) {
+    if (submitting) return;
+    const ly_do = window.prompt("Nhập lý do tạm dừng chiến dịch:");
+    if (!ly_do?.trim()) return;
+    setSubmitting(true);
+    try {
+      const ok = await handlePauseCampaign(id, ly_do.trim());
+      if (ok) {
+        notification.success({ message: "Tạm dừng chiến dịch thành công", placement: "topRight" });
+        fetchCampaignsSummary();
+        setSelected(null);
+      } else {
+        notification.error({ message: "Tạm dừng chiến dịch thất bại", placement: "topRight" });
       }
     } finally {
       setSubmitting(false);
@@ -331,6 +350,16 @@ export default function Projects() {
                         <FiX size={13} /> Từ chối
                       </button>
                     </>
+                  )}
+                  {view.trang_thai === "HOAT_DONG" && (
+                    <button
+                      className="adm-btn adm-btn--warning"
+                      disabled={submitting}
+                      style={{ padding: "10px 22px", borderRadius: 8, fontSize: 13, display: "flex", alignItems: "center", gap: 6, opacity: submitting ? 0.6 : 1, cursor: submitting ? "not-allowed" : "pointer", background: "#f59e0b", color: "#fff", border: "none" }}
+                      onClick={() => pause(view.id)}
+                    >
+                      <FiPause size={13} /> {submitting ? "Đang xử lý..." : "Tạm dừng chiến dịch"}
+                    </button>
                   )}
                 </div>
               </div>

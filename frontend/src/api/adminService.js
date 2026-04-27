@@ -97,6 +97,12 @@ export const rejectCampaign = async (id) => {
   return res.data;
 };
 
+// Tạm dừng chiến dịch (BE chưa làm — sẽ là POST /admin/campaigns/{id}/pause)
+export const pauseCampaign = async (id, ly_do = "") => {
+  const res = await api.post(`/admin/campaigns/${id}/pause`, { ly_do });
+  return res.data;
+};
+
 // ===== FRAUD =====
 export const getFraudAlerts = async () => {
   const res = await api.get("/admin/fraud-alerts");

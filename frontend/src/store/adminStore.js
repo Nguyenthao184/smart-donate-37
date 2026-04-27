@@ -3,7 +3,7 @@ import {
   getAdminUsers, lockUser, unlockUser,
   getAdminPosts,
   getAdminPostReports, updateAdminPostReport,
-  getAdminCampaigns, approveCampaign, rejectCampaign,
+  getAdminCampaigns, approveCampaign, rejectCampaign, pauseCampaign,
   approveOrganization, rejectOrganization, lockFundAccount,
   getFraudAlerts, updateFraudAlert, autoCheckFraud, autoCheckCampaignsFraud,
   getDashboardSummary, getDashboardFeatured, getDashboardFundraising, getDashboardActivities,
@@ -247,6 +247,15 @@ const useAdminStore = create((set, get) => ({
     try {
       await rejectCampaign(id);
       set({ campaigns: get().campaigns.map(c => c.id === id ? { ...c, trang_thai: "TU_CHOI" } : c) });
+      get().fetchCampaignsSummary();
+      return true;
+    } catch (err) { console.error(err); return false; }
+  },
+
+  handlePauseCampaign: async (id, ly_do = "") => {
+    try {
+      await pauseCampaign(id, ly_do);
+      set({ campaigns: get().campaigns.map(c => c.id === id ? { ...c, trang_thai: "TAM_DUNG" } : c) });
       get().fetchCampaignsSummary();
       return true;
     } catch (err) { console.error(err); return false; }

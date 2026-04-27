@@ -32,14 +32,24 @@ export default function UserProfile() {
     fetchUserProfile(id);
   }, [id, currentUser]);
 
-  const handleChat = () => {
+  const handleChat = async () => {
     if (!currentUser) {
       navigate("/dang-nhap");
       return;
     }
     const u = profileData?.nguoi_dung;
-    if (u) {
-      openChatWith({ id: Number(id), ho_ten: u.ho_ten });
+    if (!u) return;
+    // Signature giống PostCard: openChatWith(receiverId, info) → return chatId
+    const receiverId = Number(id);
+    const info = {
+      id: receiverId,
+      ho_ten: u.ho_ten,
+      avatar_url: profileData?.to_chuc?.logo || u.anh_dai_dien || null,
+    };
+    const chatId = await openChatWith(receiverId, info);
+    if (chatId) {
+      navigate(`/chat?cid=${chatId}`);
+    } else {
       navigate("/chat");
     }
   };

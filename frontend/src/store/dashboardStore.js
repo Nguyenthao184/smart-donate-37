@@ -4,6 +4,7 @@ import {
   getDashboardFinancial,
   getDashboardMonthly,
   getDashboardActiveCampaigns,
+  getDashboardOtherCampaigns,
   getDashboardRecentActivities,
 } from "../api/dashboardService";
 
@@ -17,6 +18,7 @@ const useDashboardStore = create((set, get) => ({
   financial: null,
   monthly: null,
   campaigns: [],
+  otherCampaigns: [],
   activities: [],
 
   loading: false,
@@ -31,16 +33,18 @@ const useDashboardStore = create((set, get) => ({
 
     summaryPromise = (async () => {
       try {
-        const [summary, monthly, campaigns, activities] = await Promise.all([
+        const [summary, monthly, campaigns, otherCampaigns, activities] = await Promise.all([
           getDashboardSummary(),
           getDashboardMonthly(),
           getDashboardActiveCampaigns(),
+          getDashboardOtherCampaigns(),
           getDashboardRecentActivities(),
         ]);
         set({
           summary,
           monthly,
           campaigns: campaigns || [],
+          otherCampaigns: otherCampaigns || [],
           activities: activities || [],
           loading: false,
           isFetched: true,
@@ -70,7 +74,7 @@ const useDashboardStore = create((set, get) => ({
   reset: () => {
     set({
       summary: null, financial: null, monthly: null,
-      campaigns: [], activities: [],
+      campaigns: [], otherCampaigns: [], activities: [],
       loading: false, loadingFinancial: false, isFetched: false,
     });
   },

@@ -1460,7 +1460,9 @@ function EditProfileModal({
   onClose,
 }) {
   const fileRef = useRef(null);
+  const logoRef = useRef(null);
   const [avatarPreview, setAvatarPreview] = useState(avatarUrl || null);
+  const [logoPreview, setLogoPreview] = useState(toChuc?.logo || null);
   const [form, setForm] = useState({
     ho_ten: profileUser?.ho_ten || user?.ho_ten || "",
     dia_chi_user: profileUser?.dia_chi || user?.dia_chi || "",
@@ -1477,6 +1479,10 @@ function EditProfileModal({
     const file = e.target.files[0];
     if (file) setAvatarPreview(URL.createObjectURL(file));
   };
+  const handleLogo = (e) => {
+    const file = e.target.files[0];
+    if (file) setLogoPreview(URL.createObjectURL(file));
+  };
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -1491,6 +1497,8 @@ function EditProfileModal({
       if (form.email_to_chuc) formData.append("email", form.email_to_chuc);
       if (form.dia_chi) formData.append("dia_chi", form.dia_chi);
       if (form.mo_ta) formData.append("mo_ta", form.mo_ta);
+      if (logoRef.current?.files[0])
+        formData.append("logo", logoRef.current.files[0]);
     }
     const { ok } = await onUpdateProfile(formData);
     setLoading(false);
@@ -1606,6 +1614,44 @@ function EditProfileModal({
               <div className="ep-section-title">
                 <span className="ep-section-title__bar" />
                 TỔ CHỨC
+              </div>
+              <div className="ep-avatar-row" style={{ marginBottom: 12 }}>
+                <div className="ep-avatar">
+                  {logoPreview ? (
+                    <img src={logoPreview} alt="logo" />
+                  ) : (
+                    <span>{(toChuc?.ten_to_chuc || "T")[0]?.toUpperCase()}</span>
+                  )}
+                </div>
+                <div className="ep-avatar-actions">
+                  <input
+                    ref={logoRef}
+                    type="file"
+                    accept="image/*"
+                    style={{ display: "none" }}
+                    onChange={handleLogo}
+                  />
+                  <button
+                    className="ep-btn-sm ep-btn-sm--green"
+                    onClick={() => logoRef.current?.click()}
+                    type="button"
+                  >
+                    Chọn logo
+                  </button>
+                  <button
+                    className="ep-btn-sm ep-btn-sm--red"
+                    onClick={() => {
+                      setLogoPreview(null);
+                      if (logoRef.current) logoRef.current.value = "";
+                    }}
+                    type="button"
+                  >
+                    Xóa
+                  </button>
+                </div>
+                <div style={{ flex: 1, fontSize: 12, color: "#888", marginLeft: 16 }}>
+                  Logo tổ chức (jpg/png, tối đa 2MB)
+                </div>
               </div>
               <div className="ep-field">
                 <label>Tên tổ chức</label>

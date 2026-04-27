@@ -100,6 +100,14 @@
 .od-chart-wrap { position: relative; width: 100%; height: 190px; }
 
 .od-act-list { display: flex; flex-direction: column; }
+.od-act-list--scroll {
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 6px;
+  &::-webkit-scrollbar { width: 6px; }
+  &::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+}
 
 .od-act {
   display: flex; align-items: center; gap: 10px;
@@ -119,6 +127,36 @@
 }
 
 .od-camp-list { display: flex; flex-direction: column; gap: 12px; }
+.od-camp-list--scroll {
+  max-height: 420px;
+  overflow-y: auto;
+  padding-right: 6px;
+  &::-webkit-scrollbar { width: 6px; }
+  &::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+}
+
+.od-camp__name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.od-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+  &--green  { background: rgba(34,197,94,0.12);  color: #22c55e; }
+  &--yellow { background: rgba(245,158,11,0.12); color: #f59e0b; }
+  &--blue   { background: rgba(59,130,246,0.12); color: #3b82f6; }
+  &--red    { background: rgba(239,68,68,0.12);  color: #ef4444; }
+  &--orange { background: rgba(249,115,22,0.12); color: #f97316; }
+  &--gray   { background: rgba(107,114,128,0.12); color: #6b7280; }
+}
 
 .od-camp {
   &__top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; gap: 8px; }
