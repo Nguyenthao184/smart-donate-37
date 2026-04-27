@@ -203,13 +203,7 @@ export default function UserProfile() {
                   desc: item.mo_ta,
 
                   location: item.dia_diem,
-                  time: new Date(item.created_at).toLocaleString("vi-VN", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "numeric",
-                  }),
+                  time: item.ngay_dang,
 
                   images: item.hinh_anh_urls || [],
 
