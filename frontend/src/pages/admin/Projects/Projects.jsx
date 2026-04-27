@@ -141,7 +141,7 @@ export default function Projects() {
                 placeholder="Tìm chiến dịch..."
                 value={searchInput}
                 onChange={e => setSearchInput(e.target.value)}
-                style={{ background: "none", border: "none", outline: "none", color: "#e2e8f0", fontSize: 13, width: 150 }}
+                style={{ background: "none", border: "none", outline: "none", color: "#333", fontSize: 13, width: 150 }}
               />
             </div>
             <select className="adm-select" value={filter} onChange={e => setFilter(e.target.value)}>
