@@ -96,27 +96,6 @@ Route::middleware('auth:sanctum')->group(function(){
 
        
     });
-
-    Route::middleware('role:NGUOI_DUNG')->group(function(){
-        //ttcn
-        Route::get('/user/profile',[UserProfileController::class,'getProfile']);
-        Route::post('/user/profile',[UserProfileController::class,'updateProfile']);
-        Route::post('/user/change-password',[UserProfileController::class,'changePassword']);
-        Route::post('/user/update-diachi',[UserProfileController::class,'updateDiaChi']);
-
-        //xem profile người dùng khác
-        Route::get('/profile/{id}', [UserProfileController::class, 'show']);
-
-        //đăng ký tổ chức
-        Route::post('/organization/register', [OrganizationController::class, 'register']);
-        Route::get('/organization/status', [OrganizationController::class, 'status']);
-
-        //ủng hộ
-        Route::post('/donate', [DonateController::class, 'donate']);
-        Route::get('/donate/history', [DonateController::class, 'donateHistory']);
-        Route::get('/donate/{id}', [DonateController::class, 'getDonateDetail']);
-        Route::post('/momo/success', [DonateController::class, 'momoSuccess']);
-    });
     
     Route::middleware(['role:TO_CHUC','update.campaign'])->group(function(){
         //chiến dịch
@@ -162,7 +141,21 @@ Route::middleware('auth:sanctum')->group(function(){
             Route::post('/{id}/da-xem', [TroChuyenController::class, 'danhDauDaXem']);
         });
        
-       
+        //ttcn
+        Route::get('/user/profile',[UserProfileController::class,'getProfile']);
+        Route::post('/user/profile',[UserProfileController::class,'updateProfile']);
+        Route::post('/user/change-password',[UserProfileController::class,'changePassword']);
+        Route::post('/user/update-diachi',[UserProfileController::class,'updateDiaChi']);
+
+        //đăng ký tổ chức
+        Route::post('/organization/register', [OrganizationController::class, 'register']);
+        Route::get('/organization/status', [OrganizationController::class, 'status']);
+
+        //ủng hộ
+        Route::post('/donate', [DonateController::class, 'donate']);
+        Route::get('/donate/history', [DonateController::class, 'donateHistory']);
+        Route::get('/donate/{id}', [DonateController::class, 'getDonateDetail']);
+        Route::post('/momo/success', [DonateController::class, 'momoSuccess']);
     });
 });
 
@@ -179,3 +172,6 @@ Route::middleware('update.campaign')->group(function () {
 });
 
 Route::post('/momo/ipn', [DonateController::class, 'momoIpn']);
+
+//xem profile người dùng khác
+Route::get('/profile/{id}', [UserProfileController::class, 'show']);

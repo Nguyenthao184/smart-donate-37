@@ -164,7 +164,8 @@ class OrganizationController extends Controller
 
                 $fileName = 'qr_' . time() . '_' . Str::random(5) . '.png';
 
-                Storage::disk('public')->put($fileName, $result->getString());
+                $path = 'qr_code/' . $fileName;
+                Storage::disk('public')->put($path, $result->getString());
 
                 // tạo tài khoản gây quỹ
                 TaiKhoanGayQuy::create([
@@ -176,7 +177,7 @@ class OrganizationController extends Controller
                     'ma_yeu_cau_mb' => $mb['request_id'],
                     'so_du' => 0,
                     'trang_thai' => 'HOAT_DONG',
-                    'qr_code' => 'storage/' . $fileName
+                    'qr_code' => $path
                 ]);
             }
 
