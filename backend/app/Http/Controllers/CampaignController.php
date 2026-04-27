@@ -309,8 +309,26 @@ class CampaignController extends Controller
     public function index(Request $request)
     {
         $query = ChienDichGayQuy::with(['toChuc', 'danhMuc'])
-            ->withCount('ungHos')
-            ->whereIn('trang_thai', ['CHO_XU_LY', 'HOAT_DONG', 'HOAN_THANH', 'TU_CHOI', 'TAM_DUNG', 'DA_KET_THUC']);
+            ->withCount('ungHos');
+            
+        $user = auth()->user();
+        if ($user && $user->id == 1) {
+            $query->whereIn('trang_thai', [
+                'CHO_XU_LY',
+                'HOAT_DONG',
+                'HOAN_THANH',
+                'TU_CHOI',
+                'TAM_DUNG',
+                'DA_KET_THUC'
+            ]);
+        } else {
+            $query->whereIn('trang_thai', [
+                'HOAT_DONG',
+                'HOAN_THANH',
+                'TAM_DUNG',
+                'DA_KET_THUC'
+            ]);
+        }
 
         if ($request->has(['min_lat', 'max_lat', 'min_lng', 'max_lng'])) {
             $query->whereBetween('lat', [$request->min_lat, $request->max_lat])

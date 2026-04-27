@@ -182,6 +182,7 @@ class AuthController extends Controller
     public function me(Request $request)
     {
         $user = $request->user()->load('roles');
+        $user->anh_dai_dien = $this->resolveMediaUrl($user->anh_dai_dien);
         return response()->json([
             'user' => $request->user(),
             'roles' => $user->roles->pluck('ten_vai_tro'),
@@ -297,5 +298,15 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Đặt lại mật khẩu thành công'
         ]);
+    }
+
+    private function resolveMediaUrl(?string $value): ?string
+    {
+        if (!is_string($value) || trim($value) === '') {
+            return null;
+        }
+
+        $raw = trim($value);
+        return preg_match('/^https?:\/\//i', $raw) === 1 ? $raw : asset('storage/' . ltrim($raw, '/'));
     }
 }
