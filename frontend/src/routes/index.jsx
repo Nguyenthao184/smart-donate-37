@@ -69,7 +69,7 @@ const publicRoutes = [
 // ================== PRIVATE ROUTES ==================
 const privateRoutes = [
   {
-    path: "/nguoi-dung/:id",
+    path: "/bang-tin/nguoi-dung/:id",
     element: (
       <ProtectedRoute>
         <UserProfile />

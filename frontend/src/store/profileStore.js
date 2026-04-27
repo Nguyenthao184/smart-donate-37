@@ -32,58 +32,75 @@ const useProfileStore = create((set, get) => ({
   isFetchedCampaigns: false,
 
   // ===== FETCH PROFILE =====
- fetchProfile: async (force = false) => {
-  if (!force && get().isFetchedProfile) return;
-  if (profilePromise) return profilePromise;
-  set({ loadingProfile: true });
-  profilePromise = (async () => {
-    try {
-      const data = await getProfile();
-      
-      // Nếu là tổ chức, fetch thêm tong_thu, tong_chi từ /organization/:id
-      const toChuc = data?.user?.to_chuc;
-      if (toChuc?.id) {
-        try {
-          const { getOrganizationDetail } = await import("../api/profileService");
-          const orgDetail = await getOrganizationDetail(toChuc.id);
-          // Merge tong_thu, tong_chi vào tai_khoan_gay_quy
-          if (data.user.to_chuc.tai_khoan_gay_quy) {
-            data.user.to_chuc.tai_khoan_gay_quy.tong_thu = orgDetail.tong_thu;
-            data.user.to_chuc.tai_khoan_gay_quy.tong_chi = orgDetail.tong_chi;
+  fetchProfile: async (force = false) => {
+    if (!force && get().isFetchedProfile) return;
+    if (profilePromise) return profilePromise;
+    set({ loadingProfile: true });
+    profilePromise = (async () => {
+      try {
+        const data = await getProfile();
+
+        // Nếu là tổ chức, fetch thêm tong_thu, tong_chi từ /organization/:id
+        const toChuc = data?.user?.to_chuc;
+        if (toChuc?.id) {
+          try {
+            const { getOrganizationDetail } =
+              await import("../api/profileService");
+            const orgDetail = await getOrganizationDetail(toChuc.id);
+            // Merge tong_thu, tong_chi vào tai_khoan_gay_quy
+            if (data.user.to_chuc.tai_khoan_gay_quy) {
+              data.user.to_chuc.tai_khoan_gay_quy.tong_thu = orgDetail.tong_thu;
+              data.user.to_chuc.tai_khoan_gay_quy.tong_chi = orgDetail.tong_chi;
+            }
+          } catch (err) {
+            console.error("Lỗi fetch org detail:", err);
           }
-        } catch (err) {
-          console.error("Lỗi fetch org detail:", err);
         }
+
+        set({ profile: data, loadingProfile: false, isFetchedProfile: true });
+        return data;
+      } catch (err) {
+        console.error("Lỗi fetch profile:", err);
+        set({ loadingProfile: false });
+      } finally {
+        profilePromise = null;
       }
-      
-      set({ profile: data, loadingProfile: false, isFetchedProfile: true });
-      return data;
-    } catch (err) {
-      console.error("Lỗi fetch profile:", err);
-      set({ loadingProfile: false });
-    } finally {
-      profilePromise = null;
-    }
-  })();
-  return profilePromise;
-},
+    })();
+    return profilePromise;
+  },
 
   // ===== FETCH DONATE HISTORY =====
   fetchDonations: async () => {
     if (get().isFetchedDonations) return;
     if (donatePromise) return donatePromise;
+
     set({ loadingDonations: true });
+
     donatePromise = (async () => {
       try {
         const data = await getDonateHistory();
-        set({ donations: data?.data || [], loadingDonations: false, isFetchedDonations: true });
+
+        const list = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.data)
+            ? data.data
+            : Array.isArray(data?.data?.data)
+              ? data.data.data
+              : [];
+
+        set({
+          donations: list,
+          loadingDonations: false,
+          isFetchedDonations: true,
+        });
       } catch (err) {
         console.error("Lỗi fetch donations:", err);
-        set({ loadingDonations: false });
+        set({ donations: [], loadingDonations: false });
       } finally {
         donatePromise = null;
       }
     })();
+
     return donatePromise;
   },
 
@@ -133,7 +150,11 @@ const useProfileStore = create((set, get) => ({
         });
       } catch (err) {
         console.error("Lỗi fetch campaigns:", err);
-        set({ myCampaigns: [], loadingCampaigns: false, isFetchedCampaigns: true });
+        set({
+          myCampaigns: [],
+          loadingCampaigns: false,
+          isFetchedCampaigns: true,
+        });
       } finally {
         campaignsPromise = null;
       }
@@ -180,9 +201,18 @@ const useProfileStore = create((set, get) => ({
 
   reset: () => {
     set({
-      profile: null, donations: [], myPosts: [], myCampaigns: [],
-      loadingProfile: false, loadingDonations: false, loadingPosts: false, loadingCampaigns: false,
-      isFetchedProfile: false, isFetchedDonations: false, isFetchedPosts: false, isFetchedCampaigns: false,
+      profile: null,
+      donations: [],
+      myPosts: [],
+      myCampaigns: [],
+      loadingProfile: false,
+      loadingDonations: false,
+      loadingPosts: false,
+      loadingCampaigns: false,
+      isFetchedProfile: false,
+      isFetchedDonations: false,
+      isFetchedPosts: false,
+      isFetchedCampaigns: false,
     });
   },
 }));

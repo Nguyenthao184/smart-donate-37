@@ -397,7 +397,7 @@ export default function PostCard({ post, style, onDelete }) {
   onClick={(e) => {
     e.stopPropagation();
     const uid = post.nguoi_dung_id ?? post.user?.id;
-    if (uid) navigate(`/nguoi-dung/${uid}`);
+    if (uid) navigate(`/bang-tin/nguoi-dung/${uid}`);
   }}
 >
   {post.user.avatar}
@@ -409,7 +409,7 @@ export default function PostCard({ post, style, onDelete }) {
     onClick={(e) => {
       e.stopPropagation();
       const uid = post.nguoi_dung_id ?? post.user?.id;
-      if (uid) navigate(`/nguoi-dung/${uid}`);
+      if (uid) navigate(`/bang-tin/nguoi-dung/${uid}`);
     }}
   >
     {post.user.name}

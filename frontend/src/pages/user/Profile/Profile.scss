@@ -305,7 +305,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  max-width: 720px;
+  max-width: 900px;
   margin: 0 auto;
 
   .post-card {
@@ -594,20 +594,6 @@
       }
     }
 
-    &__rank {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      background: linear-gradient(135deg, #ff4d4f, #fa8c16);
-      color: #fff;
-      font-size: 11px;
-      font-weight: 700;
-      padding: 3px 9px;
-      border-radius: 99px;
-      box-shadow: 0 2px 8px rgba(255,77,79,0.4);
-      letter-spacing: 0.3px;
-    }
-
     &__body {
       flex: 1;
       padding: 16px 20px;
@@ -626,7 +612,7 @@
     }
 
     &__title {
-      font-size: 17px;
+      font-size: 20px;
       font-weight: 700;
       color: #1a1a1a;
       margin: 0;
@@ -640,14 +626,11 @@
 
     &__amount-badge {
       flex-shrink: 0;
-      background: linear-gradient(135deg, #ff4d4f, #fa8c16);
-      color: #fff;
-      font-size: 13px;
+      color: #ff4d4f;
+      font-size: 20px;
       font-weight: 700;
       padding: 5px 12px;
-      border-radius: 99px;
       white-space: nowrap;
-      box-shadow: 0 3px 10px rgba(255,77,79,0.25);
     }
 
     &__meta {
@@ -695,8 +678,8 @@
   &-view-btn {
     font-size: 12px;
     font-weight: 700;
-    background: #fff;
-    color: #fa8c16;
+    background: linear-gradient(135deg, #ff4d4f, #fa8c16);
+    color: #fff;
     border: 1.5px solid #fa8c16;
     padding: 6px 12px;
     border-radius: 8px;

@@ -116,7 +116,7 @@ export default function Header() {
     ? [
         {
           key: "dashboard",
-          label: "🏠 Trang quản trị",
+          label: "Trang quản trị",
           onClick: () => navigate("/admin"),
         },
         {
@@ -135,7 +135,7 @@ export default function Header() {
           ? [
               {
                 key: "thong-ke",
-                label: "📊 Thống kê tổ chức",
+                label: "Thống kê tổ chức",
                 onClick: () => navigate("/thong-ke"),
               },
             ]
