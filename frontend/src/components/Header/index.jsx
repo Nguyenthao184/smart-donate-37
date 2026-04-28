@@ -21,10 +21,18 @@ export default function Header() {
   const logoutStore = useAuthStore((state) => state.logout);
   const roles = useAuthStore((s) => s.roles);
   const isOrg = Array.isArray(roles)
-    ? roles.some((r) => r === "TO_CHUC" || r?.ten === "TO_CHUC" || r?.ten_vai_tro === "TO_CHUC")
+    ? roles.some(
+        (r) =>
+          r === "TO_CHUC" ||
+          r?.ten === "TO_CHUC" ||
+          r?.ten_vai_tro === "TO_CHUC",
+      )
     : false;
   const isAdmin = Array.isArray(roles)
-    ? roles.some((r) => r === "ADMIN" || r?.ten === "ADMIN" || r?.ten_vai_tro === "ADMIN")
+    ? roles.some(
+        (r) =>
+          r === "ADMIN" || r?.ten === "ADMIN" || r?.ten_vai_tro === "ADMIN",
+      )
     : false;
 
   const navbar = [
@@ -197,8 +205,11 @@ export default function Header() {
               </button>
               <Dropdown menu={{ items }}>
                 <div className="app-header__user">
-                  <Avatar size={34}>
-                    {user?.ho_ten?.[0]?.toUpperCase() || "U"}
+                  <Avatar
+                    size={34}
+                    src={user?.anh_dai_dien || undefined} 
+                  >
+                    {!user?.anh_dai_dien && (user?.ho_ten?.[0]?.toUpperCase() || "U")}
                   </Avatar>
                   <div className="app-header__userText">
                     <div className="app-header__userName">{user?.ho_ten}</div>

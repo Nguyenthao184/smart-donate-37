@@ -208,7 +208,6 @@
   }
 
   &__quantity-tag {
-    isplay: inline-flex;
     align-items: center;
     font-size: 12px;
     font-weight: 600;
@@ -512,6 +511,7 @@
   /* ── RIGHT COLUMN ── */
   &__right {
     flex: 1;
+    background: #fff;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -661,6 +661,13 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+    }
 
     .pdc__comment--reply & {
       width: 28px;
@@ -864,6 +871,13 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+    }
   }
 
   &__comment-input {
