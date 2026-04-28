@@ -28,6 +28,16 @@ import { RiRobot2Line, RiSparklingLine } from "react-icons/ri";
 import "./styles.scss";
 import { formatPostTime } from "../../utils/formatTime";
 
+const getAvatar = (url) => {
+  if (!url) return null;
+
+  if (url.includes("storage/https://")) {
+    return url.split("storage/")[1];
+  }
+
+  return url;
+};
+
 function CommentBubble({
   comment,
   onReply,
@@ -43,7 +53,7 @@ function CommentBubble({
     <div className={`pdc__comment${isReply ? " pdc__comment--reply" : ""}`}>
       <div className="pdc__comment-avatar">
         {comment.nguoi_dung?.avatar_url ? (
-          <img src={comment.nguoi_dung.avatar_url} alt="avatar" />
+          <img src={getAvatar(comment.nguoi_dung?.avatar_url)} alt="avatar" />
         ) : (
           (comment.nguoi_dung?.ho_ten?.[0]?.toUpperCase() ?? "?")
         )}
@@ -489,7 +499,11 @@ export default function PostDetailModal({ post, visible, onClose }) {
             )}
             <div className="pdc__comment-input-row">
               <div className="pdc__me-avatar">
-                {user?.ho_ten?.[0]?.toUpperCase() ?? "?"}
+                {user?.anh_dai_dien ? (
+                  <img src={user.anh_dai_dien} alt="avatar" />
+                ) : (
+                  (user?.ho_ten?.[0]?.toUpperCase() ?? "?")
+                )}
               </div>
               <input
                 id="pdc-comment-input"

@@ -170,7 +170,7 @@ export default function RegisterOrg({ onClose }) {
       notification.success({
         message: "Đăng ký thành công! Vui lòng chờ admin duyệt.",
       });
-      navigate("/chien-dich");
+      navigate(-1);
       onClose();
     } catch (e) {
       const errors = e?.response?.data?.errors;
@@ -548,7 +548,7 @@ export default function RegisterOrg({ onClose }) {
             description="Bạn có chắc muốn hủy? Dữ liệu có thể bị mất!"
             okText="Yes"
             cancelText="No"
-            onConfirm={() => navigate("/chien-dich")}
+            onConfirm={() => navigate(-1)}
           >
             <button className="rom-btn rom-btn--cancel" onClick={onClose}>
               Hủy
