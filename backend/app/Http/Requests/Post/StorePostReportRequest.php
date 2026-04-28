@@ -24,7 +24,14 @@ class StorePostReportRequest extends FormRequest
     {
         return [
             'ly_do' => ['required', 'in:SPAM,LUA_DAO,NOI_DUNG_XAU,KHAC'],
-            'mo_ta' => ['nullable', 'string', 'max:1000'],
+            'mo_ta' => ['nullable', 'required_if:ly_do,KHAC', 'string', 'max:1000'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'mo_ta.required_if' => 'Vui lòng nhập mô tả chi tiết khi chọn lý do khác.',
         ];
     }
 }

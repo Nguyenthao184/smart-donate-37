@@ -31,6 +31,10 @@ class ApprovalNotification extends Notification
             default => 'Thông báo'
         };
 
+        if (!empty($this->reason)) {
+            $message .= ': ' . $this->reason;
+        }
+
         return [
             // Trường chuẩn hóa để FE phân loại và điều hướng ổn định.
             'loai' => 'approval',

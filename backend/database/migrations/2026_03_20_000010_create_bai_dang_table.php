@@ -24,7 +24,7 @@ return new class extends Migration
             $table->integer('so_luong');
 
             // trạng thái bài đăng
-            $table->enum('trang_thai', ['CON_NHAN', 'CON_TANG', 'DA_NHAN', 'DA_TANG']);
+            $table->enum('trang_thai', ['CON_NHAN', 'CON_TANG', 'DA_NHAN', 'DA_TANG', 'TAM_DUNG']);
 
             $table->timestamps();
         });

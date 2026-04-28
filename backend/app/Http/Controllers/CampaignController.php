@@ -577,6 +577,71 @@ class CampaignController extends Controller
         ]);
     }
 
+    // ADMIN tạm dừng chiến dịch vi phạm
+    public function suspendCampaign(Request $request, int $id)
+    {
+        $request->validate([
+            'ly_do' => 'nullable|string|max:255|required_without:violation_reason',
+            'violation_reason' => 'nullable|array|required_without:ly_do',
+            'violation_reason.code' => 'nullable|string|max:100',
+            'violation_reason.title' => 'nullable|string|max:255',
+            'violation_reason.description' => 'nullable|string|max:255',
+            'mo_ta' => 'nullable|string|max:255',
+        ]);
+
+        $lyDoThongBao = $this->resolveViolationReasonText($request);
+        $campaign = ChienDichGayQuy::findOrFail($id);
+        if ($campaign->trang_thai === 'TAM_DUNG') {
+            return response()->json([
+                'message' => 'Chiến dịch đã ở trạng thái tạm dừng.',
+            ], 422);
+        }
+
+        $campaign->update([
+            'trang_thai' => 'TAM_DUNG',
+        ]);
+
+        $user = $campaign->toChuc->user;
+        if ($user) {
+            $user->notify(new ApprovalNotification(
+                'lock',
+                'Chiến dịch',
+                $lyDoThongBao,
+                'campaign',
+                (int) $campaign->id
+            ));
+        }
+
+        return response()->json([
+            'message' => 'Đã tạm dừng chiến dịch.',
+            'data' => [
+                'id' => (int) $campaign->id,
+                'trang_thai' => $campaign->trang_thai,
+            ],
+        ]);
+    }
+
+    private function resolveViolationReasonText(Request $request): string
+    {
+        $lyDo = trim((string) $request->input('ly_do', ''));
+        $reason = $request->input('violation_reason');
+        $moTa = trim((string) $request->input('mo_ta', ''));
+
+        if (is_array($reason)) {
+            $parts = array_values(array_filter([
+                isset($reason['title']) ? trim((string) $reason['title']) : '',
+                isset($reason['description']) ? trim((string) $reason['description']) : '',
+                $moTa,
+            ]));
+
+            if ($parts !== []) {
+                return mb_substr(implode(' - ', $parts), 0, 255);
+            }
+        }
+
+        return mb_substr($lyDo !== '' ? $lyDo : $moTa, 0, 255);
+    }
+
     //chiến dịch nổi bật
     public function featured()
     {

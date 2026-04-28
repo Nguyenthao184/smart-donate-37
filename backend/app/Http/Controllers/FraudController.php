@@ -7,6 +7,7 @@ use App\Http\Requests\Fraud\FraudCampaignAutoCheckRequest;
 use App\Http\Requests\Fraud\UpdateFraudAlertRequest;
 use App\Models\CanhBaoGianLan;
 use App\Models\User;
+use App\Notifications\AdminViolationDetectedNotification;
 use App\Services\CampaignFraudFeatureService;
 use App\Services\FraudCheckService;
 use App\Services\FraudFeatureService;
@@ -322,8 +323,11 @@ class FraudController extends Controller
             $moTa = mb_substr($moTa, 0, 255);
 
             $chienDichId = $this->detectCampaignId($userId);
+            if ($this->wasRejectedByAdmin($userId, $chienDichId, $loaiGianLan, $moTa)) {
+                continue;
+            }
 
-            CanhBaoGianLan::create([
+            $canhBao = CanhBaoGianLan::create([
                 'nguoi_dung_id' => $userId,
                 'chien_dich_id' => $chienDichId,
                 'loai_gian_lan' => $loaiGianLan,
@@ -332,6 +336,8 @@ class FraudController extends Controller
                 'trang_thai' => 'CHO_XU_LY',
                 'created_at' => now(),
             ]);
+
+            $this->notifyAdminsForAlert($canhBao, 'AI phát hiện hành vi nghi ngờ từ tài khoản');
         }
     }
 
@@ -431,8 +437,11 @@ class FraudController extends Controller
                 $moTa = $loaiGianLan;
             }
             $moTa = mb_substr($moTa, 0, 255);
+            if ($this->wasRejectedByAdmin($idChuSoHuu, $idChienDich, $loaiGianLan, $moTa)) {
+                continue;
+            }
 
-            CanhBaoGianLan::create([
+            $canhBao = CanhBaoGianLan::create([
                 'nguoi_dung_id' => $idChuSoHuu,
                 'chien_dich_id' => $idChienDich,
                 'loai_gian_lan' => $loaiGianLan,
@@ -441,7 +450,51 @@ class FraudController extends Controller
                 'trang_thai' => 'CHO_XU_LY',
                 'created_at' => now(),
             ]);
+
+            $this->notifyAdminsForAlert($canhBao, 'AI phát hiện chiến dịch nghi ngờ vi phạm');
         }
+    }
+
+    private function notifyAdminsForAlert(CanhBaoGianLan $canhBao, string $source): void
+    {
+        $admins = User::query()
+            ->whereHas('roles', fn ($q) => $q->where('ten_vai_tro', 'ADMIN'))
+            ->get();
+
+        foreach ($admins as $admin) {
+            $admin->notify(new AdminViolationDetectedNotification(
+                source: $source,
+                canhBaoId: (int) $canhBao->id,
+                userId: (int) $canhBao->nguoi_dung_id,
+                campaignId: $canhBao->chien_dich_id ? (int) $canhBao->chien_dich_id : null,
+                postId: null,
+                reason: $canhBao->loai_gian_lan ?: ($canhBao->mo_ta ?: 'Vi phạm nghi ngờ')
+            ));
+        }
+    }
+
+    private function wasRejectedByAdmin(
+        int $userId,
+        ?int $campaignId,
+        string $loaiGianLan,
+        string $moTa
+    ): bool {
+        $query = CanhBaoGianLan::query()
+            ->where('nguoi_dung_id', $userId)
+            ->where('trang_thai', 'CANH_BAO_SAI');
+
+        if ($campaignId) {
+            $query->where('chien_dich_id', $campaignId);
+        } else {
+            $query->whereNull('chien_dich_id');
+        }
+
+        $query->where(function ($q) use ($loaiGianLan, $moTa) {
+            $q->where('loai_gian_lan', $loaiGianLan)
+                ->orWhere('mo_ta', $moTa);
+        });
+
+        return $query->exists();
     }
 
     private function shouldSkipDuplicateAlert(int $userId): bool
