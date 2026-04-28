@@ -359,7 +359,8 @@ class CampaignController extends Controller
             END
         ");
 
-        $campaigns = $query->paginate(8);
+        $perPage = $request->per_page ?? 8;
+        $campaigns = $query->paginate($perPage);
 
         // format lại dữ liệu cho FE
         $campaigns->getCollection()->transform(fn($item) 
