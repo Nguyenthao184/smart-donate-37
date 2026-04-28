@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\DB;
 
 class AdminUserController extends Controller
 {
+    private const POST_ALERT_META_PREFIX = 'USER_REPORT|post:%';
+
     /**
      * GET /api/admin/users
      * Query: search, role, status, page, per_page
@@ -158,6 +160,36 @@ class AdminUserController extends Controller
             'data' => [
                 'id' => (int) $user->id,
                 'status' => $user->trang_thai,
+            ],
+        ]);
+    }
+
+    /**
+     * GET /api/admin/users/{id}/violations/count
+     */
+    public function violationCount(int $id)
+    {
+        User::query()->findOrFail($id);
+
+        $baseQuery = CanhBaoGianLan::query()
+            ->where('nguoi_dung_id', $id)
+            ->where('trang_thai', 'DA_KIEM_TRA');
+
+        $campaignCount = (clone $baseQuery)
+            ->whereNotNull('chien_dich_id')
+            ->count();
+
+        $postCount = (clone $baseQuery)
+            ->whereNull('chien_dich_id')
+            ->where('mo_ta', 'like', self::POST_ALERT_META_PREFIX)
+            ->count();
+
+        return response()->json([
+            'data' => [
+                'user_id' => $id,
+                'campaign_violations' => $campaignCount,
+                'post_violations' => $postCount,
+                'total_violations' => $campaignCount + $postCount,
             ],
         ]);
     }

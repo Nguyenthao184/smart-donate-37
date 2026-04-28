@@ -55,6 +55,7 @@ Route::middleware('auth:sanctum')->group(function(){
         Route::prefix('/admin')->group(function () {
             // ADMIN - nguoi dung
             Route::get('/users', [AdminUserController::class, 'index']);
+            Route::get('/users/{id}/violations/count', [AdminUserController::class, 'violationCount'])->whereNumber('id');
             Route::post('/users/{id}/lock', [AdminUserController::class, 'lock']);
             Route::post('/users/{id}/unlock', [AdminUserController::class, 'unlock']);
             Route::get('/users/organizations/pending/{id}', [AdminUserController::class, 'showLicense']);
