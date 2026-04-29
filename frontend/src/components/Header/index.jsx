@@ -205,11 +205,9 @@ export default function Header() {
               </button>
               <Dropdown menu={{ items }}>
                 <div className="app-header__user">
-                  <Avatar
-                    size={34}
-                    src={user?.anh_dai_dien || undefined} 
-                  >
-                    {!user?.anh_dai_dien && (user?.ho_ten?.[0]?.toUpperCase() || "U")}
+                  <Avatar size={34} src={user?.anh_dai_dien || undefined}>
+                    {!user?.anh_dai_dien &&
+                      (user?.ho_ten?.[0]?.toUpperCase() || "U")}
                   </Avatar>
                   <div className="app-header__userText">
                     <div className="app-header__userName">{user?.ho_ten}</div>
