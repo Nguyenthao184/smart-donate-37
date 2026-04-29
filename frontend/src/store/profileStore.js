@@ -31,6 +31,14 @@ const useProfileStore = create((set, get) => ({
   isFetchedPosts: false,
   isFetchedCampaigns: false,
 
+  // Pagination for myPosts
+  postsPage: 1,
+  postsHasMore: true,
+
+  // Pagination for donations
+  donationsPage: 1,
+  donationsHasMore: true,
+
   // ===== FETCH PROFILE =====
   fetchProfile: async (force = false) => {
     if (!force && get().isFetchedProfile) return;
@@ -70,32 +78,46 @@ const useProfileStore = create((set, get) => ({
   },
 
   // ===== FETCH DONATE HISTORY =====
-  fetchDonations: async () => {
-    if (get().isFetchedDonations) return;
+  fetchDonations: async (loadMore = false) => {
+    if (!loadMore && get().isFetchedDonations) return;
     if (donatePromise) return donatePromise;
+
+    if (get().loadingDonations) return;
+
+    const currentPage = loadMore ? get().donationsPage + 1 : 1;
 
     set({ loadingDonations: true });
 
     donatePromise = (async () => {
       try {
-        const data = await getDonateHistory();
+        const res = await axiosClient.get("/donate/history", {
+          params: { page: currentPage, per_page: 6 }
+        });
 
-        const list = Array.isArray(data)
-          ? data
-          : Array.isArray(data?.data)
-            ? data.data
-            : Array.isArray(data?.data?.data)
-              ? data.data.data
-              : [];
+        // BE trả: { data: { data: [...], next_page_url: "..." } }
+        const newDonations = res.data?.data?.data || [];
+        const hasMore = !!res.data?.data?.next_page_url;
+
+        console.log("📌 fetchDonations result:", {
+          newDonations,
+          hasMore,
+          currentPage,
+          totalDonations: newDonations.length
+        });
 
         set({
-          donations: list,
+          donations: loadMore ? [...get().donations, ...newDonations] : newDonations,
           loadingDonations: false,
           isFetchedDonations: true,
+          donationsPage: currentPage,
+          donationsHasMore: hasMore,
         });
+
+        return newDonations;
       } catch (err) {
         console.error("Lỗi fetch donations:", err);
         set({ donations: [], loadingDonations: false });
+        return [];
       } finally {
         donatePromise = null;
       }
@@ -105,29 +127,51 @@ const useProfileStore = create((set, get) => ({
   },
 
   // ===== FETCH MY POSTS =====
-  fetchMyPosts: async (userId) => {
-    if (get().isFetchedPosts) return;
+  fetchMyPosts: async (loadMore = false) => {
+    if (!loadMore && get().isFetchedPosts) return;
     if (postsPromise) return postsPromise;
+    
+    if (get().loadingPosts) return;
+
+    const currentPage = loadMore ? get().postsPage + 1 : 1;
+    
     set({ loadingPosts: true });
+    
     postsPromise = (async () => {
       try {
-        let posts = [];
-        try {
-          const data = await getMyPosts();
-          posts = data?.data?.data || data?.data || data || [];
-        } catch {
-          const res = await axiosClient.get("/posts");
-          const all = res.data?.data?.data || res.data?.data || [];
-          posts = userId ? all.filter((p) => p.nguoi_dung_id === userId) : all;
-        }
-        set({ myPosts: posts, loadingPosts: false, isFetchedPosts: true });
+        const res = await axiosClient.get("/posts/me", {
+          params: { page: currentPage, per_page: 12 }
+        });
+        
+        // BE trả: { data: { data: [...], next_page_url: "..." } }
+        const newPosts = res.data?.data?.data || [];
+        const hasMore = !!res.data?.data?.next_page_url;
+        
+        console.log("📌 fetchMyPosts result:", {
+          newPosts,
+          hasMore,
+          currentPage,
+          totalPosts: newPosts.length
+        });
+        
+        set({
+          myPosts: loadMore ? [...get().myPosts, ...newPosts] : newPosts,
+          loadingPosts: false,
+          isFetchedPosts: true,
+          postsPage: currentPage,
+          postsHasMore: hasMore,
+        });
+        
+        return newPosts;
       } catch (err) {
         console.error("Lỗi fetch my posts:", err);
         set({ loadingPosts: false });
+        return [];
       } finally {
         postsPromise = null;
       }
     })();
+    
     return postsPromise;
   },
 
@@ -213,6 +257,10 @@ const useProfileStore = create((set, get) => ({
       isFetchedDonations: false,
       isFetchedPosts: false,
       isFetchedCampaigns: false,
+      postsPage: 1,
+      postsHasMore: true,
+      donationsPage: 1,
+      donationsHasMore: true,
     });
   },
 }));

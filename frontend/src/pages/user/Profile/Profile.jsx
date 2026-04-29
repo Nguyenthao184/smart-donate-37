@@ -30,6 +30,12 @@ export default function ProfilePage() {
     myPosts,
     myCampaigns,
     loading,
+    loadingDonations,
+    loadingPosts,
+    donationsHasMore,
+    postsHasMore,
+    loadMoreDonations,
+    loadMorePosts,
     handleUpdateProfile,
     handleChangePassword,
   } = useProfile();
@@ -64,6 +70,23 @@ export default function ProfilePage() {
     document.addEventListener("click", handleClick);
     return () => document.removeEventListener("click", handleClick);
   }, [openMenuId]);
+
+  // Infinite scroll for posts and donations tabs
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 200) {
+        if (activeTab === "posts" && postsHasMore && !loadingPosts) {
+          loadMorePosts();
+        }
+        if (activeTab === "history" && donationsHasMore && !loadingDonations) {
+          loadMoreDonations();
+        }
+      }
+    };
+    
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [activeTab, postsHasMore, loadingPosts, loadMorePosts, donationsHasMore, loadingDonations, loadMoreDonations]);
 
   const handleEditCampaign = (campaign, e) => {
     e.stopPropagation();

@@ -1,6 +1,6 @@
 import { useEffect } from "react";
-import useProfileStore from "../store/profileStore";
 import useAuthStore from "../store/authStore";
+import useProfileStore from "../store/profileStore";
 
 const useProfile = () => {
   const { user } = useAuthStore();
@@ -14,6 +14,8 @@ const useProfile = () => {
     loadingDonations,
     loadingPosts,
     loadingCampaigns,
+    postsHasMore,
+    donationsHasMore,
     fetchProfile,
     fetchDonations,
     fetchMyPosts,
@@ -25,8 +27,8 @@ const useProfile = () => {
 
   useEffect(() => {
     fetchProfile();
-    fetchDonations();
-    fetchMyPosts(user?.id);
+    fetchDonations(false);
+    fetchMyPosts(false);
     fetchMyCampaigns(true);
   }, [user?.id]);
 
@@ -39,6 +41,10 @@ const useProfile = () => {
     loadingDonations,
     loadingPosts,
     loadingCampaigns,
+    postsHasMore,
+    donationsHasMore,
+    loadMorePosts: () => fetchMyPosts(true),
+    loadMoreDonations: () => fetchDonations(true),
     handleUpdateProfile,
     handleChangePassword,
     handleUpdateDiaChi,
