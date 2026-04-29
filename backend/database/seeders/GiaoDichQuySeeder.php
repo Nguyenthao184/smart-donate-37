@@ -88,39 +88,54 @@ class GiaoDichQuySeeder extends Seeder
 
         // FAKE RÚT TIỀN (REALISTIC)
         foreach ($campaigns as $campaign) {
-            $soDu = DB::table('tai_khoan_gay_quy')
-                ->where('id', $campaign->tai_khoan_gay_quy_id)
-                ->value('so_du');
-
-            if ($soDu > 2000000 && rand(0, 1)) {
-
-                $soLanRut = rand(1, 3);
-                $startDate = now()->subDays(rand(20, 40));
-
-                for ($i = 0; $i < $soLanRut; $i++) {
-                    $createdAt = (clone $startDate)->addDays($i * rand(3, 7));
-                    $rut = min(rand(5, 50) * 1000000, $soDu);
-
-                    DB::table('giao_dich_quy')->insert([
-                        'tai_khoan_gay_quy_id' => $campaign->tai_khoan_gay_quy_id,
-                        'chien_dich_gay_quy_id' => $campaign->id,
-                        'ung_ho_id' => null,
-                        'so_tien' => $rut,
-                        'loai_giao_dich' => 'RUT',
-                        'mo_ta' => 'Giải ngân chiến dịch lần '. ($i + 1) . ' ' . $campaign->ten_chien_dich,
-                        'created_at' => $createdAt,
-                    ]);
-
-                    DB::table('tai_khoan_gay_quy')
-                        ->where('id', $campaign->tai_khoan_gay_quy_id)
-                        ->decrement('so_du', $rut);
-
-                    $soDu -= $rut;
-
-                    if ($soDu <= 0) break;
-                }
+            if (in_array($campaign->trang_thai, ['TAM_DUNG', 'CHO_XU_LY', 'TU_CHOI'])) {
+                continue;
             }
-        }            
+
+            $tongTien = DB::table('ung_ho')
+                ->where('chien_dich_gay_quy_id', $campaign->id)
+                ->where('trang_thai', 'THANH_CONG')
+                ->sum('so_tien');
+
+            $daRut = DB::table('giao_dich_quy')
+                ->where('chien_dich_gay_quy_id', $campaign->id)
+                ->where('loai_giao_dich', 'RUT')
+                ->sum('so_tien');
+
+            $soDuCampaign = $tongTien - $daRut;
+
+            if ($soDuCampaign <= 2000000 || !rand(0,1)) {
+                continue;
+            }
+
+            $soLanRut = rand(1, 3);
+            $startDate = now()->subDays(rand(20, 40));
+
+            for ($i = 0; $i < $soLanRut; $i++) {
+
+                $createdAt = (clone $startDate)->addDays($i * rand(3, 7));
+
+                $rut = min(rand(5, 50) * 1000000, $soDuCampaign);
+
+                DB::table('giao_dich_quy')->insert([
+                    'tai_khoan_gay_quy_id' => $campaign->tai_khoan_gay_quy_id,
+                    'chien_dich_gay_quy_id' => $campaign->id,
+                    'ung_ho_id' => null,
+                    'so_tien' => $rut,
+                    'loai_giao_dich' => 'RUT',
+                    'mo_ta' => 'Giải ngân chiến dịch lần ' . ($i + 1) . ' ' . $campaign->ten_chien_dich,
+                    'created_at' => $createdAt,
+                ]);
+
+                DB::table('tai_khoan_gay_quy')
+                    ->where('id', $campaign->tai_khoan_gay_quy_id)
+                    ->decrement('so_du', $rut);
+
+                $soDuCampaign -= $rut;
+
+                if ($soDuCampaign <= 0) break;
+            }
+        }     
     }
 
     private function removeVietnameseAccents($str) {
