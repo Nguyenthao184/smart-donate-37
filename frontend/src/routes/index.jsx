@@ -35,37 +35,144 @@ import CampaignMap from "../pages/guest/CampaignMap/CampaignMap.jsx";
 
 // ================== PUBLIC ROUTES ==================
 const publicRoutes = [
-  { path: "/", element: (<PublicRoute><HomePage /></PublicRoute>) },
-  { path: "/dang-nhap", element: (<PublicRoute><Login /></PublicRoute>) },
-  { path: "/dang-ky", element: (<PublicRoute><Register /></PublicRoute>) },
-  { path: "/quen-mat-khau", element: (<PublicRoute><ForgotPassword /></PublicRoute>) },
-  { path: "/chien-dich/tim-kiem", element: (<PublicRoute><Search /></PublicRoute>) },
-  { path: "/ho-tro/hoi-dap", element: (<PublicRoute><FAQ /></PublicRoute>) },
-  { path: "/ho-tro/dieu-khoan", element: (<PublicRoute><Terms /></PublicRoute>) },
-  { path: "/ho-tro/chinh-sach", element: (<PublicRoute><Privacy /></PublicRoute>) },
+  {
+    path: "/",
+    element: (
+      <PublicRoute>
+        <HomePage />
+      </PublicRoute>
+    ),
+  },
+  {
+    path: "/dang-nhap",
+    element: (
+      <PublicRoute>
+        <Login />
+      </PublicRoute>
+    ),
+  },
+  {
+    path: "/dang-ky",
+    element: (
+      <PublicRoute>
+        <Register />
+      </PublicRoute>
+    ),
+  },
+  {
+    path: "/quen-mat-khau",
+    element: (
+      <PublicRoute>
+        <ForgotPassword />
+      </PublicRoute>
+    ),
+  },
+  {
+    path: "/chien-dich/tim-kiem",
+    element: (
+      <PublicRoute>
+        <Search />
+      </PublicRoute>
+    ),
+  },
+  {
+    path: "/ho-tro/hoi-dap",
+    element: (
+      <PublicRoute>
+        <FAQ />
+      </PublicRoute>
+    ),
+  },
+  {
+    path: "/ho-tro/dieu-khoan",
+    element: (
+      <PublicRoute>
+        <Terms />
+      </PublicRoute>
+    ),
+  },
+  {
+    path: "/ho-tro/chinh-sach",
+    element: (
+      <PublicRoute>
+        <Privacy />
+      </PublicRoute>
+    ),
+  },
   {
     path: "/chien-dich/danh-sach",
-    element: (<PublicRoute><MainLayout><CampaignList /></MainLayout></PublicRoute>),
+    element: (
+      <PublicRoute>
+        <MainLayout>
+          <CampaignList />
+        </MainLayout>
+      </PublicRoute>
+    ),
   },
   {
     path: "/chien-dich/chi-tiet/:id",
-    element: (<PublicRoute><MainLayout><CampaignDetail /></MainLayout></PublicRoute>),
+    element: (
+      <PublicRoute>
+        <MainLayout>
+          <CampaignDetail />
+        </MainLayout>
+      </PublicRoute>
+    ),
   },
-  { path: "/bang-tin", element: (<PublicRoute><NewsFeed /></PublicRoute>) },
+  {
+    path: "/bang-tin",
+    element: (
+      <PublicRoute>
+        <NewsFeed />
+      </PublicRoute>
+    ),
+  },
   {
     path: "/chien-dich",
-    element: (<PublicRoute><MainLayout><CampaignPage /></MainLayout></PublicRoute>),
+    element: (
+      <PublicRoute>
+        <MainLayout>
+          <CampaignPage />
+        </MainLayout>
+      </PublicRoute>
+    ),
   },
   {
     path: "/chien-dich/to-chuc",
-    element: (<PublicRoute><MainLayout><OrganizationList /></MainLayout></PublicRoute>),
+    element: (
+      <PublicRoute>
+        <MainLayout>
+          <OrganizationList />
+        </MainLayout>
+      </PublicRoute>
+    ),
   },
   {
     path: "/chien-dich/to-chuc/chi-tiet/:id",
-    element: (<PublicRoute><MainLayout><OrganizationDetail /></MainLayout></PublicRoute>),
+    element: (
+      <PublicRoute>
+        <MainLayout>
+          <OrganizationDetail />
+        </MainLayout>
+      </PublicRoute>
+    ),
   },
-  { path: "/thanh-cong", element: (<PublicRoute><DonateSuccess /></PublicRoute>) },
-  { path: "/ban-do-cd", element: (<PublicRoute><CampaignMap /></PublicRoute>) },
+  {
+    path: "/thanh-cong",
+    element: (
+      <PublicRoute>
+        <DonateSuccess />
+      </PublicRoute>
+    ),
+  },
+  {
+    path: "/ban-do-cd",
+    element: (
+      <PublicRoute>
+        <CampaignMap />
+      </PublicRoute>
+    ),
+  },
 ];
 
 // ================== PRIVATE ROUTES ==================
@@ -82,29 +189,74 @@ const privateRoutes = [
     path: "/thong-ke",
     element: (
       <ProtectedRoute>
-          <OrgDashboard />
+        <OrgDashboard />
       </ProtectedRoute>
     ),
   },
   {
     path: "/chien-dich/tao-moi",
-    element: (<ProtectedRoute><MainLayout><CreateCampaign /></MainLayout></ProtectedRoute>),
+    element: (
+      <ProtectedRoute>
+        <MainLayout>
+          <CreateCampaign />
+        </MainLayout>
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/bang-tin/tao-moi",
-    element: (<ProtectedRoute><MainLayout><CreatePost /></MainLayout></ProtectedRoute>),
+    element: (
+      <ProtectedRoute>
+        <MainLayout>
+          <CreatePost />
+        </MainLayout>
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/dk-to-chuc",
-    element: (<ProtectedRoute><MainLayout><RegisterOrg /></MainLayout></ProtectedRoute>),
+    element: (
+      <ProtectedRoute>
+        <MainLayout>
+          <RegisterOrg />
+        </MainLayout>
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/chien-dich/ung-ho/:id",
-    element: (<ProtectedRoute><MainLayout><Donate /></MainLayout></ProtectedRoute>),
+    element: (
+      <ProtectedRoute>
+        <MainLayout>
+          <Donate />
+        </MainLayout>
+      </ProtectedRoute>
+    ),
   },
-  { path: "/chat", element: (<ProtectedRoute><Chat /></ProtectedRoute>) },
-  { path: "/profile", element: (<ProtectedRoute><Profile /></ProtectedRoute>) },
-  { path: "/admin/*", element: (<ProtectedRoute><AdminPanel /></ProtectedRoute>) },
+  {
+    path: "/chat",
+    element: (
+      <ProtectedRoute>
+        <Chat />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/profile",
+    element: (
+      <ProtectedRoute>
+        <Profile />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/admin/*",
+    element: (
+      <ProtectedRoute>
+        <AdminPanel />
+      </ProtectedRoute>
+    ),
+  },
 ];
 
 // ================== APP ROUTES ==================
