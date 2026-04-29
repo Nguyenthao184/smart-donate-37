@@ -254,7 +254,7 @@ export default function Users() {
         <div className="adm-box__head">
           <span className="adm-box__title">
             <FiUser size={15} /> Danh sách tài khoản
-            <span className="adm-box__badge">{visibleUsers.length}</span>
+            <span className="adm-box__badge">{usersSummary.total}</span>
           </span>
           <div className="adm-box__actions">
             <div className="usr__search">

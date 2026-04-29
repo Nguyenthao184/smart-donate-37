@@ -78,8 +78,18 @@ export default function Posts() {
     let loai_bai = "";
     if (filter === "cho")  loai_bai = "CHO";
     if (filter === "nhan") loai_bai = "NHAN";
-    fetchPosts({ page: 1, loai_bai });
+    if (filter !== "vi_pham") {
+      fetchPosts({ page: 1, loai_bai });
+    } else {
+      // Filter vi_pham: fetch all rồi filter client-side
+      fetchPosts({ page: 1, loai_bai: "" });
+    }
   }, [filter]);
+
+  // Filter client-side cho "vi_pham"
+  const visiblePosts = filter === "vi_pham" 
+    ? posts.filter(p => postViolationSet.has(p.id)) 
+    : posts;
 
   async function openDetail(p) {
     setSelected(p);
@@ -96,10 +106,10 @@ export default function Posts() {
   }
 
   const stats = [
-    { label: "Tổng bài", val: postsSummary.total,   c: "#dfdbfd" },
-    { label: "Cho đồ",   val: postsSummary.cho,     c: "#d6fce4" },
-    { label: "Nhận đồ",  val: postsSummary.nhan,    c: "#f8ebd4" },
-    { label: "Vi phạm",  val: postsSummary.vi_pham, c: "#fee2e2" },
+    { label: "Tổng bài", val: postsSummary.total,   c: "#dfdbfd",  filter: "all" },
+    { label: "Cho đồ",   val: postsSummary.cho,     c: "#d6fce4",  filter: "cho" },
+    { label: "Nhận đồ",  val: postsSummary.nhan,    c: "#f8ebd4",  filter: "nhan" },
+    { label: "Vi phạm",  val: postsSummary.vi_pham, c: "#fee2e2",  filter: "vi_pham" },
   ];
 
   return (
@@ -113,10 +123,15 @@ export default function Posts() {
 
       <div className="pst__mini-stats">
         {stats.map((s, i) => (
-          <div key={i} className="pst__mini-stat" style={{ background: s.c }}>
+          <button
+            key={i}
+            className={`pst__mini-stat${filter === s.filter ? " pst__mini-stat--active" : ""}`}
+            style={{ background: s.c }}
+            onClick={() => setFilter(s.filter)}
+          >
             <div className="pst__mini-val">{s.val}</div>
             <div className="pst__mini-label">{s.label}</div>
-          </div>
+          </button>
         ))}
       </div>
 
@@ -162,9 +177,9 @@ export default function Posts() {
                 </tr>
               </thead>
               <tbody>
-                {posts.length === 0 ? (
+                {visiblePosts.length === 0 ? (
                   <tr><td colSpan={8}><div className="adm-empty"><div className="adm-empty__icon">📝</div><div className="adm-empty__text">Không có bài đăng</div></div></td></tr>
-                ) : posts.map((p, i) => {
+                ) : visiblePosts.map((p, i) => {
                   const status = STATUS_MAP[p.trang_thai] || { label: p.trang_thai, cls: "green" };
                   return (
                     <tr key={p.id} style={{ animationDelay: `${i * 0.05}s` }}>

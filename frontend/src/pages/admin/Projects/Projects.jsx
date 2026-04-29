@@ -133,10 +133,10 @@ export default function Projects() {
 
   // Stats từ summary (không phụ thuộc page hiện tại)
   const stats = [
-    { label: "Tổng",       val: campaignsSummary.total,     c: "#dfdbfd" },
-    { label: "Chờ duyệt",  val: campaignsSummary.pending,   c: "#fef9c3" },
-    { label: "Đang chạy",  val: campaignsSummary.active,    c: "#d6fce4" },
-    { label: "Hoàn thành", val: campaignsSummary.completed, c: "#dbeafe" },
+    { label: "Tổng",       val: campaignsSummary.total,     c: "#dfdbfd",  filter: "all" },
+    { label: "Chờ duyệt",  val: campaignsSummary.pending,   c: "#fef9c3",  filter: "CHO_XU_LY" },
+    { label: "Đang chạy",  val: campaignsSummary.active,    c: "#d6fce4",  filter: "HOAT_DONG" },
+    { label: "Hoàn thành", val: campaignsSummary.completed, c: "#dbeafe",  filter: "HOAN_THANH" },
   ];
 
   return (
@@ -150,10 +150,15 @@ export default function Projects() {
 
       <div className="prj__mini-stats">
         {stats.map((s, i) => (
-          <div key={i} className="prj__mini-stat" style={{ background: s.c }}>
+          <button
+            key={i}
+            className={`prj__mini-stat${filter === s.filter ? " prj__mini-stat--active" : ""}`}
+            style={{ background: s.c }}
+            onClick={() => setFilter(s.filter)}
+          >
             <div className="prj__mini-val">{s.val}</div>
             <div className="prj__mini-label">{s.label}</div>
-          </div>
+          </button>
         ))}
       </div>
 
