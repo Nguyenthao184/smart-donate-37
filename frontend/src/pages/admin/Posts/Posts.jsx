@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react";
+import { notification } from "antd";
 import {
-  FiSearch, FiEye, FiFileText,
+  FiSearch, FiEye, FiFileText, FiPause,
   FiGift, FiPackage, FiX, FiUser, FiMapPin, FiClock, FiAlertTriangle,
 } from "react-icons/fi";
 import useAdminStore from "../../../store/adminStore";
 import { getAdminPostDetail } from "../../../api/adminService";
 import Pagination from "../../../components/Pagination";
+import ViolationsModal from "../Projects/ViolationsModal";
+import SuspendModal from "../Projects/SuspendModal";
 import "./Posts.scss";
 
 const STATUS_MAP = {
@@ -22,16 +25,43 @@ export default function Posts() {
   const [selected, setSelected]       = useState(null);
   const [detail, setDetail]           = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [submitting, setSubmitting]   = useState(false);
+  const [violationsTarget, setViolationsTarget] = useState(null);
+  const [suspendTarget, setSuspendTarget]       = useState(null);
 
   const {
     posts, postsMeta, postsParams, postsSummary, loadingPosts,
     fetchPosts, fetchPostsSummary,
+    handleSuspendPost,
+    postViolationSet, fetchViolationSets,
   } = useAdminStore();
 
   useEffect(() => {
     fetchPosts({ page: 1 });
     fetchPostsSummary();
+    fetchViolationSets();
   }, []);
+
+  function openSuspendModal(p) {
+    setSuspendTarget({ id: p.id, ten: p.tieu_de });
+  }
+
+  async function handleSuspendSubmit(ly_do) {
+    if (!suspendTarget || submitting) return;
+    setSubmitting(true);
+    try {
+      const ok = await handleSuspendPost(suspendTarget.id, ly_do);
+      if (ok) {
+        notification.success({ message: "Tạm dừng bài đăng thành công", placement: "topRight" });
+        setSelected(null);
+        setSuspendTarget(null);
+      } else {
+        notification.error({ message: "Tạm dừng bài đăng thất bại", placement: "topRight" });
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   // Debounce search
   useEffect(() => {
@@ -126,13 +156,14 @@ export default function Posts() {
                   <th>Loại</th>
                   <th>Tác giả</th>
                   <th>Trạng thái</th>
+                  <th>Báo cáo</th>
                   <th>Thời gian</th>
                   <th>Thao tác</th>
                 </tr>
               </thead>
               <tbody>
                 {posts.length === 0 ? (
-                  <tr><td colSpan={7}><div className="adm-empty"><div className="adm-empty__icon">📝</div><div className="adm-empty__text">Không có bài đăng</div></div></td></tr>
+                  <tr><td colSpan={8}><div className="adm-empty"><div className="adm-empty__icon">📝</div><div className="adm-empty__text">Không có bài đăng</div></div></td></tr>
                 ) : posts.map((p, i) => {
                   const status = STATUS_MAP[p.trang_thai] || { label: p.trang_thai, cls: "green" };
                   return (
@@ -149,6 +180,24 @@ export default function Posts() {
                       </td>
                       <td style={{ fontSize: 13, whiteSpace: "nowrap" }}>{p.nguoi_dung_ten || "—"}</td>
                       <td><span className={`adm-tag adm-tag--${status.cls}`}>{status.label}</span></td>
+                      <td>
+                        {postViolationSet?.has(p.id) ? (
+                          <button
+                            type="button"
+                            className="adm-tag adm-tag--red"
+                            style={{ border: "none", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 10px" }}
+                            title="Xem danh sách vi phạm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setViolationsTarget({ id: p.id, ten: p.tieu_de, type: "post" });
+                            }}
+                          >
+                            <FiAlertTriangle size={11} /> Vi phạm
+                          </button>
+                        ) : (
+                          <span style={{ color: "#bbb", fontSize: 12 }}>—</span>
+                        )}
+                      </td>
                       <td style={{ fontSize: 12, color: "rgba(51,51,51,0.6)", whiteSpace: "nowrap" }}>{p.created_at?.substring(0, 10)}</td>
                       <td>
                         <div className="pst__actions">
@@ -240,16 +289,45 @@ export default function Posts() {
                   </div>
                 </div>
 
-                <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 4 }}>
+                <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 4, flexWrap: "wrap" }}>
                   <button style={{ padding: "10px 22px", border: "1px solid #e0e0e0", borderRadius: 8, background: "none", fontSize: 13, color: "#888", cursor: "pointer" }} onClick={() => setSelected(null)}>
                     Đóng
                   </button>
+                  {view.trang_thai !== "TAM_DUNG" && (
+                    <button
+                      disabled={submitting}
+                      style={{ padding: "10px 22px", borderRadius: 8, fontSize: 13, display: "flex", alignItems: "center", gap: 6, opacity: submitting ? 0.6 : 1, cursor: submitting ? "not-allowed" : "pointer", background: "#f59e0b", color: "#fff", border: "none" }}
+                      onClick={() => openSuspendModal(view)}
+                    >
+                      <FiPause size={13} /> Tạm dừng bài đăng
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
           </div>
         );
       })()}
+
+      {violationsTarget && (
+        <ViolationsModal
+          target={violationsTarget}
+          onClose={() => {
+            setViolationsTarget(null);
+            fetchViolationSets();
+          }}
+        />
+      )}
+
+      {suspendTarget && (
+        <SuspendModal
+          target={suspendTarget}
+          type="post"
+          submitting={submitting}
+          onSubmit={handleSuspendSubmit}
+          onClose={() => setSuspendTarget(null)}
+        />
+      )}
     </div>
   );
 }

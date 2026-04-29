@@ -115,6 +115,7 @@ export default function PostCard({ post, style, onDelete }) {
     CON_NHAN: "Còn nhận",
     DA_TANG: "Đã tặng",
     DA_NHAN: "Đã nhận",
+    TAM_DUNG: "Tạm dừng",
   };
 
   const statusIconMap = {
@@ -122,6 +123,7 @@ export default function PostCard({ post, style, onDelete }) {
     CON_NHAN: <FaInbox style={{ marginRight: 4 }} />,
     DA_TANG: <FaCheckCircle style={{ marginRight: 4 }} />,
     DA_NHAN: <FaCheckCircle style={{ marginRight: 4 }} />,
+    TAM_DUNG: <FiAlertTriangle style={{ marginRight: 4 }} />,
   };
 
   const quantityLabel = isCho ? "Còn tặng" : "Còn cần";

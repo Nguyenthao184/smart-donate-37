@@ -47,7 +47,7 @@ export default function CampaignMap() {
         params: {
           keyword: keyword || undefined,
           danh_muc_id: categoryId || undefined,
-          per_page: 100,
+          per_page: 500,
         },
       });
       const data = res.data?.data || [];

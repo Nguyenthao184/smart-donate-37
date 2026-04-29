@@ -2,12 +2,14 @@ import { useState, useEffect } from "react";
 import { notification } from "antd";
 import {
   FiSearch, FiCheck, FiX, FiEye, FiPause,
-  FiFolder, FiClock, FiCheckCircle, FiXCircle,
+  FiFolder, FiClock, FiCheckCircle, FiXCircle, FiAlertTriangle,
   FiTarget, FiUser, FiCalendar, FiTrendingUp, FiHome,
 } from "react-icons/fi";
 import useAdminStore from "../../../store/adminStore";
 import { getAdminCampaignDetail } from "../../../api/adminService";
 import Pagination from "../../../components/Pagination";
+import ViolationsModal from "./ViolationsModal";
+import SuspendModal from "./SuspendModal";
 import "./Projects.scss";
 
 const STATUS_MAP = {
@@ -26,17 +28,22 @@ export default function Projects() {
   const [detail, setDetail]           = useState(null);
   const [submitting, setSubmitting]   = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  // Modal states
+  const [violationsTarget, setViolationsTarget] = useState(null); // { id, ten, type }
+  const [suspendTarget, setSuspendTarget]       = useState(null); // { id, ten }
 
   const {
     campaigns, campaignsMeta, campaignsParams, campaignsSummary, loadingCampaigns,
     fetchCampaigns, fetchCampaignsSummary,
-    handleApproveCampaign, handleRejectCampaign, handlePauseCampaign,
+    handleApproveCampaign, handleRejectCampaign, handleSuspendCampaign,
+    campaignViolationSet, fetchViolationSets,
   } = useAdminStore();
 
   // Fetch lần đầu
   useEffect(() => {
     fetchCampaigns({ page: 1 });
     fetchCampaignsSummary();
+    fetchViolationSets();
   }, []);
 
   // Debounce search
@@ -88,17 +95,20 @@ export default function Projects() {
     }
   }
 
-  async function pause(id) {
-    if (submitting) return;
-    const ly_do = window.prompt("Nhập lý do tạm dừng chiến dịch:");
-    if (!ly_do?.trim()) return;
+  function openSuspendModal(c) {
+    setSuspendTarget({ id: c.id, ten: c.ten_chien_dich });
+  }
+
+  async function handleSuspendSubmit(ly_do) {
+    if (!suspendTarget || submitting) return;
     setSubmitting(true);
     try {
-      const ok = await handlePauseCampaign(id, ly_do.trim());
+      const ok = await handleSuspendCampaign(suspendTarget.id, ly_do);
       if (ok) {
         notification.success({ message: "Tạm dừng chiến dịch thành công", placement: "topRight" });
         fetchCampaignsSummary();
         setSelected(null);
+        setSuspendTarget(null);
       } else {
         notification.error({ message: "Tạm dừng chiến dịch thất bại", placement: "topRight" });
       }
@@ -187,13 +197,14 @@ export default function Projects() {
                   <th>Tổ chức</th>
                   <th>Tiến độ</th>
                   <th>Còn lại</th>
+                  <th>Vi phạm</th>
                   <th>Trạng thái</th>
                   <th>Xem</th>
                 </tr>
               </thead>
               <tbody>
                 {campaigns.length === 0 ? (
-                  <tr><td colSpan={7}><div className="adm-empty"><div className="adm-empty__icon">📂</div><div className="adm-empty__text">Không có chiến dịch</div></div></td></tr>
+                  <tr><td colSpan={8}><div className="adm-empty"><div className="adm-empty__icon">📂</div><div className="adm-empty__text">Không có chiến dịch</div></div></td></tr>
                 ) : campaigns.map((p, i) => {
                   const pct    = p.muc_tieu_tien > 0 ? Math.round((p.so_tien_da_nhan || 0) * 100 / p.muc_tieu_tien) : 0;
                   const status = STATUS_MAP[p.trang_thai] || { label: p.trang_thai, cls: "green" };
@@ -230,6 +241,24 @@ export default function Projects() {
                           <FiClock size={12} style={{ color: "#f59e0b" }} />
                           {p.so_ngay_con_lai || 0} ngày
                         </div>
+                      </td>
+                      <td>
+                        {campaignViolationSet?.has(p.id) ? (
+                          <button
+                            type="button"
+                            className="adm-tag adm-tag--red"
+                            style={{ border: "none", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 10px" }}
+                            title="Xem danh sách vi phạm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setViolationsTarget({ id: p.id, ten: p.ten_chien_dich, type: "campaign" });
+                            }}
+                          >
+                            <FiAlertTriangle size={11} /> Vi phạm
+                          </button>
+                        ) : (
+                          <span style={{ color: "#bbb", fontSize: 12 }}>—</span>
+                        )}
                       </td>
                       <td><span className={`adm-tag adm-tag--${status.cls}`}>{status.label}</span></td>
 
@@ -356,7 +385,7 @@ export default function Projects() {
                       className="adm-btn adm-btn--warning"
                       disabled={submitting}
                       style={{ padding: "10px 22px", borderRadius: 8, fontSize: 13, display: "flex", alignItems: "center", gap: 6, opacity: submitting ? 0.6 : 1, cursor: submitting ? "not-allowed" : "pointer", background: "#f59e0b", color: "#fff", border: "none" }}
-                      onClick={() => pause(view.id)}
+                      onClick={() => openSuspendModal(view)}
                     >
                       <FiPause size={13} /> {submitting ? "Đang xử lý..." : "Tạm dừng chiến dịch"}
                     </button>
@@ -367,6 +396,26 @@ export default function Projects() {
           </div>
         );
       })()}
+
+      {violationsTarget && (
+        <ViolationsModal
+          target={violationsTarget}
+          onClose={() => {
+            setViolationsTarget(null);
+            fetchViolationSets();
+          }}
+        />
+      )}
+
+      {suspendTarget && (
+        <SuspendModal
+          target={suspendTarget}
+          type="campaign"
+          submitting={submitting}
+          onSubmit={handleSuspendSubmit}
+          onClose={() => setSuspendTarget(null)}
+        />
+      )}
     </div>
   );
 }
