@@ -1,6 +1,6 @@
 import { useEffect } from "react";
-import useProfileStore from "../store/profileStore";
 import useAuthStore from "../store/authStore";
+import useProfileStore from "../store/profileStore";
 
 const useProfile = () => {
   const { user } = useAuthStore();
@@ -14,6 +14,9 @@ const useProfile = () => {
     loadingDonations,
     loadingPosts,
     loadingCampaigns,
+    postsHasMore,
+    donationsHasMore,
+    campaignsHasMore,
     fetchProfile,
     fetchDonations,
     fetchMyPosts,
@@ -21,13 +24,17 @@ const useProfile = () => {
     handleUpdateProfile,
     handleChangePassword,
     handleUpdateDiaChi,
+    reset,
   } = useProfileStore();
 
   useEffect(() => {
+    // Reset store trước khi fetch để tránh hiện data cũ khi đổi tài khoản
+    reset();
+    if (!user?.id) return;
     fetchProfile();
-    fetchDonations();
-    fetchMyPosts(user?.id);
-    fetchMyCampaigns(true);
+    fetchDonations(false);
+    fetchMyPosts(false);
+    fetchMyCampaigns(false);
   }, [user?.id]);
 
   return {
@@ -39,6 +46,12 @@ const useProfile = () => {
     loadingDonations,
     loadingPosts,
     loadingCampaigns,
+    postsHasMore,
+    donationsHasMore,
+    campaignsHasMore,
+    loadMorePosts: () => fetchMyPosts(true),
+    loadMoreDonations: () => fetchDonations(true),
+    loadMoreCampaigns: () => fetchMyCampaigns(true),
     handleUpdateProfile,
     handleChangePassword,
     handleUpdateDiaChi,

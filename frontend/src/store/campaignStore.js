@@ -208,7 +208,10 @@ const useCampaignStore = create((set, get) => ({
   fetchWithdrawTransactions: async (campaignId) => {
     try {
       const res = await getWithdrawTransactions(campaignId);
-      return { ok: true, data: res?.data || [] };
+      // BE dùng leftJoin → bị duplicate rows → dedup theo id
+      const raw = res?.data || [];
+      const unique = Array.from(new Map(raw.map(item => [item.id, item])).values());
+      return { ok: true, data: unique };
     } catch (err) {
       console.error("Lỗi fetch withdraw transactions:", err);
       return { ok: false, err, data: [] };

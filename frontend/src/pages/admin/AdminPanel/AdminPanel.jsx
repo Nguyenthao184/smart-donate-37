@@ -38,6 +38,7 @@ export default function AdminPanel() {
   const navigate  = useNavigate();
   const location  = useLocation();
   const { user, logout: logoutStore } = useAuthStore();
+  const storeRoles = useAuthStore((s) => s.roles);
 
   const FLAT_NAV    = NAV_ITEMS.flatMap((s) => s.items);
   const currentKey  = location.pathname.split("/")[2] || "dashboard";
@@ -45,6 +46,17 @@ export default function AdminPanel() {
   const activeLabel = FLAT_NAV.find((i) => i.key === activeKey)?.label || "Dashboard";
   const CurrentComponent = COMPONENTS[activeKey] || Dashboard;
   const displayName = user?.ho_ten || "Admin";
+
+  const isAdmin = Array.isArray(storeRoles)
+    ? storeRoles.some((r) => r === "ADMIN" || r?.ten === "ADMIN" || r?.ten_vai_tro === "ADMIN")
+    : false;
+
+  // Bảo vệ route: non-admin bị redirect về trang chủ
+  useEffect(() => {
+    if (storeRoles.length > 0 && !isAdmin) {
+      navigate("/", { replace: true });
+    }
+  }, [isAdmin, storeRoles]);
 
   useEffect(() => {
     if (location.pathname === "/admin") navigate("/admin/dashboard", { replace: true });
