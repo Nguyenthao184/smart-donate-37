@@ -30,6 +30,15 @@ export default function ProfilePage() {
     myPosts,
     myCampaigns,
     loading,
+    loadingDonations,
+    loadingPosts,
+    donationsHasMore,
+    postsHasMore,
+    loadMoreDonations,
+    loadMorePosts,
+    loadingCampaigns,
+    campaignsHasMore,
+    loadMoreCampaigns,
     handleUpdateProfile,
     handleChangePassword,
   } = useProfile();
@@ -64,6 +73,26 @@ export default function ProfilePage() {
     document.addEventListener("click", handleClick);
     return () => document.removeEventListener("click", handleClick);
   }, [openMenuId]);
+
+  // Infinite scroll for posts and donations tabs
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 200) {
+        if (activeTab === "posts" && postsHasMore && !loadingPosts) {
+          loadMorePosts();
+        }
+        if (activeTab === "history" && donationsHasMore && !loadingDonations) {
+          loadMoreDonations();
+        }
+        if (activeTab === "projects" && campaignsHasMore && !loadingCampaigns) {
+          loadMoreCampaigns();
+        }
+      }
+    };
+    
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [activeTab, postsHasMore, loadingPosts, loadMorePosts, donationsHasMore, loadingDonations, loadMoreDonations, campaignsHasMore, loadingCampaigns, loadMoreCampaigns]);
 
   const handleEditCampaign = (campaign, e) => {
     e.stopPropagation();
@@ -200,7 +229,7 @@ export default function ProfilePage() {
                 {isOrganization && toChuc?.ten_to_chuc && (
                   <p className="profile-info__org">{toChuc.ten_to_chuc}</p>
                 )}
-                {!isOrganization && profileUser?.dia_chi && (
+                {profileUser?.dia_chi && (
                   <p className="profile-info__address">
                     📍 {profileUser.dia_chi}
                   </p>
@@ -1768,11 +1797,11 @@ function ChangePasswordModal({ profileUser, onChangePassword, onClose }) {
     }
     setLoading(true);
     const payload = isGoogleUser
-      ? { new_password: form.new, new_password_confirmation: form.confirm }
+      ? { new_password: form.new, confirm_password: form.confirm }
       : {
           current_password: form.old,
           new_password: form.new,
-          new_password_confirmation: form.confirm,
+          confirm_password: form.confirm,
         };
     const { ok, err } = await onChangePassword(payload);
     setLoading(false);

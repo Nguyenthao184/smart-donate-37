@@ -51,14 +51,18 @@ export default function Footer() {
             <div className="app-footer__social">
               <a
                 className="app-footer__socialBtn"
-                href="#"
+                href="https://facebook.com"
+                target="_blank"
+                rel="noopener noreferrer"
                 aria-label="Facebook"
               >
                 <FiFacebook size={22} />
               </a>
               <a
                 className="app-footer__socialBtn"
-                href="#"
+                href="https://instagram.com"
+                target="_blank"
+                rel="noopener noreferrer"
                 aria-label="Instagram"
               >
                 <FiInstagram size={22} />

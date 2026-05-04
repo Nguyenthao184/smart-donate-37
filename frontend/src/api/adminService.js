@@ -97,9 +97,27 @@ export const rejectCampaign = async (id) => {
   return res.data;
 };
 
-// Tạm dừng chiến dịch (BE chưa làm — sẽ là POST /admin/campaigns/{id}/pause)
-export const pauseCampaign = async (id, ly_do = "") => {
-  const res = await api.post(`/admin/campaigns/${id}/pause`, { ly_do });
+// Tạm dừng chiến dịch (BE: POST /admin/campaigns/{id}/suspend, body { ly_do })
+export const suspendCampaign = async (id, ly_do = "") => {
+  const res = await api.post(`/admin/campaigns/${id}/suspend`, { ly_do });
+  return res.data;
+};
+
+// Tạm dừng bài đăng (BE: POST /admin/posts/{id}/suspend, body { ly_do })
+export const suspendPost = async (id, ly_do = "") => {
+  const res = await api.post(`/admin/posts/${id}/suspend`, { ly_do });
+  return res.data;
+};
+
+// Danh sách vi phạm 1 chiến dịch (cho modal)
+export const getCampaignViolations = async (id, params = { trang_thai: "CHO_XU_LY", limit: 100 }) => {
+  const res = await api.get(`/admin/campaigns/${id}/violations`, { params });
+  return res.data;
+};
+
+// Danh sách vi phạm 1 bài đăng (cho modal)
+export const getPostViolations = async (id, params = { trang_thai: "CHO_XU_LY", limit: 100 }) => {
+  const res = await api.get(`/admin/posts/${id}/violations`, { params });
   return res.data;
 };
 

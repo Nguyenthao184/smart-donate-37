@@ -3,7 +3,9 @@ import {
   getAdminUsers, lockUser, unlockUser,
   getAdminPosts,
   getAdminPostReports, updateAdminPostReport,
-  getAdminCampaigns, approveCampaign, rejectCampaign, pauseCampaign,
+  getAdminCampaigns, approveCampaign, rejectCampaign,
+  suspendCampaign, suspendPost,
+  getCampaignViolations, getPostViolations,
   approveOrganization, rejectOrganization, lockFundAccount,
   getFraudAlerts, updateFraudAlert, autoCheckFraud, autoCheckCampaignsFraud,
   getDashboardSummary, getDashboardFeatured, getDashboardFundraising, getDashboardActivities,
@@ -252,11 +254,72 @@ const useAdminStore = create((set, get) => ({
     } catch (err) { console.error(err); return false; }
   },
 
-  handlePauseCampaign: async (id, ly_do = "") => {
+  // ===== SUSPEND (Tạm dừng) =====
+  handleSuspendCampaign: async (id, ly_do) => {
     try {
-      await pauseCampaign(id, ly_do);
+      await suspendCampaign(id, ly_do);
       set({ campaigns: get().campaigns.map(c => c.id === id ? { ...c, trang_thai: "TAM_DUNG" } : c) });
       get().fetchCampaignsSummary();
+      return true;
+    } catch (err) { console.error(err); return false; }
+  },
+
+  handleSuspendPost: async (id, ly_do) => {
+    try {
+      await suspendPost(id, ly_do);
+      set({ posts: get().posts.map(p => p.id === id ? { ...p, trang_thai: "TAM_DUNG" } : p) });
+      get().fetchPostsSummary();
+      return true;
+    } catch (err) { console.error(err); return false; }
+  },
+
+  // ===== VIOLATION SETS (build từ /admin/post-reports để biết row nào có vi phạm CHO_XU_LY) =====
+  campaignViolationSet: new Set(),
+  postViolationSet: new Set(),
+
+  fetchViolationSets: async () => {
+    try {
+      const res = await getAdminPostReports({ trang_thai: "CHO_XU_LY", limit: 100 });
+      const items = Array.isArray(res?.data) ? res.data : (res?.data?.data || []);
+      const campSet = new Set();
+      const postSet = new Set();
+      items.forEach((it) => {
+        if (it.target_type === "CAMPAIGN" && it.target_id) campSet.add(Number(it.target_id));
+        if (it.target_type === "POST" && it.target_id) postSet.add(Number(it.target_id));
+      });
+      set({ campaignViolationSet: campSet, postViolationSet: postSet });
+    } catch (err) { console.error(err); }
+  },
+
+  // ===== VIOLATIONS DETAIL (Modal hiện list vi phạm) =====
+  fetchCampaignViolations: async (id) => {
+    try {
+      const res = await getCampaignViolations(id);
+      return res?.data || [];
+    } catch (err) { console.error(err); return []; }
+  },
+
+  fetchPostViolations: async (id) => {
+    try {
+      const res = await getPostViolations(id);
+      return res?.data || [];
+    } catch (err) { console.error(err); return []; }
+  },
+
+  // Duyệt 1 vi phạm: USER_REPORT dùng updateAdminPostReport, AI alert dùng updateFraudAlert
+  resolveViolation: async (item, decision = "DA_XU_LY") => {
+    try {
+      if (item.source === "USER_REPORT" && item.report_id) {
+        await updateAdminPostReport(item.report_id, decision);
+      } else if (item.alert_id) {
+        await updateFraudAlert(item.alert_id, {
+          trang_thai: decision === "DA_XU_LY" ? "DA_KIEM_TRA" : "CANH_BAO_SAI",
+        });
+      } else {
+        return false;
+      }
+      // Refresh violation sets
+      await get().fetchViolationSets();
       return true;
     } catch (err) { console.error(err); return false; }
   },
