@@ -36,7 +36,7 @@ export default function Withdrawals() {
   // Confirm form
   const [confirmForm, setConfirmForm] = useState({
     ma_giao_dich_ngan_hang: "",
-    ngay_giao_dich: new Date().toISOString().split("T")[0],
+    ngay_giao_dich: new Date().toISOString().slice(0, 16),
     ghi_chu_admin: "",
   });
   const [rejectReason, setRejectReason] = useState("");
@@ -84,7 +84,7 @@ export default function Withdrawals() {
   const openConfirm = (item) => {
     setConfirmForm({
       ma_giao_dich_ngan_hang: "",
-      ngay_giao_dich: new Date().toISOString().split("T")[0],
+      ngay_giao_dich: new Date().toISOString().slice(0, 16),
       ghi_chu_admin: "",
     });
     setConfirmTarget(item);
@@ -260,9 +260,9 @@ export default function Withdrawals() {
               </div>
 
               <div className="adw-modal__field">
-                <label>Ngày ngân hàng thực hiện *</label>
+                <label>Ngày giờ ngân hàng thực hiện *</label>
                 <input
-                  type="date"
+                  type="datetime-local"
                   value={confirmForm.ngay_giao_dich}
                   onChange={(e) => setConfirmForm((f) => ({ ...f, ngay_giao_dich: e.target.value }))}
                 />
