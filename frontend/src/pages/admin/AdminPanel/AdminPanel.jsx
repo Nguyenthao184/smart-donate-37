@@ -4,6 +4,7 @@ import {
   FiMenu, FiX, FiSearch, FiLogOut,
   FiChevronRight, FiGrid, FiUsers, FiFolder, FiFileText, FiHome,
   FiShield,
+  FiDollarSign,
 } from "react-icons/fi";
 import useAuthStore from "../../../store/authStore";
 import { logoutAPI } from "../../../api/authService";
