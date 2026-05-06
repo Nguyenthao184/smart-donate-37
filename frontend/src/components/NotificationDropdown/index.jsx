@@ -10,11 +10,11 @@ import {
   FiXCircle,
   FiLock,
   FiShield,
+  FiUser,
+  FiAlertCircle,
   FiAlertTriangle,
   FiFolder,
-  FiUsers,
 } from "react-icons/fi";
-import { useNavigate } from "react-router-dom";
 import { formatPostTime } from "../../utils/formatTime";
 import { getPostDetail } from "../../api/postService";
 import PostDetailModal from "../PostModal/index";
@@ -36,8 +36,6 @@ const getNotificationMeta = (notification) => {
       return { icon: <FiFolder size={18} />, color: "#d97706", bg: "#fffbeb" };
     case "post_report_resolution":
       return { icon: <FiAlertTriangle size={18} />, color: "#dc2626", bg: "#fef2f2" };
-    case "approval":
-      return { icon: <FiCheckCircle size={18} />, color: "#16a34a", bg: "#f0fdf4" };
     case "bai_dang_duoc_thich":
       return { icon: <FiHeart size={18} />, color: "#e0245e", bg: "#fce8ef" };
 
@@ -50,6 +48,10 @@ const getNotificationMeta = (notification) => {
     case "approval": {
       const action = data.action;
       const targetType = data.target_type;
+
+      if (!action) {
+        return { icon: <FiCheckCircle size={18} />, color: "#16a34a", bg: "#f0fdf4" };
+      }
 
       // Được duyệt
       if (action === "approve") {
@@ -104,12 +106,6 @@ const getNotificationText = (notification) => {
         sub: data.mo_ta || data.reason || null,
       };
 
-    case "approval":
-      return {
-        main: data.message || "Thông báo phê duyệt",
-        sub: data.ly_do || null,
-      };
-
     case "bai_dang_duoc_thich":
       return {
         main: <><strong>{data.nguoi_thich_ten}</strong> đã thích bài đăng của bạn</>,
@@ -140,6 +136,13 @@ const getNotificationText = (notification) => {
 
       // Text chính theo action + target_type
       let main = data.message || "Thông báo mới";
+
+      if (!action) {
+        return {
+          main: data.message || "Thông báo phê duyệt",
+          sub: data.ly_do || null,
+        };
+      }
 
       if (action === "approve") {
         if (targetType === "organization") {
@@ -204,15 +207,6 @@ const getNavigatePath = (notification, { isAdmin } = {}) => {
       }
       return null;
 
-    case "approval":
-      if (data.target_type === "campaign" && data.target_id) {
-        return `/chien-dich/chi-tiet/${data.target_id}`;
-      }
-      if (data.target_type === "organization") {
-        return "/profile";
-      }
-      return "/profile";
-
     // Bình luận hoặc reply → mở modal bài đăng, trỏ vào comment
     case "bai_dang_duoc_binh_luan":
     case "reply_comment":
@@ -229,6 +223,10 @@ const getNavigatePath = (notification, { isAdmin } = {}) => {
       const action = data.action;
       const targetType = data.target_type;
       const targetId = data.target_id;
+
+      if (targetType === "campaign" && targetId) {
+        return `/chien-dich/chi-tiet/${targetId}`;
+      }
 
       if (action === "approve" && targetType === "organization") {
         return "/profile"; // vào profile xem tổ chức được duyệt
@@ -352,8 +350,8 @@ export default function NotificationDropdown({ triggerClassName = "app-header__i
     }
 
     // Approval → điều hướng
-    const path = getNavigatePath(notif);
-    if (path) navigate(path);
+    const approvalPath = getNavigatePath(notif);
+    if (approvalPath) navigate(approvalPath);
   };
   const grouped = {};
   const normalNotifications = [];
