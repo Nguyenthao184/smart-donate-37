@@ -31,6 +31,12 @@ const NAV_ITEMS = [
       { key: "fraud-alerts", icon: <FiShield size={20} />, label: "Cảnh báo gian lận", path: "/admin/fraud-alerts" },
     ],
   },
+  {
+    section: "Tài chính",
+    items: [
+      { key: "withdrawals", icon: <FiDollarSign size={20} />, label: "Yêu cầu rút tiền", path: "/admin/withdrawals" },
+    ],
+  },
 ];
 
 const COMPONENTS = { dashboard: Dashboard, users: Users, projects: Projects, posts: Posts, "fraud-alerts": FraudAlerts };

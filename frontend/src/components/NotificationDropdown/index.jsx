@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Badge, Dropdown, Spin, Empty } from "antd";
+import { useNavigate } from "react-router-dom";
 import {
   FiBell,
   FiHeart,
@@ -39,33 +40,36 @@ const getNotificationMeta = (notification) => {
       return { icon: <FiCheckCircle size={18} />, color: "#16a34a", bg: "#f0fdf4" };
     case "bai_dang_duoc_thich":
       return { icon: <FiHeart size={18} />, color: "#e0245e", bg: "#fce8ef" };
+
     case "bai_dang_duoc_binh_luan":
-      return {
-        icon: <FiMessageCircle size={18} />,
-        color: "#1877f2",
-        bg: "#e7f0fd",
-      };
+      return { icon: <FiMessageCircle size={18} />, color: "#1877f2", bg: "#e7f0fd" };
+
     case "reply_comment":
-      return {
-        icon: <FiMessageSquare size={18} />,
-        color: "#17a2b8",
-        bg: "#e3f6f9",
-      };
-    default:
-      if (data.message?.includes("được duyệt"))
-        return {
-          icon: <FiCheckCircle size={18} />,
-          color: "#28a745",
-          bg: "#eaf6ec",
-        };
-      if (data.message?.includes("bị từ chối"))
-        return {
-          icon: <FiXCircle size={18} />,
-          color: "#dc3545",
-          bg: "#fdecea",
-        };
-      if (data.message?.includes("bị khóa"))
+      return { icon: <FiMessageSquare size={18} />, color: "#17a2b8", bg: "#e3f6f9" };
+
+    case "approval": {
+      const action = data.action;
+      const targetType = data.target_type;
+
+      // Được duyệt
+      if (action === "approve") {
+        return { icon: <FiCheckCircle size={18} />, color: "#28a745", bg: "#eaf6ec" };
+      }
+      // Bị từ chối
+      if (action === "reject") {
+        return { icon: <FiXCircle size={18} />, color: "#dc3545", bg: "#fdecea" };
+      }
+      // Bị khóa — phân biệt tài khoản vs bài đăng vs quỹ
+      if (action === "lock") {
+        if (targetType === "user") {
+          return { icon: <FiUser size={18} />, color: "#dc3545", bg: "#fdecea" };
+        }
         return { icon: <FiLock size={18} />, color: "#fd7e14", bg: "#fff3e0" };
+      }
+      return { icon: <FiAlertCircle size={18} />, color: "#6c757d", bg: "#f0f0f0" };
+    }
+
+    default:
       return { icon: <FiBell size={18} />, color: "#6c757d", bg: "#f0f0f0" };
   }
 };
@@ -108,38 +112,66 @@ const getNotificationText = (notification) => {
 
     case "bai_dang_duoc_thich":
       return {
-        main: (
-          <>
-            <strong>{data.nguoi_thich_ten}</strong> đã thích bài đăng của bạn
-          </>
-        ),
+        main: <><strong>{data.nguoi_thich_ten}</strong> đã thích bài đăng của bạn</>,
         sub: data.tieu_de_bai ? `"${data.tieu_de_bai}"` : null,
       };
 
     case "bai_dang_duoc_binh_luan":
       return {
-        main: (
-          <>
-            <strong>{data.nguoi_binh_luan_ten}</strong> đã bình luận bài đăng
-            của bạn
-          </>
-        ),
+        main: <><strong>{data.nguoi_binh_luan_ten}</strong> đã bình luận bài đăng của bạn</>,
         sub: data.noi_dung_preview
           ? `💬 "${data.noi_dung_preview}"`
           : data.tieu_de_bai
-            ? `Bài: "${data.tieu_de_bai}"`
-            : null,
+          ? `Bài: "${data.tieu_de_bai}"`
+          : null,
       };
 
     case "reply_comment":
       return {
-        main: (
-          <>
-            <strong>{data.nguoi_reply_ten}</strong> đã trả lời bình luận của bạn
-          </>
-        ),
+        main: <><strong>{data.nguoi_reply_ten}</strong> đã trả lời bình luận của bạn</>,
         sub: data.noi_dung ? `💬 "${data.noi_dung}"` : null,
       };
+
+    case "approval": {
+      const action = data.action;
+      const targetType = data.target_type;
+      const entityName = data.entity_name || "";
+      const lyDo = data.ly_do;
+
+      // Text chính theo action + target_type
+      let main = data.message || "Thông báo mới";
+
+      if (action === "approve") {
+        if (targetType === "organization") {
+          main = <>🎉 Tổ chức của bạn đã được <strong>duyệt</strong>!</>;
+        } else if (targetType === "user") {
+          main = <>✅ Tài khoản của bạn đã được <strong>mở khóa</strong></>;
+        } else {
+          main = <><strong>{entityName}</strong> đã được duyệt</>;
+        }
+      } else if (action === "reject") {
+        if (targetType === "organization") {
+          main = <>❌ Đăng ký tổ chức của bạn đã bị <strong>từ chối</strong></>;
+        } else {
+          main = <><strong>{entityName}</strong> đã bị từ chối</>;
+        }
+      } else if (action === "lock") {
+        if (targetType === "user") {
+          main = <>🔒 Tài khoản của bạn đã bị <strong>khóa</strong></>;
+        } else if (targetType === "post") {
+          main = <>⚠️ Bài đăng của bạn đã bị <strong>tạm dừng</strong></>;
+        } else if (targetType === "fund_account") {
+          main = <>🔒 Tài khoản gây quỹ của bạn đã bị <strong>khóa</strong></>;
+        } else {
+          main = <><strong>{entityName}</strong> đã bị khóa</>;
+        }
+      }
+
+      return {
+        main,
+        sub: lyDo ? `Lý do: ${lyDo}` : null,
+      };
+    }
 
     default:
       return {
@@ -189,12 +221,29 @@ const getNavigatePath = (notification, { isAdmin } = {}) => {
       }
       return null;
 
-    // Thích → mở modal bài đăng
     case "bai_dang_duoc_thich":
-      if (data.bai_dang_id) {
-        return `/bang-tin?post=${data.bai_dang_id}`;
+      if (data.bai_dang_id) return `/bang-tin?post=${data.bai_dang_id}`;
+      return null;
+
+    case "approval": {
+      const action = data.action;
+      const targetType = data.target_type;
+      const targetId = data.target_id;
+
+      if (action === "approve" && targetType === "organization") {
+        return "/profile"; // vào profile xem tổ chức được duyệt
+      }
+      if (action === "reject" && targetType === "organization") {
+        return "/dk-to-chuc"; // vào lại trang đăng ký
+      }
+      if (targetType === "post" && targetId) {
+        return `/bang-tin?post=${targetId}`; // xem bài đăng bị tạm dừng
+      }
+      if (targetType === "user") {
+        return "/profile";
       }
       return null;
+    }
 
     default:
       return null;
@@ -274,8 +323,7 @@ export default function NotificationDropdown({ triggerClassName = "app-header__i
       try {
         const res = await getPostDetail(data.bai_dang_id);
         const p = res?.data;
-
-        const mappedPost = {
+        setSelectedPost({
           id: p.id,
           type: p.loai_bai?.toLowerCase(),
           user: {
@@ -294,17 +342,18 @@ export default function NotificationDropdown({ triggerClassName = "app-header__i
           liked: p.da_thich ?? false,
           so_luot_thich: p.so_luot_thich ?? 0,
           aiSuggestions: [],
-
-          // 👇 bonus
           highlightCommentId: data.binh_luan_id,
-        };
-
-        setSelectedPost(mappedPost);
+        });
         setModalVisible(true);
       } catch (err) {
         console.error("Không tìm thấy bài đăng:", err);
       }
+      return;
     }
+
+    // Approval → điều hướng
+    const path = getNavigatePath(notif);
+    if (path) navigate(path);
   };
   const grouped = {};
   const normalNotifications = [];
@@ -354,15 +403,10 @@ export default function NotificationDropdown({ triggerClassName = "app-header__i
 
       <div className="notif-dropdown__list">
         {loading && notifications.length === 0 ? (
-          <div className="notif-dropdown__center">
-            <Spin />
-          </div>
+          <div className="notif-dropdown__center"><Spin /></div>
         ) : notifications.length === 0 ? (
           <div className="notif-dropdown__center">
-            <Empty
-              description="Không có thông báo"
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-            />
+            <Empty description="Không có thông báo" image={Empty.PRESENTED_IMAGE_SIMPLE} />
           </div>
         ) : (
           groupedNotifications.map((entry) => {
@@ -448,24 +492,14 @@ export default function NotificationDropdown({ triggerClassName = "app-header__i
                 ].join(" ")}
                 onClick={() => handleClickNotif(notif)}
               >
-                {/* Icon trái */}
-                <div
-                  className="notif-item__icon"
-                  style={{ background: bg, color }}
-                >
+                <div className="notif-item__icon" style={{ background: bg, color }}>
                   {icon}
                 </div>
-
-                {/* Nội dung */}
                 <div className="notif-item__body">
                   <p className="notif-item__msg">{main}</p>
                   {sub && <p className="notif-item__sub">{sub}</p>}
-                  <span className="notif-item__time">
-                    {timeAgo(notif.created_at)}
-                  </span>
+                  <span className="notif-item__time">{timeAgo(notif.created_at)}</span>
                 </div>
-
-                {/* Chấm xanh nếu chưa đọc */}
                 {isUnread && <span className="notif-item__dot" />}
               </div>
             );
@@ -492,15 +526,11 @@ export default function NotificationDropdown({ triggerClassName = "app-header__i
           </Badge>
         </button>
       </Dropdown>
-      {/* Modal bài đăng mở từ thông báo */}
       {selectedPost && (
         <PostDetailModal
           post={selectedPost}
           visible={modalVisible}
-          onClose={() => {
-            setModalVisible(false);
-            setSelectedPost(null);
-          }}
+          onClose={() => { setModalVisible(false); setSelectedPost(null); }}
         />
       )}
     </>
