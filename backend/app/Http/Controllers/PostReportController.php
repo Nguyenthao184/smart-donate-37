@@ -10,6 +10,7 @@ use App\Models\CanhBaoGianLan;
 use App\Models\ChienDichGayQuy;
 use App\Models\User;
 use App\Notifications\AdminViolationDetectedNotification;
+use App\Notifications\UserViolationNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
@@ -103,8 +104,19 @@ class PostReportController extends Controller
             $canhBao = CanhBaoGianLan::query()->create([
                 'nguoi_dung_id' => (int) $post->nguoi_dung_id,
                 'chien_dich_id' => null,
+                'target_type' => 'post',
+                'target_id' => (int) $post->id,
+                'source' => 'USER_REPORT',
+                'loai_canh_bao' => match ($lyDoCode) {
+                    'SPAM' => 'spam_post',
+                    'LUA_DAO' => 'fraud_post',
+                    'NOI_DUNG_XAU' => 'abusive_content',
+                    default => 'user_report',
+                },
+                'muc_rui_ro' => 'MEDIUM',
                 'loai_gian_lan' => $lyDoHienThi,
                 'diem_rui_ro' => 72.0,
+                'ly_do' => $lyDoHienThi . ($moTaNguoiDung ? (' | ' . $moTaNguoiDung) : ''),
                 'mo_ta' => $moTaCanhBao,
                 'trang_thai' => 'CHO_XU_LY',
                 'created_at' => now(),
@@ -119,7 +131,7 @@ class PostReportController extends Controller
         $this->notifyAdmins(
             $canhBao,
             (int) $post->id,
-            'Người dùng vừa báo cáo bài đăng',
+            'USER_REPORT: Báo cáo bài đăng mới',
             $lyDoHienThi,
             $moTaNguoiDung
         );
@@ -198,6 +210,7 @@ class PostReportController extends Controller
     {
         $baoCao = BaoCaoBaiDang::query()->findOrFail($id);
         $trangThaiMoi = $request->validated()['trang_thai'];
+        $adminNote = $request->validated()['admin_note'] ?? null;
         $baoCao->update(['trang_thai' => $trangThaiMoi]);
 
         if ($trangThaiMoi === 'DA_XU_LY' && $baoCao->baiDang) {
@@ -205,8 +218,9 @@ class PostReportController extends Controller
         }
 
         $this->syncFraudAlertWithAdminDecision($baoCao, $trangThaiMoi);
+        $this->notifyUser($baoCao, $trangThaiMoi, $adminNote);
 
-        $baoCao->load(['baiDang:id,nguoi_dung_id,tieu_de,loai_bai,trang_thai', 'nguoiToCao:id,ho_ten,email']);
+        $baoCao->load(['baiDang:id,nguoi_dung_id,tieu_de,mo_ta,hinh_anh,loai_bai,trang_thai', 'nguoiToCao:id,ho_ten,email']);
 
         return response()->json([
             'data' => $this->formatReport($baoCao, true),
@@ -235,6 +249,8 @@ class PostReportController extends Controller
             $out['bai_dang'] = $r->baiDang ? [
                 'id' => (int) $r->baiDang->id,
                 'tieu_de' => $r->baiDang->tieu_de,
+                'mo_ta' => $r->baiDang->mo_ta,
+                'hinh_anh' => $r->baiDang->hinh_anh,
                 'loai_bai' => $r->baiDang->loai_bai,
                 'nguoi_dung_id' => (int) $r->baiDang->nguoi_dung_id,
                 'trang_thai' => $r->baiDang->trang_thai,
@@ -254,15 +270,21 @@ class PostReportController extends Controller
         $query = CanhBaoGianLan::query()
             ->whereNull('chien_dich_id')
             ->where('mo_ta', 'like', 'USER_REPORT|post:' . (int) $baoCao->bai_dang_id . '|%')
-            ->whereIn('trang_thai', ['CHO_XU_LY', 'DA_KIEM_TRA', 'CANH_BAO_SAI']);
+            ->whereIn('trang_thai', ['CHO_XU_LY', 'DA_XU_LY']);
 
         if ($trangThaiBaoCao === 'DA_XU_LY') {
-            $query->update(['trang_thai' => 'DA_KIEM_TRA']);
+            $query->update([
+                'trang_thai' => 'DA_XU_LY',
+                'decision' => 'VI_PHAM',
+            ]);
             return;
         }
 
         if ($trangThaiBaoCao === 'TU_CHOI') {
-            $query->update(['trang_thai' => 'CANH_BAO_SAI']);
+            $query->update([
+                'trang_thai' => 'DA_XU_LY',
+                'decision' => 'KHONG_VI_PHAM',
+            ]);
         }
     }
 
@@ -282,7 +304,9 @@ class PostReportController extends Controller
 
         $items = collect();
 
-        if ($source === '' || $source === 'USER_REPORT') {
+        // User reports are only for POST targets (bai_dang). If we're querying campaign violations,
+        // do not mix in global USER_REPORT items (would leak unrelated post reports into campaign modal).
+        if (($source === '' || $source === 'USER_REPORT') && $baiDangId !== null) {
             $items = $items->concat($this->loadUserReportViolations($trangThai, $baiDangId, $limit));
         }
 
@@ -303,7 +327,7 @@ class PostReportController extends Controller
     {
         $query = BaoCaoBaiDang::query()
             ->with([
-                'baiDang:id,nguoi_dung_id,tieu_de,loai_bai,trang_thai',
+                'baiDang:id,nguoi_dung_id,tieu_de,mo_ta,hinh_anh,loai_bai,trang_thai',
                 'nguoiToCao:id,ho_ten,email',
             ])
             ->orderByDesc('created_at');
@@ -331,11 +355,14 @@ class PostReportController extends Controller
                 'reason_text' => $reasonMeta['description'],
                 'mo_ta' => $report->mo_ta,
                 'trang_thai' => $report->trang_thai,
+                'decision' => $report->trang_thai === 'DA_XU_LY' ? 'VI_PHAM' : ($report->trang_thai === 'TU_CHOI' ? 'KHONG_VI_PHAM' : null),
                 'created_at' => $report->created_at?->toIso8601String(),
                 'updated_at' => $report->updated_at?->toIso8601String(),
                 'bai_dang' => $report->baiDang ? [
                     'id' => (int) $report->baiDang->id,
                     'tieu_de' => $report->baiDang->tieu_de,
+                    'mo_ta' => $report->baiDang->mo_ta,
+                    'hinh_anh' => $report->baiDang->hinh_anh,
                     'loai_bai' => $report->baiDang->loai_bai,
                     'trang_thai' => $report->baiDang->trang_thai,
                     'nguoi_dung_id' => (int) $report->baiDang->nguoi_dung_id,
@@ -362,7 +389,7 @@ class PostReportController extends Controller
     ): Collection {
         $query = CanhBaoGianLan::query()->orderByDesc('created_at');
 
-        if (in_array($trangThai, ['CHO_XU_LY', 'DA_KIEM_TRA', 'CANH_BAO_SAI'], true)) {
+        if (in_array($trangThai, ['CHO_XU_LY', 'DA_XU_LY'], true)) {
             $query->where('trang_thai', $trangThai);
         }
 
@@ -371,7 +398,14 @@ class PostReportController extends Controller
         }
 
         if ($baiDangId !== null && $baiDangId > 0) {
-            $query->where('mo_ta', 'like', 'USER_REPORT|post:' . $baiDangId . '|%');
+            // Match alerts linked to this post:
+            // - Newer alerts use target_type/target_id
+            // - Legacy user-report meta stored in mo_ta: USER_REPORT|post:{id}|...
+            $query->where(function ($q) use ($baiDangId) {
+                $q->where(function ($qq) use ($baiDangId) {
+                    $qq->where('target_type', 'POST')->where('target_id', $baiDangId);
+                })->orWhere('mo_ta', 'like', 'USER_REPORT|post:' . $baiDangId . '|%');
+            });
         }
 
         if ($source === 'AI_CAMPAIGN') {
@@ -380,7 +414,11 @@ class PostReportController extends Controller
             $query->whereNull('chien_dich_id')
                 ->where('mo_ta', 'not like', 'USER_REPORT|post:%');
         } elseif ($source === 'AI_POST') {
-            $query->where('mo_ta', 'like', 'USER_REPORT|post:%');
+            $query->where(function ($q) {
+                $q->where(function ($qq) {
+                    $qq->where('target_type', 'POST')->whereNotNull('target_id');
+                })->orWhere('mo_ta', 'like', 'USER_REPORT|post:%');
+            });
         }
 
         $alerts = $query->limit($limit)->get();
@@ -399,7 +437,7 @@ class PostReportController extends Controller
 
         $posts = BaiDang::query()
             ->whereIn('id', array_values(array_unique(array_filter($postIds))))
-            ->get(['id', 'nguoi_dung_id', 'tieu_de', 'loai_bai', 'trang_thai'])
+            ->get(['id', 'nguoi_dung_id', 'tieu_de', 'mo_ta', 'hinh_anh', 'loai_bai', 'trang_thai'])
             ->keyBy('id');
 
         $campaigns = ChienDichGayQuy::query()
@@ -411,25 +449,35 @@ class PostReportController extends Controller
             $meta = $this->parseAlertMeta((string) ($alert->mo_ta ?? ''));
             $post = $meta['post_id'] ? $posts->get($meta['post_id']) : null;
             $campaign = $alert->chien_dich_id ? $campaigns->get((int) $alert->chien_dich_id) : null;
-            $itemSource = $meta['post_id'] ? 'AI_POST' : ($alert->chien_dich_id ? 'AI_CAMPAIGN' : 'AI_USER');
+            $targetType = strtoupper((string) ($alert->target_type ?? ''));
+            $itemSource = strtoupper((string) ($alert->source ?? 'AI'));
+            if ($itemSource === 'AI' && $targetType !== '') {
+                $itemSource = 'AI_' . $targetType;
+            }
+            if ($itemSource === 'AI' && $targetType === '') {
+                $itemSource = $meta['post_id'] ? 'AI_POST' : ($alert->chien_dich_id ? 'AI_CAMPAIGN' : 'AI_USER');
+            }
 
             return [
-                'id' => 'alert_' . (int) $alert->id,
+                'id' =>  (int) $alert->id,
                 'source' => $itemSource,
-                'target_type' => $meta['post_id'] ? 'POST' : ($alert->chien_dich_id ? 'CAMPAIGN' : 'USER'),
-                'target_id' => $meta['post_id'] ?: ($alert->chien_dich_id ? (int) $alert->chien_dich_id : (int) $alert->nguoi_dung_id),
+                'target_type' => $targetType !== '' ? $targetType : ($meta['post_id'] ? 'POST' : ($alert->chien_dich_id ? 'CAMPAIGN' : 'USER')),
+                'target_id' => (int) ($alert->target_id ?? ($meta['post_id'] ?: ($alert->chien_dich_id ? (int) $alert->chien_dich_id : (int) $alert->nguoi_dung_id))),
                 'report_id' => $meta['report_id'],
                 'alert_id' => (int) $alert->id,
                 'reason_code' => null,
-                'reason_title' => $alert->loai_gian_lan,
-                'reason_text' => $alert->loai_gian_lan,
+                'reason_title' => $alert->loai_canh_bao ?? $alert->loai_gian_lan,
+                'reason_text' => $alert->ly_do ?? $alert->loai_gian_lan,
                 'mo_ta' => $meta['user_description'] ?? ($meta['raw_description'] ?: $alert->mo_ta),
                 'trang_thai' => $alert->trang_thai,
+                'decision' => $alert->decision,
                 'created_at' => $alert->created_at?->toIso8601String(),
                 'updated_at' => null,
                 'bai_dang' => $post ? [
                     'id' => (int) $post->id,
                     'tieu_de' => $post->tieu_de,
+                    'mo_ta' => $post->mo_ta,
+                    'hinh_anh' => $post->hinh_anh,
                     'loai_bai' => $post->loai_bai,
                     'trang_thai' => $post->trang_thai,
                     'nguoi_dung_id' => (int) $post->nguoi_dung_id,
@@ -442,8 +490,12 @@ class PostReportController extends Controller
                 ] : null,
                 'nguoi_to_cao' => null,
                 'user_id' => (int) $alert->nguoi_dung_id,
-                'muc_rui_ro' => ((float) $alert->diem_rui_ro >= 70.0) ? 'HIGH' : 'LOW',
+                'muc_rui_ro' => $alert->muc_rui_ro ?? (((float) $alert->diem_rui_ro >= 70.0) ? 'HIGH' : 'LOW'),
                 'diem_rui_ro' => round((float) $alert->diem_rui_ro, 2),
+                'count' => (int) ($alert->count ?? 1),
+                'time_window_seconds' => $alert->time_window_seconds ? (int) $alert->time_window_seconds : null,
+                'window_started_at' => $alert->window_started_at?->toIso8601String(),
+                'details' => is_array($alert->details) ? $alert->details : null,
             ];
         });
     }
@@ -530,8 +582,34 @@ class PostReportController extends Controller
                 campaignId: null,
                 postId: $postId,
                 reason: $reasonLabel,
-                description: $description
+                description: $description,
+                scenario: AdminViolationDetectedNotification::SCENARIO_USER_REPORT_POST
             ));
         }
+    }
+    private function notifyUser(
+        BaoCaoBaiDang $baoCao,
+        string $trangThaiMoi,
+        ?string $adminNote = null
+    ): void {
+        $baoCao->loadMissing(['baiDang.nguoiDung']);
+        $post = $baoCao->baiDang;
+        $user = $post?->nguoiDung;
+        if (!$post || !$user) {
+            return;
+        }
+        $action = match ($trangThaiMoi) {
+            'DA_XU_LY' => 'suspended',      // Bài bị tạm dừng
+            'TU_CHOI' => 'rejected',         // Báo cáo bị từ chối
+            default => 'unknown',
+        };
+    
+        $user->notify(new UserViolationNotification(
+            action: $action,
+            targetType: 'post',
+            targetId: (int) $baoCao->bai_dang_id,
+            reason: $this->getReportReasonMeta($baoCao->ly_do)['title'],
+            description: $adminNote
+        ));
     }
 }

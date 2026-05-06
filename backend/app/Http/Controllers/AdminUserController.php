@@ -173,7 +173,8 @@ class AdminUserController extends Controller
 
         $baseQuery = CanhBaoGianLan::query()
             ->where('nguoi_dung_id', $id)
-            ->where('trang_thai', 'DA_KIEM_TRA');
+            ->where('trang_thai', 'DA_XU_LY')
+            ->where('decision', 'VI_PHAM');
 
         $campaignCount = (clone $baseQuery)
             ->whereNotNull('chien_dich_id')

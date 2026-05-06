@@ -17,8 +17,12 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
 use App\Services\ApprovalService;
 use App\Notifications\ApprovalNotification;
+use App\Notifications\AdminReviewRequiredNotification;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use App\Events\CampaignCreated;
+use App\Events\CampaignImportantUpdated;
 
 class CampaignController extends Controller
 {
@@ -112,6 +116,12 @@ class CampaignController extends Controller
             'ma_noi_dung_ck' => $maCK,
             'trang_thai' => 'CHO_XU_LY'
         ]);
+
+        $this->notifyAdminsForPendingCampaign($chienDich);
+        event(new CampaignCreated(
+            campaignId: (int) $chienDich->id,
+            ownerUserId: (int) ($user->id ?? 0),
+        ));
 
         return response()->json([
             'message' => 'Tạo chiến dịch thành công, chờ duyệt',
@@ -262,6 +272,16 @@ class CampaignController extends Controller
 
         $finalImages = array_values(array_merge($anh_cu, $anh_moi));
         
+        $before = [
+            'ten_chien_dich' => (string) $chienDich->ten_chien_dich,
+            'mo_ta' => (string) $chienDich->mo_ta,
+            'muc_tieu_tien' => (string) $chienDich->muc_tieu_tien,
+            'ngay_ket_thuc' => (string) $chienDich->ngay_ket_thuc,
+            'vi_tri' => (string) $chienDich->vi_tri,
+            'lat' => (string) $chienDich->lat,
+            'lng' => (string) $chienDich->lng,
+        ];
+
         $chienDich->update([
             'danh_muc_id' => $request->danh_muc_id,
             'ten_chien_dich' => $request->ten_chien_dich,
@@ -275,6 +295,31 @@ class CampaignController extends Controller
             'lat' => $request->lat,
             'lng' => $request->lng,
         ]);
+
+        $after = [
+            'ten_chien_dich' => (string) $chienDich->ten_chien_dich,
+            'mo_ta' => (string) $chienDich->mo_ta,
+            'muc_tieu_tien' => (string) $chienDich->muc_tieu_tien,
+            'ngay_ket_thuc' => (string) $chienDich->ngay_ket_thuc,
+            'vi_tri' => (string) $chienDich->vi_tri,
+            'lat' => (string) $chienDich->lat,
+            'lng' => (string) $chienDich->lng,
+        ];
+
+        $importantFields = ['ten_chien_dich', 'mo_ta', 'muc_tieu_tien'];
+        $changed = [];
+        foreach ($importantFields as $f) {
+            if (($before[$f] ?? null) !== ($after[$f] ?? null)) {
+                $changed[] = $f;
+            }
+        }
+        if ($changed !== []) {
+            event(new CampaignImportantUpdated(
+                campaignId: (int) $chienDich->id,
+                ownerUserId: (int) ($user->id ?? 0),
+                changedFields: $changed,
+            ));
+        }
 
         $images = array_map(function ($img) {
             if (str_starts_with($img, 'http')) {
@@ -346,7 +391,12 @@ class CampaignController extends Controller
         if ($request->trang_thai) {
             $query->where('trang_thai', $request->trang_thai);
         }
-
+        if ($request->boolean('only_violations')) {
+            $query->whereHas('canhBaoGianLan', function ($q) {
+                $q->where('target_type', 'campaign')
+                  ->where('trang_thai', 'CHO_XU_LY');
+            });
+        }
         $query->orderByRaw("
             CASE 
                 WHEN trang_thai = 'CHO_XU_LY' THEN 1
@@ -540,7 +590,11 @@ class CampaignController extends Controller
         $campaign = ChienDichGayQuy::findOrFail($id);
 
         $service->approve($campaign);
-
+        event(new CampaignCreated(
+            campaignId: (int) $campaign->id,
+            ownerUserId: (int) ($campaign->toChuc->user->id ?? 0),
+        ));
+        
         $user = $campaign->toChuc->user;
 
         $user->notify(new ApprovalNotification(
@@ -935,5 +989,21 @@ class CampaignController extends Controller
         return response()->json([
             'data' => $data
         ]);
+    }
+
+    private function notifyAdminsForPendingCampaign(ChienDichGayQuy $campaign): void
+    {
+        $admins = User::query()
+            ->whereHas('roles', fn ($q) => $q->where('ten_vai_tro', 'ADMIN'))
+            ->get();
+
+        foreach ($admins as $admin) {
+            $admin->notify(new AdminReviewRequiredNotification(
+                targetType: 'campaign',
+                targetId: (int) $campaign->id,
+                title: 'Có chiến dịch mới chờ duyệt',
+                message: 'Chiến dịch "' . $campaign->ten_chien_dich . '" đang chờ admin duyệt.'
+            ));
+        }
     }
 }

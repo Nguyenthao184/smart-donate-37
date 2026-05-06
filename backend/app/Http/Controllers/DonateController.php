@@ -10,9 +10,16 @@ use App\Models\ChienDichGayQuy;
 use Illuminate\Support\Facades\Http;
 use Carbon\Carbon;
 use App\Models\UngHo;
+use App\Services\RuleBasedFraudDetector;
+use App\Services\FraudDetectionService;
+use App\Events\DonationCreated;
 
 class DonateController extends Controller
 {
+    public function __construct(
+        private readonly RuleBasedFraudDetector $ruleDetector,
+        private readonly FraudDetectionService $fraudDetectionService
+    ) {}
     // Ủng hộ
     public function donate(DonateRequest $request)
     {
@@ -59,6 +66,8 @@ class DonateController extends Controller
                 ]);
 
             DB::commit();
+            app(FraudDetectionService::class)->checkUser((int) $user->id);
+            // Campaign fraud detection will be triggered when payment is confirmed (THANH_CONG).
 
             // ===== CASE 1: BANKING (QR) =====
             if ($request->phuong_thuc_thanh_toan === 'momo') {
@@ -434,6 +443,13 @@ class DonateController extends Controller
 
                 DB::commit();
 
+                // Trigger realtime campaign fraud detection only on confirmed donation
+                event(new DonationCreated(
+                    campaignId: (int) $campaign->id,
+                    donationId: (int) $ungHoLocked->id,
+                    donorUserId: (int) $ungHoLocked->nguoi_dung_id,
+                ));
+
                 return redirect()->away(
                     "http://localhost:5173/thanh-cong?" . http_build_query([
                         'status' => 'success',
@@ -564,6 +580,13 @@ class DonateController extends Controller
                     ->increment('so_tien_da_nhan', $ungHoLocked->so_tien);
 
                 DB::commit();
+
+                // Trigger realtime campaign fraud detection only on confirmed donation
+                event(new DonationCreated(
+                    campaignId: (int) $campaign->id,
+                    donationId: (int) $ungHoLocked->id,
+                    donorUserId: (int) $ungHoLocked->nguoi_dung_id,
+                ));
 
                 return response()->json(['message' => 'OK']);
             }

@@ -10,6 +10,7 @@ use App\Models\VaiTro;
 use App\Http\Requests\Organization\OrganizationRegisterRequest;
 use Illuminate\Support\Facades\DB;
 use App\Notifications\ApprovalNotification;
+use App\Notifications\AdminReviewRequiredNotification;
 use App\Services\ApprovalService;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
@@ -17,6 +18,7 @@ use Endroid\QrCode\Builder\Builder;
 use Endroid\QrCode\Writer\PngWriter;
 use Endroid\QrCode\Encoding\Encoding;
 use App\Models\ChienDichGayQuy;
+use App\Models\User;
 
 class OrganizationController extends Controller
 {
@@ -63,6 +65,8 @@ class OrganizationController extends Controller
                 : null;
 
             DB::commit();
+
+            $this->notifyAdminsForPendingOrganization($org);
 
             return response()->json([
                 'message' => 'Đăng ký thành công, vui lòng chờ admin duyệt',
@@ -523,5 +527,21 @@ class OrganizationController extends Controller
         }
 
         return $str;
+    }
+
+    private function notifyAdminsForPendingOrganization(XacMinhToChuc $org): void
+    {
+        $admins = User::query()
+            ->whereHas('roles', fn ($q) => $q->where('ten_vai_tro', 'ADMIN'))
+            ->get();
+
+        foreach ($admins as $admin) {
+            $admin->notify(new AdminReviewRequiredNotification(
+                targetType: 'organization',
+                targetId: (int) $org->id,
+                title: 'Có tổ chức mới chờ duyệt',
+                message: 'Tổ chức "' . $org->ten_to_chuc . '" vừa gửi hồ sơ xác minh.'
+            ));
+        }
     }
 }

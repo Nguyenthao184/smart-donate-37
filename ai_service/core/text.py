@@ -19,6 +19,10 @@ def normalize_semantic_text(text: str) -> str:
     - gộp khoảng trắng
     """
     value = (text or "").strip().lower()
+    try:
+        value = value.encode('latin1').decode('utf-8')
+    except Exception:
+        pass
     value = unicodedata.normalize("NFKD", value)
     value = "".join(ch for ch in value if not unicodedata.combining(ch))
     value = re.sub(r"[^\w\s]", " ", value, flags=re.UNICODE)
@@ -39,10 +43,11 @@ def has_multi_intent_overlap(target_text: str, cand_text: str) -> bool:
     Cầu ý định theo luật cho các tình huống quyên góp thường gặp.
     """
     rules: List[Tuple[Set[str], Set[str]]] = [
-        ({"quan ao", "quan", "ao", "do mac"}, {"ao", "quan", "mac", "chan", "am"}),
+        ({"quan ao", "do mac", "ao khoac", "quan jean"}, {"ao khoac", "quan jean", "do mac", "chan", "am"}),
         ({"thuc pham", "do an", "gao"}, {"gao", "mi", "my tom", "do an", "thuc pham"}),
-        ({"chay nha", "mat nha", "hoa hoan"}, {"chan", "noi", "bep", "do gia dung", "vat dung sinh hoat"}),
         ({"hoc phi", "sach vo", "hoc tap"}, {"sach", "vo", "tap", "laptop", "may tinh"}),
+        ({"do gia dung", "noi com", "noi", "bep"}, {"do sinh hoat", "noi nieu", "quat dien", "tu lanh", "may giat"}),
+        ({"giuong", "tu quan ao", "ban ghe"}, {"noi that", "do gia dung", "do sinh hoat"}),
     ]
     for target_terms, cand_terms in rules:
         if any(term in target_text for term in target_terms) and any(term in cand_text for term in cand_terms):
@@ -78,7 +83,69 @@ def normalize_category_label(raw: Optional[str], fallback_text: str) -> Tuple[Op
         return value, 1.0
     return infer_category_label(fallback_text)
 
+def should_reject_food_mismatch(target_text: str, cand_text: str) -> bool:
+    food_keywords = {
+        "gao": ["gao", "com"],
+        "mi": ["mi", "mi tom"],
+        "sua": ["sua tuoi", "sua bot"],
+    }
+    
+    target_hits = [k for k, kws in food_keywords.items() 
+                   if any(f" {kw} " in f" {target_text} " for kw in kws)]
+    cand_hits = [k for k, kws in food_keywords.items() 
+                 if any(f" {kw} " in f" {cand_text} " for kw in kws)]
 
+    if not target_hits or not cand_hits:
+        return False
+    
+    return len(set(target_hits) & set(cand_hits)) == 0
+
+def is_emergency_case(text: str) -> bool:
+    return any(k in text for k in ["chay nha", "mat nha", "hoa hoan"])
+    
+def should_reject_education_mismatch(target_text: str, cand_text: str) -> bool:
+    """
+    Chỉ reject khi cả hai đều có keywords giáo dục nhưng thuộc nhóm KHÁC.
+    - Nếu candidate không có keywords → không reject (để semantic + category gate xử lý)
+    - Nếu target không có keywords → không reject
+    - Chỉ reject khi rõ ràng khác nhóm (vd: target "sach/vo" nhưng candidate "laptop")
+    """
+    edu_groups = {
+        "books": ["sach", "vo"],        
+        "writing": ["but"],             
+        "tech": ["laptop", "may tinh"], 
+        "general": ["hoc tap"],         
+    }
+
+    target_hits = {}
+    for group, keywords in edu_groups.items():
+        if any(k in target_text for k in keywords):
+            target_hits[group] = True
+
+    cand_hits = {}
+    for group, keywords in edu_groups.items():
+        if any(k in cand_text for k in keywords):
+            cand_hits[group] = True
+
+    if not target_hits or not cand_hits:
+        return False
+
+    if set(target_hits.keys()) & set(cand_hits.keys()):
+        return False
+
+    return True
+def should_reject_wardrobe_clothes_mismatch(target_text: str, cand_text: str) -> bool:
+ 
+    wardrobe_keywords = ["tu quan ao"]
+    clothes_keywords = ["quan ao", "ao khoac", "do mac"]
+
+    target_is_wardrobe = any(k in target_text for k in wardrobe_keywords)
+    cand_is_clothes = any(k in cand_text for k in clothes_keywords)
+
+    target_is_clothes = any(k in target_text for k in clothes_keywords)
+    cand_is_wardrobe = any(k in cand_text for k in wardrobe_keywords)
+
+    return (target_is_wardrobe and cand_is_clothes) or (target_is_clothes and cand_is_wardrobe)
 def must_reject_by_rules(
     target_text: str,
     cand_text: str,
@@ -148,9 +215,10 @@ def _fold_vn_d(text: str) -> str:
 
 
 def _has_clothes_context(text: str) -> bool:
-    """Có tín hiệu quần áo (tránh chỉ dựa substring 'ao' quá ngắn)."""
-    if "clothes" in extract_intents(text):
+    intents = extract_intents(text)
+    if "clothes" in intents:
         return True
+
     return _contains_any(
         text,
         [
@@ -258,7 +326,19 @@ def extract_intents(text: str) -> Set[str]:
         intents.update({"household", "clothes", "food"})
 
     groups: Dict[str, List[str]] = {
-        "education": ["hoc tap", "sach", "vo", "but", "hoc phi", "laptop", "may tinh", "giao khoa"],
+        "education": [
+            "hoc tap",
+            "sach",
+            "vo",
+            "but",
+            "hoc phi",
+            "laptop",
+            "may tinh",
+            "giao khoa",
+            "cap hoc sinh",
+            "ban hoc",
+            "ghe hoc sinh",
+        ],
         "vehicle": ["xe may", "xe dap", "xe lan", "phuong tien"],
         "food": [
             "gao",
@@ -274,11 +354,46 @@ def extract_intents(text: str) -> Set[str]:
             "can gao",
             "can do an",
         ],
-        "clothes": ["quan ao", "ao", "quan", "quan jean", "jean", "ao khoac", "giay", "dep", "chan", "man", "do mac"],
-        "household": ["noi", "bep", "noi com", "gia dung", "do sinh hoat"],
+        "clothes": [
+            "quan ao",
+            "quan jean",
+            "jean",
+            "ao khoac",
+            "ao am",
+            "ao thun",
+            "giay",
+            "dep",
+            "chan",
+            "man",
+            "do mac",
+            "vay",
+        ],
+        "household": [
+            "noi",
+            "bep",
+            "bep gas",
+            "noi com",
+            "noi nieu",
+            "gia dung",
+            "do gia dung",
+            "do sinh hoat",
+            "quat dien",
+            "tu lanh",
+            "may giat",
+            "ban ghe",
+            "giuong",
+            "tu quan ao",
+        ],
         "medical": ["thuoc", "y te", "phau thuat", "vien phi", "kham benh"],
     }
+    is_wardrobe_context = "tu quan ao" in text
     for intent, keywords in groups.items():
+        if intent == "clothes":
+            # Tránh lẫn "tủ quần áo" (nội thất) với "quần áo mặc".
+            if is_wardrobe_context and not any(
+                k in text for k in ["ao khoac", "ao am", "ao thun", "quan jean", "giay", "dep", "do mac", "vay"]
+            ):
+                continue
         if any(k in text for k in keywords):
             intents.add(intent)
     return intents
