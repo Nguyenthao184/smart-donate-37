@@ -23,6 +23,7 @@ export default function useCampaigns({ params = null, featured = false } = {}) {
   const fetchCampaignForEdit     = useCampaignStore((s) => s.fetchCampaignForEdit);
   const handleUpdateCampaign     = useCampaignStore((s) => s.handleUpdateCampaign);
   const fetchWithdrawTransactions = useCampaignStore((s) => s.fetchWithdrawTransactions);
+  const fetchWithdrawWithExpenses = useCampaignStore((s) => s.fetchWithdrawWithExpenses);
   const handleCreateExpense      = useCampaignStore((s) => s.handleCreateExpense);
 
   const paramsKey = params ? JSON.stringify(params) : null;
@@ -58,6 +59,7 @@ export default function useCampaigns({ params = null, featured = false } = {}) {
     fetchCampaignForEdit,
     handleUpdateCampaign,
     fetchWithdrawTransactions,
+    fetchWithdrawWithExpenses,
     handleCreateExpense,
   };
 }

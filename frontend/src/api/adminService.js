@@ -162,3 +162,9 @@ export const getDashboardActivities = async () => {
   const res = await api.get("/admin/dashboard/recent-activities");
   return res.data;
 };
+// ===== VIOLATION REASONS =====
+// GET /admin/violation-reasons — danh sách lý do vi phạm chuẩn từ BE
+export const getViolationReasons = async () => {
+  const res = await api.get("/admin/violation-reasons");
+  return res.data;
+};

@@ -63,6 +63,12 @@ export const getWithdrawTransactions = async (campaignId) => {
   return res.data;
 };
 
+// GET /campaigns/{id}/withdraw-expenses — giao dịch rút + chi tiêu đã khai báo
+export const getWithdrawWithExpenses = async (campaignId) => {
+  const res = await api.get(`/campaigns/${campaignId}/withdraw-expenses`);
+  return res.data;
+};
+
 // POST /campaigns/{id}/expenses — khai báo hoạt động chi quỹ
 // payload: { giao_dich_quy_id, mo_ta?, chi_tiet: [{ten_hoat_dong, so_tien}, ...] }
 export const createExpense = async (campaignId, payload) => {

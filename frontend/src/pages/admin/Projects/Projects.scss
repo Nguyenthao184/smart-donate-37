@@ -203,3 +203,56 @@
 .sus-hint {
   font-size: 11px; color: #888; margin-top: 6px; font-style: italic;
 }
+// ── SuspendModal - Reason chips ──
+.sus-loading {
+  font-size: 13px; color: #aaa; padding: 12px 0;
+}
+
+.sus-reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.sus-reason-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 13px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid #e5e7eb;
+  background: #f9fafb;
+  color: #555;
+  transition: all 0.15s;
+
+  &:hover {
+    border-color: #f97316;
+    color: #f97316;
+    background: #fff7ed;
+  }
+
+  &--active {
+    border-color: #f97316;
+    background: #fff7ed;
+    color: #f97316;
+  }
+}
+
+.sus-reason-desc {
+  font-size: 12px;
+  color: #666;
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  border-left: 3px solid #f97316;
+  line-height: 1.5;
+}
+
+.sus-textarea--mt {
+  margin-top: 8px;
+}
