@@ -109,31 +109,35 @@ export default function ReportSheet({ visible, onClose, onSubmit, loading }) {
     if (!onSubmit || !selected) return;
 
     try {
-      await onSubmit({
+      const ok = await onSubmit({
         ly_do: selected.key.toUpperCase(),
         mo_ta: subReason,
       });
 
+      // ❌ không thành công thì dừng
+      if (!ok) return;
+
       setView("success");
 
       notification.success({
-        message: "Báo cáo thành công",
-        description: "Chúng tôi đã nhận báo cáo của bạn.",
+        message: "Đã gửi báo cáo",
+        description:
+          "Cảm ơn bạn đã báo cáo. Admin sẽ xem xét bài đăng này trong thời gian sớm nhất.",
         placement: "topRight",
       });
     } catch (err) {
       console.error(err);
-
+  
       setView("list");
-
+  
       notification.error({
         message: "Gửi báo cáo thất bại",
         description:
-          err?.response?.data?.message || "Đã xảy ra lỗi, vui lòng thử lại.",
+          err?.response?.data?.message ||
+          "Đã xảy ra lỗi, vui lòng thử lại.",
       });
     }
   };
-
   if (!visible) return null;
 
   return (

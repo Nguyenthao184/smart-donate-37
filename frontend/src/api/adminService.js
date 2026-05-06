@@ -70,10 +70,9 @@ export const getAdminPostReports = async (params = { limit: 100 }) => {
 };
 
 // trang_thai: CHO_XU_LY | DA_XU_LY | TU_CHOI
-export const updateAdminPostReport = async (id, trang_thai) => {
-  const res = await api.post(`/admin/post-reports/${id}`, { trang_thai });
-  return res.data;
-};
+export const updateAdminPostReport = (id, data) =>
+  api.post(`/admin/post-reports/${id}`, data);
+
 
 // ===== CAMPAIGNS =====
 // params: { page, per_page, keyword, trang_thai, danh_muc_id }

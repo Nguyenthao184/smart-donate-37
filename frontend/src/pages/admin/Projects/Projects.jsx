@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { notification } from "antd";
 import {
   FiSearch, FiCheck, FiX, FiEye, FiPause,
@@ -6,7 +7,7 @@ import {
   FiTarget, FiUser, FiCalendar, FiTrendingUp, FiHome,
 } from "react-icons/fi";
 import useAdminStore from "../../../store/adminStore";
-import { getAdminCampaignDetail } from "../../../api/adminService";
+import { getAdminCampaignDetail, getAdminCampaigns } from "../../../api/adminService";
 import Pagination from "../../../components/Pagination";
 import ViolationsModal from "./ViolationsModal";
 import SuspendModal from "./SuspendModal";
@@ -22,12 +23,15 @@ const STATUS_MAP = {
 };
 
 export default function Projects() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [searchInput, setSearchInput] = useState("");
   const [filter, setFilter]           = useState("all");
   const [selected, setSelected]       = useState(null);
   const [detail, setDetail]           = useState(null);
   const [submitting, setSubmitting]   = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [allCampaigns, setAllCampaigns] = useState([]);
   // Modal states
   const [violationsTarget, setViolationsTarget] = useState(null); // { id, ten, type }
   const [suspendTarget, setSuspendTarget]       = useState(null); // { id, ten }
@@ -44,7 +48,22 @@ export default function Projects() {
     fetchCampaigns({ page: 1 });
     fetchCampaignsSummary();
     fetchViolationSets();
-  }, []);
+  }, [fetchCampaigns, fetchCampaignsSummary, fetchViolationSets]);
+
+  // Load full campaign list (for correct "Vi phạm" count + FE-only violations filter)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await getAdminCampaigns({ page: 1, per_page: 500 });
+        const list = Array.isArray(res?.data) ? res.data : (res?.data?.data || []);
+        if (!cancelled) setAllCampaigns(list);
+      } catch (e) {
+        console.error("Lỗi lấy full campaigns:", e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [campaignViolationSet]);
 
   // Debounce search
   useEffect(() => {
@@ -54,12 +73,17 @@ export default function Projects() {
       }
     }, 400);
     return () => clearTimeout(t);
-  }, [searchInput]);
+  }, [searchInput, campaignsParams.keyword, fetchCampaigns]);
 
   // Filter trạng thái → server-side
   useEffect(() => {
-    fetchCampaigns({ page: 1, trang_thai: filter === "all" ? "" : filter });
-  }, [filter]);
+    // "violations" là filter FE-only → không gọi BE ở đây
+    if (filter === "violations") return;
+
+    let filterValue = "";
+    if (filter !== "all") filterValue = filter;
+    fetchCampaigns({ page: 1, trang_thai: filterValue });
+  }, [filter, fetchCampaigns]);
 
   async function approve(id) {
     if (submitting) return;
@@ -131,13 +155,54 @@ export default function Projects() {
     }
   }
 
+  useEffect(() => {
+    const openCampaignId = location.state?.openCampaignId;
+    if (!openCampaignId) return;
+    navigate("/admin/projects", { replace: true, state: {} });
+    (async () => {
+      setSelected({ id: openCampaignId });
+      setDetail(null);
+      setLoadingDetail(true);
+      try {
+        const res = await getAdminCampaignDetail(openCampaignId);
+        setDetail(res.data || res);
+      } catch (e) {
+        console.error("Lỗi lấy chi tiết chiến dịch:", e);
+      } finally {
+        setLoadingDetail(false);
+      }
+    })();
+  }, [location.state?.openCampaignId, navigate]);
+
   // Stats từ summary (không phụ thuộc page hiện tại)
+  const violationCount = (allCampaigns?.length ? allCampaigns : campaigns).filter(
+    (c) => c.trang_thai !== "CHO_XU_LY" && campaignViolationSet?.has(c.id)
+  ).length;
   const stats = [
     { label: "Tổng",       val: campaignsSummary.total,     c: "#dfdbfd",  filter: "all" },
     { label: "Chờ duyệt",  val: campaignsSummary.pending,   c: "#fef9c3",  filter: "CHO_XU_LY" },
     { label: "Đang chạy",  val: campaignsSummary.active,    c: "#d6fce4",  filter: "HOAT_DONG" },
     { label: "Hoàn thành", val: campaignsSummary.completed, c: "#dbeafe",  filter: "HOAN_THANH" },
+    { label: "Vi phạm",    val: violationCount,             c: "#fecaca",  filter: "violations" }, // ✅ NEW
+
   ];
+
+  const visibleCampaigns =
+    filter === "violations"
+      ? (allCampaigns || []).filter(
+          (c) => c.trang_thai !== "CHO_XU_LY" && campaignViolationSet?.has(c.id)
+        )
+      : campaigns;
+
+  const tableMeta =
+    filter === "violations"
+      ? {
+          current_page: 1,
+          last_page: 1,
+          total: visibleCampaigns.length,
+          per_page: Math.max(visibleCampaigns.length, 1),
+        }
+      : campaignsMeta;
 
   return (
     <div className="prj">
@@ -180,6 +245,7 @@ export default function Projects() {
             </div>
             <select className="adm-select" value={filter} onChange={e => setFilter(e.target.value)}>
               <option value="all">Tất cả</option>
+              <option value="violations">Vi phạm</option>
               <option value="CHO_XU_LY">Chờ duyệt</option>
               <option value="HOAT_DONG">Đang chạy</option>
               <option value="TAM_DUNG">Tạm dừng</option>
@@ -208,9 +274,8 @@ export default function Projects() {
                 </tr>
               </thead>
               <tbody>
-                {campaigns.length === 0 ? (
-                  <tr><td colSpan={8}><div className="adm-empty"><div className="adm-empty__icon">📂</div><div className="adm-empty__text">Không có chiến dịch</div></div></td></tr>
-                ) : campaigns.map((p, i) => {
+              {visibleCampaigns.length === 0 ? (                  <tr><td colSpan={8}><div className="adm-empty"><div className="adm-empty__icon">📂</div><div className="adm-empty__text">Không có chiến dịch</div></div></td></tr>
+                ) : visibleCampaigns.map((p, i) => {
                   const pct    = p.muc_tieu_tien > 0 ? Math.round((p.so_tien_da_nhan || 0) * 100 / p.muc_tieu_tien) : 0;
                   const status = STATUS_MAP[p.trang_thai] || { label: p.trang_thai, cls: "green" };
                   const isPending = p.trang_thai === "CHO_XU_LY";
@@ -248,7 +313,7 @@ export default function Projects() {
                         </div>
                       </td>
                       <td>
-                        {campaignViolationSet?.has(p.id) ? (
+                        {!isPending && campaignViolationSet?.has(p.id) ? (
                           <button
                             type="button"
                             className="adm-tag adm-tag--red"
@@ -281,9 +346,12 @@ export default function Projects() {
         </div>
 
         <Pagination
-          meta={campaignsMeta}
+          meta={tableMeta}
           loading={loadingCampaigns}
-          onChange={(page) => fetchCampaigns({ page })}
+          onChange={(page) => {
+            if (filter === "violations") return;
+            fetchCampaigns({ page });
+          }}
         />
       </div>
 

@@ -203,3 +203,22 @@
 .sus-hint {
   font-size: 11px; color: #888; margin-top: 6px; font-style: italic;
 }
+.prj {
+  &__mini-stats {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr); // ✅ Từ 4 sang 5
+    gap: 12px;
+    margin-bottom: 20px;
+    
+    @media (max-width: 1024px) {
+      grid-template-columns: repeat(3, 1fr); // Tablet: 3 cột
+    }
+    @media (max-width: 768px) {
+      grid-template-columns: repeat(2, 1fr); // Mobile: 2 cột
+    }
+  }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}

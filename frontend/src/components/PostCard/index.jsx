@@ -93,13 +93,13 @@ export default function PostCard({ post, style, onDelete }) {
 
   const statusOptions = isCho
     ? [
-        { label: "Còn tặng", value: "CON_TANG", icon: <FaGift /> },
-        { label: "Đã tặng xong", value: "DA_TANG", icon: <FaCheckCircle /> },
-      ]
+      { label: "Còn tặng", value: "CON_TANG", icon: <FaGift /> },
+      { label: "Đã tặng xong", value: "DA_TANG", icon: <FaCheckCircle /> },
+    ]
     : [
-        { label: "Còn nhận", value: "CON_NHAN", icon: <FaInbox /> },
-        { label: "Đã nhận đủ", value: "DA_NHAN", icon: <FaCheckCircle /> },
-      ];
+      { label: "Còn nhận", value: "CON_NHAN", icon: <FaInbox /> },
+      { label: "Đã nhận đủ", value: "DA_NHAN", icon: <FaCheckCircle /> },
+    ];
 
   const images = post.images || [];
   const imgCount = images.length;
@@ -188,25 +188,25 @@ export default function PostCard({ post, style, onDelete }) {
         ? post
         : fetchedPost
           ? {
-              id: fetchedPost.id,
-              type: fetchedPost.loai_bai?.toLowerCase(),
-              user: {
-                id: fetchedPost.nguoi_dung?.id,
-                name: fetchedPost.nguoi_dung?.ho_ten,
-                avatar: fetchedPost.nguoi_dung?.ho_ten?.charAt(0) || "?",
-                color: "#1890ff",
-              },
-              location: fetchedPost.dia_diem,
-              time: formatPostTime(fetchedPost.created_at),
-              title: fetchedPost.tieu_de,
-              desc: fetchedPost.mo_ta,
-              images: fetchedPost.hinh_anh_urls || [],
-              trang_thai: fetchedPost.trang_thai,
-              nguoi_dung_id: fetchedPost.nguoi_dung?.id,
-              liked: fetchedPost.da_thich ?? false,
-              so_luot_thich: fetchedPost.so_luot_thich ?? 0,
-              aiSuggestions: [],
-            }
+            id: fetchedPost.id,
+            type: fetchedPost.loai_bai?.toLowerCase(),
+            user: {
+              id: fetchedPost.nguoi_dung?.id,
+              name: fetchedPost.nguoi_dung?.ho_ten,
+              avatar: fetchedPost.nguoi_dung?.ho_ten?.charAt(0) || "?",
+              color: "#1890ff",
+            },
+            location: fetchedPost.dia_diem,
+            time: formatPostTime(fetchedPost.created_at),
+            title: fetchedPost.tieu_de,
+            desc: fetchedPost.mo_ta,
+            images: fetchedPost.hinh_anh_urls || [],
+            trang_thai: fetchedPost.trang_thai,
+            nguoi_dung_id: fetchedPost.nguoi_dung?.id,
+            liked: fetchedPost.da_thich ?? false,
+            so_luot_thich: fetchedPost.so_luot_thich ?? 0,
+            aiSuggestions: [],
+          }
           : null;
 
   useEffect(() => {
@@ -250,11 +250,6 @@ export default function PostCard({ post, style, onDelete }) {
     await toggleLike(post.id);
   };
 
-  const handleToggleDesc = (e) => {
-    e.stopPropagation();
-    setExpanded((prev) => !prev);
-  };
-
   const handleMenuToggle = (e) => {
     e.stopPropagation();
     setMenuOpen((prev) => !prev);
@@ -269,8 +264,36 @@ export default function PostCard({ post, style, onDelete }) {
   const handleSubmitReport = async (data) => {
     try {
       setReportLoading(true);
-      await reportPost(post.id, data);
-      setReportOpen(false);
+  
+      const res = await reportPost(post.id, data);
+  
+      // `reportPost()` hiện tại trả về `res.data` (không có `status`),
+      // nên coi thành công nếu BE trả về payload hợp lệ.
+      return !!(res && (res?.data || res?.message || res?.id));
+    } catch (err) {
+      const status = err?.response?.status;
+      const apiMessage = err?.response?.data?.message;
+  
+      // ⚠️ report trùng
+      if (
+        status === 422 &&
+        apiMessage?.includes("đã gửi báo cáo")
+      ) {
+        notification.warning({
+          message: "Bạn đã báo cáo bài viết này trước đó",
+          description: "Báo cáo hiện vẫn đang chờ xử lý.",
+        });
+  
+        return false;
+      }
+  
+      // ❌ lỗi khác
+      notification.error({
+        message: "Gửi báo cáo thất bại",
+        description: apiMessage || "Đã xảy ra lỗi.",
+      });
+  
+      return false;
     } finally {
       setReportLoading(false);
     }
@@ -505,6 +528,10 @@ export default function PostCard({ post, style, onDelete }) {
 
           <div
             className={`post-card__desc${expanded ? "" : " post-card__desc--clamped"}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              setExpanded((prev) => !prev);
+            }}
           >
             {post.desc}
           </div>
@@ -561,11 +588,10 @@ export default function PostCard({ post, style, onDelete }) {
                 </span>
               )}
               <span
-                className={`post-card__status-tag ${
-                  isDone
+                className={`post-card__status-tag ${isDone
                     ? "post-card__status-tag--xong"
                     : "post-card__status-tag--con"
-                }`}
+                  }`}
               >
                 {statusIconMap[rawStatus]}
                 {statusLabelMap[rawStatus]}
@@ -895,15 +921,13 @@ export default function PostCard({ post, style, onDelete }) {
                     {statusOptions.map((s) => (
                       <button
                         key={s.value}
-                        className={`edit-modal__status-chip${
-                          editData.trang_thai === s.value ? " active" : ""
-                        }${
-                          isStatusDone(s.value)
+                        className={`edit-modal__status-chip${editData.trang_thai === s.value ? " active" : ""
+                          }${isStatusDone(s.value)
                             ? " chip--done"
                             : isCho
                               ? " chip--give"
                               : " chip--receive"
-                        }`}
+                          }`}
                         onClick={() =>
                           setEditData((prev) => ({
                             ...prev,

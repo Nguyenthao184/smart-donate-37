@@ -8,11 +8,16 @@ import {
   FiCheckCircle,
   FiXCircle,
   FiLock,
+  FiShield,
+  FiAlertTriangle,
+  FiFolder,
+  FiUsers,
 } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
 import { formatPostTime } from "../../utils/formatTime";
 import { getPostDetail } from "../../api/postService";
 import PostDetailModal from "../PostModal/index";
-import useNotificationStore from "../../store/notificationStore";
+import useNotificationStore, { formatViolation, } from "../../store/notificationStore";
 import useAuthStore from "../../store/authStore";
 import "./styles.scss";
 
@@ -24,6 +29,14 @@ const getNotificationMeta = (notification) => {
   const loai = data.loai || data.type;
 
   switch (loai) {
+    case "admin_violation_detected":
+      return { icon: <FiShield size={18} />, color: "#7c3aed", bg: "#f5f3ff" };
+    case "admin_review_required":
+      return { icon: <FiFolder size={18} />, color: "#d97706", bg: "#fffbeb" };
+    case "post_report_resolution":
+      return { icon: <FiAlertTriangle size={18} />, color: "#dc2626", bg: "#fef2f2" };
+    case "approval":
+      return { icon: <FiCheckCircle size={18} />, color: "#16a34a", bg: "#f0fdf4" };
     case "bai_dang_duoc_thich":
       return { icon: <FiHeart size={18} />, color: "#e0245e", bg: "#fce8ef" };
     case "bai_dang_duoc_binh_luan":
@@ -65,6 +78,34 @@ const getNotificationText = (notification) => {
   const loai = data.loai || data.type;
 
   switch (loai) {
+    case "admin_violation_detected":
+      return {
+        main: data.message || "Cảnh báo vi phạm cần xử lý",
+        sub:
+          data.reason ||
+          data.mo_ta ||
+          (data.post_id ? `Bài đăng #${data.post_id}` : null) ||
+          (data.campaign_id ? `Chiến dịch #${data.campaign_id}` : null),
+      };
+
+    case "admin_review_required":
+      return {
+        main: data.title || data.message || "Cần admin xem xét",
+        sub: data.message && data.title !== data.message ? data.message : null,
+      };
+
+    case "post_report_resolution":
+      return {
+        main: data.message || "Cập nhật xử lý báo cáo bài đăng",
+        sub: data.mo_ta || data.reason || null,
+      };
+
+    case "approval":
+      return {
+        main: data.message || "Thông báo phê duyệt",
+        sub: data.ly_do || null,
+      };
+
     case "bai_dang_duoc_thich":
       return {
         main: (
@@ -111,11 +152,35 @@ const getNotificationText = (notification) => {
 /* ------------------------------------------------------------------ */
 /*  Helper: URL điều hướng khi click                                   */
 /* ------------------------------------------------------------------ */
-const getNavigatePath = (notification) => {
+const getNavigatePath = (notification, { isAdmin } = {}) => {
   const data = notification.data || {};
   const loai = data.loai || data.type;
 
   switch (loai) {
+    case "admin_violation_detected":
+      return isAdmin ? "/admin/fraud-alerts" : null;
+
+    case "admin_review_required":
+      if (!isAdmin) return null;
+      if (data.review_kind === "organization_verification") return "/admin/users";
+      if (data.review_kind === "campaign_pending_review") return "/admin/projects";
+      return "/admin/dashboard";
+
+    case "post_report_resolution":
+      if (data.target_type === "post" && data.target_id) {
+        return `/bang-tin?post=${data.target_id}`;
+      }
+      return null;
+
+    case "approval":
+      if (data.target_type === "campaign" && data.target_id) {
+        return `/chien-dich/chi-tiet/${data.target_id}`;
+      }
+      if (data.target_type === "organization") {
+        return "/profile";
+      }
+      return "/profile";
+
     // Bình luận hoặc reply → mở modal bài đăng, trỏ vào comment
     case "bai_dang_duoc_binh_luan":
     case "reply_comment":
@@ -150,8 +215,16 @@ const timeAgo = (dateStr) => {
 /* ------------------------------------------------------------------ */
 /*  Component chính                                                     */
 /* ------------------------------------------------------------------ */
-export default function NotificationDropdown() {
+export default function NotificationDropdown({ triggerClassName = "app-header__iconBtn" }) {
+  const navigate = useNavigate();
   const { user } = useAuthStore();
+  const roles = useAuthStore((s) => s.roles);
+  const isAdmin = Array.isArray(roles)
+    ? roles.some(
+      (r) =>
+        r === "ADMIN" || r?.ten === "ADMIN" || r?.ten_vai_tro === "ADMIN",
+    )
+    : false;
   const {
     notifications,
     unreadCount,
@@ -177,13 +250,19 @@ export default function NotificationDropdown() {
         unsubscribeNotifications(user.id);
       }
     };
-  }, [user?.id]);
+  }, [user?.id, fetchNotifications, subscribeNotifications, unsubscribeNotifications]);
 
   const handleClickNotif = async (notif) => {
     if (!notif.read_at) await markAsRead(notif.id);
 
     const data = notif.data || {};
     const loai = data.loai || data.type;
+
+    const path = getNavigatePath(notif, { isAdmin });
+    if (path) {
+      navigate(path);
+      return;
+    }
 
     const postRelated = [
       "bai_dang_duoc_binh_luan",
@@ -227,6 +306,40 @@ export default function NotificationDropdown() {
       }
     }
   };
+  const grouped = {};
+  const normalNotifications = [];
+
+  notifications.forEach((n) => {
+    const d = n.data || {};
+    const loai = d.loai || d.type;
+
+    // Group only violation alerts by user_id (avoid swallowing review-required items)
+    if (loai === "admin_violation_detected" && (d.user_id || d.nguoi_dung_id)) {
+      const userId =
+        d.user_id ||
+        d.nguoi_dung_id ||
+        "unknown";
+
+      if (!grouped[userId]) {
+        grouped[userId] = [];
+      }
+
+      grouped[userId].push(n);
+    } else {
+      normalNotifications.push(n);
+    }
+  });
+
+  const groupedNotifications = [
+    ...Object.values(grouped).map((items) => ({
+      type: "group",
+      items,
+    })),
+    ...normalNotifications.map((item) => ({
+      type: "single",
+      item,
+    })),
+  ];
 
   const dropdownContent = (
     <div className="notif-dropdown">
@@ -252,11 +365,78 @@ export default function NotificationDropdown() {
             />
           </div>
         ) : (
-          notifications.map((notif) => {
+          groupedNotifications.map((entry) => {
+            if (entry.type === "group") {
+              const group = entry.items;
+              const first = group[0];
+
+              return (
+                <div
+                  key={`group-${first.id}`}
+                  className="notif-item notif-item--group"
+                >
+                  <div
+                    className="notif-item__icon"
+                    style={{
+                      background: "#f5f3ff",
+                      color: "#7c3aed",
+                    }}
+                  >
+                    <FiShield size={18} />
+                  </div>
+
+                  <div className="notif-item__body">
+                    <p className="notif-item__msg">
+                      {(first.data?.user_name ||
+                        `User #${first.data?.user_id}`)}
+                      {" "}có {group.length} cảnh báo vi phạm
+                    </p>
+
+                    <div className="notif-item__sub">
+                      {group.slice(0, 3).map((n) => {
+                        const d = n.data || {};
+
+                        const violation =
+                          d.violation_code ||
+                          d.reason ||
+                          d.loai_canh_bao;
+
+                        const v = formatViolation(violation);
+                        const source = String(d.source || "")
+    .replace(/\[|\]/g, "")
+    .split("_")[0];
+                        return (
+                          <div key={n.id}>
+                            • [{source}]{v.title}
+                          </div>
+                        );
+                      })}
+
+                      {group.length > 3 && (
+                        <div>
+                          + {group.length - 3} cảnh báo khác
+                        </div>
+                      )}
+                    </div>
+
+                    <span className="notif-item__time">
+                      {timeAgo(first.created_at)}
+                    </span>
+                  </div>
+
+                  <span className="notif-item__dot" />
+                </div>
+              );
+            }
+
+            const notif = entry.item;
             const { icon, color, bg } = getNotificationMeta(notif);
             const { main, sub } = getNotificationText(notif);
             const isUnread = !notif.read_at;
-            const hasLink = !!getNavigatePath(notif);
+            const hasLink = !!getNavigatePath(notif, { isAdmin }) ||
+              ["bai_dang_duoc_binh_luan", "reply_comment", "bai_dang_duoc_thich"].includes(
+                notif.data?.loai || notif.data?.type,
+              );
 
             return (
               <div
@@ -304,7 +484,7 @@ export default function NotificationDropdown() {
       >
         <button
           type="button"
-          className="app-header__iconBtn"
+          className={triggerClassName}
           aria-label="Thông báo"
         >
           <Badge count={unreadCount} size="small" offset={[0, 4]}>

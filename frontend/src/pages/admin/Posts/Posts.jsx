@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { notification } from "antd";
 import {
   FiSearch, FiEye, FiFileText, FiPause,
@@ -21,6 +22,8 @@ const STATUS_MAP = {
 };
 
 export default function Posts() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [searchInput, setSearchInput] = useState("");
   const [filter, setFilter]           = useState("all");
   const [selected, setSelected]       = useState(null);
@@ -105,6 +108,25 @@ export default function Posts() {
       setLoadingDetail(false);
     }
   }
+
+  useEffect(() => {
+    const openPostId = location.state?.openPostId;
+    if (!openPostId) return;
+    navigate("/admin/posts", { replace: true, state: {} });
+    (async () => {
+      setSelected({ id: openPostId });
+      setDetail(null);
+      setLoadingDetail(true);
+      try {
+        const res = await getAdminPostDetail(openPostId);
+        setDetail(res.data || res);
+      } catch (e) {
+        console.error("Lỗi lấy chi tiết bài đăng:", e);
+      } finally {
+        setLoadingDetail(false);
+      }
+    })();
+  }, [location.state?.openPostId, navigate]);
 
   const stats = [
     { label: "Tổng bài", val: postsSummary.total,   c: "#dfdbfd",  filter: "all" },
