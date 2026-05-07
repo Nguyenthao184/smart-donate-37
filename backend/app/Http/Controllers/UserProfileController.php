@@ -192,7 +192,7 @@ class UserProfileController extends Controller
 
         // 2. Tổ chức
         $xacMinh = XacMinhToChuc::where('nguoi_dung_id', $id)
-            ->where('trang_thai', 'DA_DUYET')
+            ->where('trang_thai', 'CHAP_NHAN')
             ->select('ten_to_chuc', 'mo_ta', 'loai_hinh')
             ->latest()
             ->first();
