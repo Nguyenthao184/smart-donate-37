@@ -38,6 +38,12 @@ const getAvatar = (url) => {
   return url;
 };
 
+const fixAvatarUrl = (url) => {
+  if (!url) return null;
+  if (url.startsWith("http://")) return url.replace("http://", "https://");
+  return url;
+};
+
 function CommentBubble({
   comment,
   onReply,
@@ -103,9 +109,14 @@ function CommentBubble({
 export default function PostDetailModal({ post, visible, onClose }) {
   const { toggleLike, posts } = usePostStore();
   const postFromStore = posts.find((p) => p.id === post?.id);
-  const liked = postFromStore?.liked ?? false;
-  const likeCount = postFromStore?.so_luot_thich ?? 0;
-  const cmtCount = postFromStore?.so_binh_luan ?? 0;
+  const liked = postFromStore?.liked ?? post?.liked ?? false;
+  const likeCount =
+    postFromStore?.so_luot_thich ?? post?.likeCount ?? post?.so_luot_thich ?? 0;
+  const cmtCount =
+    postFromStore?.so_binh_luan ??
+    post?.commentCount ??
+    post?.so_binh_luan ??
+    0;
   const [activePostId, setActivePostId] = useState(null);
   const { fetchPostDetail, postDetail } = usePostStore();
   const [commentText, setCommentText] = useState("");
@@ -158,6 +169,10 @@ export default function PostDetailModal({ post, visible, onClose }) {
                 id: fetchedPost.nguoi_dung?.id,
                 name: fetchedPost.nguoi_dung?.ho_ten,
                 avatar: fetchedPost.nguoi_dung?.ho_ten?.charAt(0) || "?",
+                avatar_url:
+                  p.nguoi_dung?.anh_dai_dien ||
+                  p.nguoi_dung?.avatar_url ||
+                  null,
                 color: "#1890ff",
               },
               location: fetchedPost.dia_diem,
@@ -286,6 +301,34 @@ export default function PostDetailModal({ post, visible, onClose }) {
     }
   };
 
+  const handleShare = async (e) => {
+    e.stopPropagation();
+    const url = `https://smartdonate-phi.vercel.app/bai-dang/${post.id}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: post.title,
+          text: `${post.title} — SmartDonate`,
+          url,
+        });
+        return;
+      } catch {}
+    }
+
+    try {
+      await navigator.clipboard.writeText(url);
+      notification.success({
+        message: "Đã sao chép liên kết",
+        description: "Bạn có thể dán vào Messenger, Zalo, Facebook...",
+        placement: "topRight",
+        duration: 2,
+      });
+    } catch {
+      notification.error({ message: "Không thể sao chép, thử lại nhé" });
+    }
+  };
+
   const toggleReplies = (commentId) => {
     setExpandedReplies((prev) => ({
       ...prev,
@@ -316,7 +359,31 @@ export default function PostDetailModal({ post, visible, onClose }) {
                 className="pdc__avatar"
                 style={{ background: displayPost.user.color }}
               >
-                {displayPost.user.avatar}
+                {(() => {
+                  const rawUrl =
+                    displayPost.user?.avatar_url ||
+                    displayPost.user?.anh_dai_dien ||
+                    null;
+                  const finalAvatar = fixAvatarUrl(getAvatar(rawUrl));
+                  return finalAvatar ? (
+                    <img
+                      src={finalAvatar}
+                      alt="avatar"
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        borderRadius: "50%",
+                      }}
+                    />
+                  ) : (
+                    <span
+                      style={{ color: "#fff", fontWeight: 600, fontSize: 16 }}
+                    >
+                      {displayPost.user.avatar}
+                    </span>
+                  );
+                })()}
               </div>
               <div className="pdc__user-info">
                 <div className="pdc__username">{displayPost.user.name}</div>
@@ -429,7 +496,10 @@ export default function PostDetailModal({ post, visible, onClose }) {
                 <FiMessageCircle size={19} />
                 <span>Nhắn tin</span>
               </button>
-              <button className="pdc__action-btn pdc__action-btn--share">
+              <button
+                className="pdc__action-btn pdc__action-btn--share"
+                onClick={handleShare}
+              >
                 <FiSend size={19} />
                 <span>Chia sẻ</span>
               </button>

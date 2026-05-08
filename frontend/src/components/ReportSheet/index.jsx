@@ -139,6 +139,10 @@ export default function ReportSheet({ visible, onClose, onSubmit, loading }) {
                     onClick={() => handleSelectReason(r)}
                   >
                     <span className="report-item__label">{r.label}</span>
+                    <FiChevronRight
+                      size={18}
+                      className="report-item__chevron"
+                    />
                   </button>
                   {i < REPORT_REASONS.length - 1 && (
                     <div className="report-sheet__sep" />
@@ -175,10 +179,6 @@ export default function ReportSheet({ visible, onClose, onSubmit, loading }) {
                     disabled={loading}
                   >
                     <span className="report-item__label">{s}</span>
-                    <FiChevronRight
-                      size={18}
-                      className="report-item__chevron"
-                    />
                   </button>
                   {i < selected.subs.length - 1 && (
                     <div className="report-sheet__sep" />
