@@ -205,6 +205,29 @@ class DashboardController extends Controller
 
         return response()->json($result);
     }
+    public function communityStats()
+    {
+        $soBaiTrongTuan = DB::table('bai_dang')
+            ->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])
+            ->count();
+
+        $tongDoDaTang = DB::table('bai_dang')
+            ->where('loai_bai', 'CHO')
+            ->where('trang_thai', 'DA_TANG')
+            ->sum('so_luong');
+
+        $soNguoiDuocHoTro = DB::table('bai_dang')
+            ->where('loai_bai', 'NHAN')
+            ->where('trang_thai', 'DA_NHAN')
+            ->whereNotNull('nguoi_dung_id')
+            ->distinct()
+            ->count('nguoi_dung_id');
+        return response()->json([
+            'so_bai_trong_tuan' => $soBaiTrongTuan,
+            'tong_do_da_tang' => $tongDoDaTang,
+            'so_nguoi_duoc_tang' => $soNguoiDuocHoTro,
+        ]);
+    }
 
     //các chiến dịch khác
     public function otherCampaigns()
