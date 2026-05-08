@@ -20,6 +20,9 @@ const useProfileStore = create((set, get) => ({
   donations: [],
   myPosts: [],
   myCampaigns: [],
+  donationsTotal: 0,
+  postsTotal: 0,
+  campaignsTotal: 0,
 
   loadingProfile: false,
   loadingDonations: false,
@@ -60,12 +63,12 @@ const useProfileStore = create((set, get) => ({
             // BE getProfile trả to_chuc.tai_khoan_gay_quy = null (do fresh().load('toChuc') không load nested)
             // Phải build taiKhoan từ orgDetail với đúng tên field mà Profile.jsx cần
             data.user.to_chuc.tai_khoan_gay_quy = {
-              so_tai_khoan:  orgDetail.so_tai_khoan  || null,
+              so_tai_khoan: orgDetail.so_tai_khoan || null,
               chu_tai_khoan: orgDetail.ten_tai_khoan || null, // orgDetail dùng ten_tai_khoan
-              ngan_hang:     null,                            // orgDetail không trả ngan_hang
-              so_du:         orgDetail.so_du_hien_tai ?? null, // orgDetail dùng so_du_hien_tai
-              tong_thu:      orgDetail.tong_thu       ?? null,
-              tong_chi:      orgDetail.tong_chi       ?? null,
+              ngan_hang: null, // orgDetail không trả ngan_hang
+              so_du: orgDetail.so_du_hien_tai ?? null, // orgDetail dùng so_du_hien_tai
+              tong_thu: orgDetail.tong_thu ?? null,
+              tong_chi: orgDetail.tong_chi ?? null,
             };
           } catch (err) {
             console.error("Lỗi fetch org detail:", err);
@@ -100,13 +103,17 @@ const useProfileStore = create((set, get) => ({
         // res = { data: { data: [...], next_page_url, ... } }
         const newDonations = res?.data?.data || [];
         const hasMore = !!res?.data?.next_page_url;
+        const total = res?.data?.total ?? 0;
 
         set({
-          donations: loadMore ? [...get().donations, ...newDonations] : newDonations,
+          donations: loadMore
+            ? [...get().donations, ...newDonations]
+            : newDonations,
           loadingDonations: false,
           isFetchedDonations: true,
           donationsPage: currentPage,
           donationsHasMore: hasMore,
+          donationsTotal: total,
         });
 
         return newDonations;
@@ -135,9 +142,9 @@ const useProfileStore = create((set, get) => ({
     postsPromise = (async () => {
       try {
         const res = await getMyPosts(currentPage, 12);
-        // res = { data: { data: [...], next_page_url, ... } }
         const newPosts = res?.data?.data || [];
         const hasMore = !!res?.data?.next_page_url;
+        const total = res?.data?.total ?? 0;
 
         set({
           myPosts: loadMore ? [...get().myPosts, ...newPosts] : newPosts,
@@ -145,6 +152,7 @@ const useProfileStore = create((set, get) => ({
           isFetchedPosts: true,
           postsPage: currentPage,
           postsHasMore: hasMore,
+          postsTotal: total,
         });
 
         return newPosts;
@@ -176,19 +184,27 @@ const useProfileStore = create((set, get) => ({
         // res = { data: [...], next_page_url, ... } — BE trả paginator trực tiếp
         const newCampaigns = Array.isArray(res?.data) ? res.data : [];
         const hasMore = !!res?.next_page_url;
+        const total = res?.total ?? 0;
 
         set({
-          myCampaigns: loadMore ? [...get().myCampaigns, ...newCampaigns] : newCampaigns,
+          myCampaigns: loadMore
+            ? [...get().myCampaigns, ...newCampaigns]
+            : newCampaigns,
           loadingCampaigns: false,
           isFetchedCampaigns: true,
           campaignsPage: currentPage,
           campaignsHasMore: hasMore,
+          campaignsTotal: total,
         });
 
         return newCampaigns;
       } catch (err) {
         console.error("Lỗi fetch campaigns:", err);
-        set({ myCampaigns: [], loadingCampaigns: false, isFetchedCampaigns: true });
+        set({
+          myCampaigns: [],
+          loadingCampaigns: false,
+          isFetchedCampaigns: true,
+        });
         return [];
       } finally {
         campaignsPromise = null;
@@ -255,6 +271,9 @@ const useProfileStore = create((set, get) => ({
       donationsHasMore: true,
       campaignsPage: 1,
       campaignsHasMore: true,
+      donationsTotal: 0,
+      postsTotal: 0,
+      campaignsTotal: 0,
     });
   },
 }));

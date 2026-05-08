@@ -21,21 +21,28 @@ const REPORT_REASONS = [
     ],
   },
   {
-    key: "fake",
+    key: "lua_dao",
     label: "Thông tin sai sự thật hoặc lừa đảo",
-    desc: "Nội dung không trung thực hoặc có dấu hiệu lừa đảo người dùng.",
+    desc: "Nội dung không trung thực, mô tả sai tình trạng hoặc địa điểm, có dấu hiệu lừa đảo.",
     subs: [
       "Món đồ không tồn tại",
       "Đã tặng nhưng vẫn đăng",
       "Yêu cầu tiền / phí vận chuyển ẩn",
       "Thông tin liên hệ giả mạo",
+      "Ảnh không đúng với thực tế",
+      "Tình trạng tệ hơn mô tả",
+      "Địa chỉ không tồn tại hoặc sai khu vực",
+      "Không thể liên hệ để lấy đồ",
     ],
   },
   {
-    key: "prohibited",
-    label: "Đồ vật bị cấm tặng / nhận",
-    desc: "Một số loại đồ vật không được phép theo quy định cộng đồng.",
+    key: "noi_dung_xau",
+    label: "Nội dung không phù hợp hoặc đồ vật bị cấm",
+    desc: "Ngôn ngữ, hình ảnh vi phạm tiêu chuẩn cộng đồng hoặc đồ vật không được phép.",
     subs: [
+      "Ngôn ngữ thô tục / xúc phạm",
+      "Hình ảnh phản cảm",
+      "Kỳ thị hoặc phân biệt đối xử",
       "Thuốc hoặc thực phẩm chức năng",
       "Động vật hoang dã",
       "Vũ khí hoặc vật nguy hiểm",
@@ -43,40 +50,7 @@ const REPORT_REASONS = [
     ],
   },
   {
-    key: "condition",
-    label: "Mô tả tình trạng không trung thực",
-    desc: "Tình trạng thực tế của món đồ khác so với mô tả trong bài đăng.",
-    subs: [
-      "Ảnh không đúng với thực tế",
-      "Tình trạng tệ hơn mô tả",
-      "Thiếu thông tin quan trọng",
-      "Ảnh lấy từ nguồn khác",
-    ],
-  },
-  {
-    key: "location",
-    label: "Địa điểm không chính xác",
-    desc: "Vị trí đăng bài không phản ánh đúng nơi có thể đến lấy đồ.",
-    subs: [
-      "Địa chỉ không tồn tại",
-      "Khu vực khác hoàn toàn",
-      "Không thể liên hệ để lấy đồ",
-      "Đã di chuyển mà không cập nhật",
-    ],
-  },
-  {
-    key: "inappropriate",
-    label: "Nội dung không phù hợp",
-    desc: "Ngôn ngữ hoặc hình ảnh vi phạm tiêu chuẩn cộng đồng.",
-    subs: [
-      "Ngôn ngữ thô tục / xúc phạm",
-      "Hình ảnh phản cảm",
-      "Kỳ thị hoặc phân biệt đối xử",
-      "Nội dung gây hiểu lầm",
-    ],
-  },
-  {
-    key: "other",
+    key: "khac",
     label: "Lý do khác",
     desc: "Bài đăng có vấn đề nhưng không thuộc các mục trên.",
     subs: [
@@ -89,7 +63,7 @@ const REPORT_REASONS = [
 ];
 
 export default function ReportSheet({ visible, onClose, onSubmit, loading }) {
-  const [view, setView] = useState("list"); 
+  const [view, setView] = useState("list");
   const [selected, setSelected] = useState(null);
 
   const handleClose = () => {
@@ -109,35 +83,31 @@ export default function ReportSheet({ visible, onClose, onSubmit, loading }) {
     if (!onSubmit || !selected) return;
 
     try {
-      const ok = await onSubmit({
+      await onSubmit({
         ly_do: selected.key.toUpperCase(),
         mo_ta: subReason,
       });
 
-      // ❌ không thành công thì dừng
-      if (!ok) return;
-
       setView("success");
 
       notification.success({
-        message: "Đã gửi báo cáo",
-        description:
-          "Cảm ơn bạn đã báo cáo. Admin sẽ xem xét bài đăng này trong thời gian sớm nhất.",
+        message: "Báo cáo thành công",
+        description: "Chúng tôi đã nhận báo cáo của bạn.",
         placement: "topRight",
       });
     } catch (err) {
       console.error(err);
-  
+
       setView("list");
-  
+
       notification.error({
         message: "Gửi báo cáo thất bại",
         description:
-          err?.response?.data?.message ||
-          "Đã xảy ra lỗi, vui lòng thử lại.",
+          err?.response?.data?.message || "Đã xảy ra lỗi, vui lòng thử lại.",
       });
     }
   };
+
   if (!visible) return null;
 
   return (
@@ -169,10 +139,6 @@ export default function ReportSheet({ visible, onClose, onSubmit, loading }) {
                     onClick={() => handleSelectReason(r)}
                   >
                     <span className="report-item__label">{r.label}</span>
-                    <FiChevronRight
-                      size={18}
-                      className="report-item__chevron"
-                    />
                   </button>
                   {i < REPORT_REASONS.length - 1 && (
                     <div className="report-sheet__sep" />

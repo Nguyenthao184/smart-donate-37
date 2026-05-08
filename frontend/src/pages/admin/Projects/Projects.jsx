@@ -231,7 +231,6 @@ export default function Projects() {
         <div className="adm-box__head">
           <span className="adm-box__title">
             <FiFolder size={15} /> Danh sách chiến dịch
-            <span className="adm-box__badge">{campaignsSummary.total}</span>
           </span>
           <div className="adm-box__actions">
             <div className="prj__search">
