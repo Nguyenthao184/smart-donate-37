@@ -1,8 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
-  FiMenu, FiX, FiSearch, FiLogOut,
-  FiChevronRight, FiGrid, FiUsers, FiFolder, FiFileText, FiHome,
+  FiMenu,
+  FiX,
+  FiSearch,
+  FiLogOut,
+  FiChevronRight,
+  FiGrid,
+  FiUsers,
+  FiFolder,
+  FiFileText,
+  FiHome,
   FiShield,
   FiDollarSign,
 } from "react-icons/fi";
@@ -12,6 +20,7 @@ import Dashboard from "../Dashboard/Dashboard";
 import Users from "../Users/Users";
 import Projects from "../Projects/Projects";
 import Posts from "../Posts/Posts";
+import Withdrawals from "../Withdrawals/Withdrawals";
 import FraudAlerts from "../FraudAlerts/FraudAlerts";
 import NotificationDropdown from "../../../components/NotificationDropdown";
 import "./AdminPanel.scss";
@@ -20,48 +29,89 @@ const NAV_ITEMS = [
   {
     section: "Tổng quan",
     items: [
-      { key: "dashboard", icon: <FiGrid size={20} />, label: "Dashboard", path: "/admin/dashboard" },
+      {
+        key: "dashboard",
+        icon: <FiGrid size={20} />,
+        label: "Dashboard",
+        path: "/admin/dashboard",
+      },
     ],
   },
   {
     section: "Quản lý",
     items: [
-      { key: "users",    icon: <FiUsers size={20} />,    label: "Người dùng", path: "/admin/users" },
-      { key: "projects", icon: <FiFolder size={20} />,   label: "Chiến dịch", path: "/admin/projects" },
-      { key: "posts",    icon: <FiFileText size={20} />, label: "Bài đăng",   path: "/admin/posts" },
-      { key: "fraud-alerts", icon: <FiShield size={20} />, label: "Cảnh báo gian lận", path: "/admin/fraud-alerts" },
+      {
+        key: "users",
+        icon: <FiUsers size={20} />,
+        label: "Người dùng",
+        path: "/admin/users",
+      },
+      {
+        key: "projects",
+        icon: <FiFolder size={20} />,
+        label: "Chiến dịch",
+        path: "/admin/projects",
+      },
+      {
+        key: "posts",
+        icon: <FiFileText size={20} />,
+        label: "Bài đăng",
+        path: "/admin/posts",
+      },
+      {
+        key: "fraud-alerts",
+        icon: <FiShield size={20} />,
+        label: "Cảnh báo gian lận",
+        path: "/admin/fraud-alerts",
+      },
     ],
   },
   {
     section: "Tài chính",
     items: [
-      { key: "withdrawals", icon: <FiDollarSign size={20} />, label: "Yêu cầu rút tiền", path: "/admin/withdrawals" },
+      {
+        key: "withdrawals",
+        icon: <FiDollarSign size={20} />,
+        label: "Yêu cầu rút tiền",
+        path: "/admin/withdrawals",
+      },
     ],
   },
 ];
 
-const COMPONENTS = { dashboard: Dashboard, users: Users, projects: Projects, posts: Posts, "fraud-alerts": FraudAlerts };
+const COMPONENTS = {
+  dashboard: Dashboard,
+  users: Users,
+  projects: Projects,
+  posts: Posts,
+  withdrawals: Withdrawals,
+  "fraud-alerts": FraudAlerts,
+};
 
 export default function AdminPanel() {
-  const [sidebarOpen, setSidebarOpen]   = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
   const avatarRef = useRef(null);
-  const navigate  = useNavigate();
-  const location  = useLocation();
+  const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout: logoutStore } = useAuthStore();
   const storeRoles = useAuthStore((s) => s.roles);
 
-  const FLAT_NAV    = NAV_ITEMS.flatMap((s) => s.items);
-  const currentKey  = location.pathname.split("/")[2] || "dashboard";
-  const activeKey   = currentKey;
-  const activeLabel = FLAT_NAV.find((i) => i.key === activeKey)?.label || "Dashboard";
+  const FLAT_NAV = NAV_ITEMS.flatMap((s) => s.items);
+  const currentKey = location.pathname.split("/")[2] || "dashboard";
+  const activeKey = currentKey;
+  const activeLabel =
+    FLAT_NAV.find((i) => i.key === activeKey)?.label || "Dashboard";
   const CurrentComponent = COMPONENTS[activeKey] || Dashboard;
   const displayName = user?.ho_ten || "Admin";
 
   const isAdmin = Array.isArray(storeRoles)
-    ? storeRoles.some((r) => r === "ADMIN" || r?.ten === "ADMIN" || r?.ten_vai_tro === "ADMIN")
+    ? storeRoles.some(
+        (r) =>
+          r === "ADMIN" || r?.ten === "ADMIN" || r?.ten_vai_tro === "ADMIN",
+      )
     : false;
-    
+
   // Bảo vệ route: non-admin bị redirect về trang chủ
   useEffect(() => {
     if (storeRoles.length > 0 && !isAdmin) {
@@ -69,8 +119,9 @@ export default function AdminPanel() {
     }
   }, [isAdmin, storeRoles]);
 
-  useEffect(() => { 
-    if (location.pathname === "/admin") navigate("/admin/dashboard", { replace: true });
+  useEffect(() => {
+    if (location.pathname === "/admin")
+      navigate("/admin/dashboard", { replace: true });
   }, []);
 
   useEffect(() => {
@@ -84,7 +135,9 @@ export default function AdminPanel() {
   }, []);
 
   async function handleLogout() {
-    try { await logoutAPI(); } catch (_) {}
+    try {
+      await logoutAPI();
+    } catch (_) {}
     logoutStore();
     window.location.href = "/dang-nhap";
   }
@@ -96,7 +149,9 @@ export default function AdminPanel() {
 
   return (
     <div className="adm">
-      {sidebarOpen && <div className="adm__overlay" onClick={() => setSidebarOpen(false)} />}
+      {sidebarOpen && (
+        <div className="adm__overlay" onClick={() => setSidebarOpen(false)} />
+      )}
 
       {/* ── Sidebar ── */}
       <aside className={`adm__sidebar${sidebarOpen ? " open" : ""}`}>
@@ -106,7 +161,10 @@ export default function AdminPanel() {
             <div className="adm__logo-name">SmartDonate</div>
             <div className="adm__logo-sub">Admin Panel</div>
           </div>
-          <button className="adm__logo-close" onClick={() => setSidebarOpen(false)}>
+          <button
+            className="adm__logo-close"
+            onClick={() => setSidebarOpen(false)}
+          >
             <FiX size={18} />
           </button>
         </div>
@@ -124,7 +182,9 @@ export default function AdminPanel() {
                 >
                   <span className="adm__nav-icon">{item.icon}</span>
                   <span className="adm__nav-label-text">{item.label}</span>
-                  {activeKey === item.key && <FiChevronRight size={13} className="adm__nav-arrow" />}
+                  {activeKey === item.key && (
+                    <FiChevronRight size={13} className="adm__nav-arrow" />
+                  )}
                 </button>
               ))}
             </div>
@@ -133,12 +193,18 @@ export default function AdminPanel() {
 
         <div className="adm__sidebar-footer">
           <div className="adm__user">
-            <div className="adm__user-avatar">{displayName[0]?.toUpperCase()}</div>
+            <div className="adm__user-avatar">
+              {displayName[0]?.toUpperCase()}
+            </div>
             <div className="adm__user-info">
               <div className="adm__user-name">{displayName}</div>
               <div className="adm__user-role">Super Admin</div>
             </div>
-            <button className="adm__user-logout" title="Đăng xuất" onClick={handleLogout}>
+            <button
+              className="adm__user-logout"
+              title="Đăng xuất"
+              onClick={handleLogout}
+            >
               <FiLogOut size={15} />
             </button>
           </div>
@@ -148,7 +214,10 @@ export default function AdminPanel() {
       {/* ── Main ── */}
       <div className="adm__main">
         <header className="adm__header">
-          <button className="adm__header-menu" onClick={() => setSidebarOpen(true)}>
+          <button
+            className="adm__header-menu"
+            onClick={() => setSidebarOpen(true)}
+          >
             <FiMenu size={20} />
           </button>
 
@@ -182,7 +251,10 @@ export default function AdminPanel() {
                   <div className="adm__avatar-menu__divider" />
                   <button
                     className="adm__avatar-menu__item"
-                    onClick={() => { setAvatarMenuOpen(false); navigate("/"); }}
+                    onClick={() => {
+                      setAvatarMenuOpen(false);
+                      navigate("/");
+                    }}
                   >
                     <FiHome size={14} /> Về trang chủ
                   </button>

@@ -14,6 +14,7 @@ import "./Profile.scss";
 import useWithdrawRequestStore from "../../../store/withdrawRequestStore";
 
 export default function ProfilePage() {
+  const sentinelRef = useRef(null);
   const { user } = useAuthStore();
   const storeRoles = useAuthStore((s) => s.roles);
   const navigate = useNavigate();
@@ -25,7 +26,8 @@ export default function ProfilePage() {
   const [withdrawModal, setWithdrawModal] = useState(null); // campaign object
   const [withdrawForm, setWithdrawForm] = useState({ so_tien: "", mo_ta: "" });
   const [rawWithdrawAmount, setRawWithdrawAmount] = useState("");
-  const { createRequest, submitting: submittingWithdraw } = useWithdrawRequestStore();
+  const { createRequest, submitting: submittingWithdraw } =
+    useWithdrawRequestStore();
   const [expenseModalCampaign, setExpenseModalCampaign] = useState(null);
   const [editModalCampaign, setEditModalCampaign] = useState(null);
 
@@ -46,6 +48,9 @@ export default function ProfilePage() {
     loadMoreCampaigns,
     handleUpdateProfile,
     handleChangePassword,
+    donationsTotal,
+    postsTotal,
+    campaignsTotal,
   } = useProfile();
 
   const isOrganization = Array.isArray(storeRoles)
@@ -81,23 +86,36 @@ export default function ProfilePage() {
 
   // Infinite scroll for posts and donations tabs
   useEffect(() => {
-    const handleScroll = () => {
-      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 200) {
-        if (activeTab === "posts" && postsHasMore && !loadingPosts) {
+    const el = sentinelRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        if (activeTab === "posts" && postsHasMore && !loadingPosts)
           loadMorePosts();
-        }
-        if (activeTab === "history" && donationsHasMore && !loadingDonations) {
+        if (activeTab === "history" && donationsHasMore && !loadingDonations)
           loadMoreDonations();
-        }
-        if (activeTab === "projects" && campaignsHasMore && !loadingCampaigns) {
+        if (activeTab === "projects" && campaignsHasMore && !loadingCampaigns)
           loadMoreCampaigns();
-        }
-      }
-    };
-    
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [activeTab, postsHasMore, loadingPosts, loadMorePosts, donationsHasMore, loadingDonations, loadMoreDonations, campaignsHasMore, loadingCampaigns, loadMoreCampaigns]);
+      },
+      { threshold: 0.1 },
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [
+    activeTab,
+    postsHasMore,
+    loadingPosts,
+    loadMorePosts,
+    donationsHasMore,
+    loadingDonations,
+    loadMoreDonations,
+    campaignsHasMore,
+    loadingCampaigns,
+    loadMoreCampaigns,
+  ]);
 
   const handleWithdrawRequest = (campaign, e) => {
     e.stopPropagation();
@@ -110,11 +128,17 @@ export default function ProfilePage() {
   const handleWithdrawSubmit = async () => {
     const amount = Number(withdrawForm.so_tien);
     if (!amount || amount < 100000) {
-      notification.warning({ message: "Số tiền tối thiểu 100.000đ!", placement: "topRight" });
+      notification.warning({
+        message: "Số tiền tối thiểu 100.000đ!",
+        placement: "topRight",
+      });
       return;
     }
     if (!withdrawForm.mo_ta.trim()) {
-      notification.warning({ message: "Vui lòng nhập lý do rút!", placement: "topRight" });
+      notification.warning({
+        message: "Vui lòng nhập lý do rút!",
+        placement: "topRight",
+      });
       return;
     }
     const { ok, err } = await createRequest({
@@ -123,7 +147,10 @@ export default function ProfilePage() {
       mo_ta: withdrawForm.mo_ta,
     });
     if (ok) {
-      notification.success({ message: "Gửi yêu cầu rút tiền thành công!", placement: "topRight" });
+      notification.success({
+        message: "Gửi yêu cầu rút tiền thành công!",
+        placement: "topRight",
+      });
       setWithdrawModal(null);
     } else {
       notification.error({
@@ -401,13 +428,13 @@ export default function ProfilePage() {
           <div className="profile-stats__sep" />
           <div className="profile-stats__item">
             <span>Bài đăng</span>
-            <strong>{myPosts.length} bài</strong>
+            <strong>{postsTotal} bài</strong>
           </div>
           <div className="profile-stats__sep" />
           <div className="profile-stats__item">
             <span>{isOrganization ? "Chiến dịch" : "Lịch sử ủng hộ"}</span>
             <strong>
-              {isOrganization ? myCampaigns?.length || 0 : donations.length}
+              {isOrganization ? campaignsTotal : donationsTotal} 
             </strong>
           </div>
         </div>
@@ -550,6 +577,18 @@ export default function ProfilePage() {
                   ))}
                 </div>
               )}
+              {donationsHasMore && (
+                <div
+                  ref={sentinelRef}
+                  style={{
+                    textAlign: "center",
+                    padding: "16px",
+                    color: "var(--color-text-tertiary)",
+                  }}
+                >
+                  {loadingDonations ? "Đang tải..." : ""}
+                </div>
+              )}
             </div>
           )}
 
@@ -584,6 +623,18 @@ export default function ProfilePage() {
                   <p className="profile-empty__hint">
                     Tạo bài đăng cho/nhận đồ để AI gợi ý ghép nối người phù hợp
                   </p>
+                </div>
+              )}
+              {postsHasMore && (
+                <div
+                  ref={sentinelRef}
+                  style={{
+                    textAlign: "center",
+                    padding: "16px",
+                    color: "var(--color-text-tertiary)",
+                  }}
+                >
+                  {loadingPosts ? "Đang tải..." : ""}
                 </div>
               )}
             </div>
@@ -722,9 +773,13 @@ export default function ProfilePage() {
                                   {c.trang_thai === "HOAT_DONG" && (
                                     <button
                                       className="pcd-card__menu-item pcd-card__menu-item--withdraw"
-                                      onClick={(e) => handleWithdrawRequest(c, e)}
+                                      onClick={(e) =>
+                                        handleWithdrawRequest(c, e)
+                                      }
                                     >
-                                      <span className="pcd-card__menu-icon">💸</span>
+                                      <span className="pcd-card__menu-icon">
+                                        💸
+                                      </span>
                                       Yêu cầu rút tiền
                                     </button>
                                   )}
@@ -817,91 +872,109 @@ export default function ProfilePage() {
               )}
             </div>
           )}
-
-          {/* ── Modal Yêu cầu rút tiền ── */}
-      {withdrawModal && (
-        <div className="wr-overlay" onClick={() => setWithdrawModal(null)}>
-          <div className="wr-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="wr-modal__header">
-              <div>
-                <div className="wr-modal__title">💸 Yêu cầu rút tiền</div>
-                <div className="wr-modal__sub">{withdrawModal.ten_chien_dich}</div>
-              </div>
-              <button className="wr-modal__close" onClick={() => setWithdrawModal(null)}>✕</button>
-            </div>
-            <div className="wr-modal__body">
-              <div className="wr-modal__field">
-                <label className="wr-modal__label">Số tiền muốn rút *</label>
-                <div className="wr-modal__input-wrap">
-                  <input
-                    className="wr-modal__input"
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="0"
-                    value={rawWithdrawAmount ? Number(rawWithdrawAmount).toLocaleString("vi-VN") : ""}
-                    onChange={(e) => {
-                      const raw = e.target.value.replace(/\D/g, "");
-                      setRawWithdrawAmount(raw);
-                      setWithdrawForm((f) => ({ ...f, so_tien: raw }));
-                    }}
-                  />
-                  <span className="wr-modal__suffix">đ</span>
-                </div>
-                {rawWithdrawAmount && Number(rawWithdrawAmount) >= 100000 && (
-                  <div className="wr-modal__hint">
-                    = {Number(rawWithdrawAmount).toLocaleString("vi-VN")}đ
-                  </div>
-                )}
-              </div>
-              <div className="wr-modal__field">
-                <label className="wr-modal__label">Lý do rút tiền *</label>
-                <textarea
-                  className="wr-modal__textarea"
-                  placeholder="Mô tả mục đích sử dụng số tiền (chi phí hoạt động, mua vật tư...)"
-                  value={withdrawForm.mo_ta}
-                  onChange={(e) => setWithdrawForm((f) => ({ ...f, mo_ta: e.target.value }))}
-                  rows={3}
-                  maxLength={500}
-                />
-              </div>
-            </div>
-            <div className="wr-modal__footer">
-              <button className="wr-modal__btn wr-modal__btn--ghost" onClick={() => setWithdrawModal(null)}>
-                Hủy
-              </button>
-              <button
-                className="wr-modal__btn wr-modal__btn--primary"
-                onClick={handleWithdrawSubmit}
-                disabled={submittingWithdraw}
-              >
-                {submittingWithdraw ? "Đang gửi..." : "Gửi yêu cầu"}
-              </button>
-            </div>
-          </div>
         </div>
-      )}
-
-      {activeTab === "register" && !isOrganization && (
-            <div className="profile-tab-content">
-              <div className="profile-empty">
-                <div className="profile-empty__icon">🏢</div>
-                <p>
-                  Trở thành <strong>Tổ chức từ thiện</strong> để tạo chiến dịch
-                </p>
-                <p className="profile-empty__hint">
-                  Đăng ký để tạo và quản lý chiến dịch gây quỹ, tiếp cận hàng
-                  nghìn nhà hảo tâm
-                </p>
+        {/* ── Modal Yêu cầu rút tiền ── */}
+        {withdrawModal && (
+          <div className="wr-overlay" onClick={() => setWithdrawModal(null)}>
+            <div className="wr-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="wr-modal__header">
+                <div>
+                  <div className="wr-modal__title">💸 Yêu cầu rút tiền</div>
+                  <div className="wr-modal__sub">
+                    {withdrawModal.ten_chien_dich}
+                  </div>
+                </div>
                 <button
-                  className="profile-empty__btn"
-                  onClick={() => navigate("/dk-to-chuc")}
+                  className="wr-modal__close"
+                  onClick={() => setWithdrawModal(null)}
                 >
-                  Đăng ký tổ chức
+                  ✕
+                </button>
+              </div>
+              <div className="wr-modal__body">
+                <div className="wr-modal__field">
+                  <label className="wr-modal__label">Số tiền muốn rút *</label>
+                  <div className="wr-modal__input-wrap">
+                    <input
+                      className="wr-modal__input"
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="0"
+                      value={
+                        rawWithdrawAmount
+                          ? Number(rawWithdrawAmount).toLocaleString("vi-VN")
+                          : ""
+                      }
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/\D/g, "");
+                        setRawWithdrawAmount(raw);
+                        setWithdrawForm((f) => ({ ...f, so_tien: raw }));
+                      }}
+                    />
+                    <span className="wr-modal__suffix">đ</span>
+                  </div>
+                  {rawWithdrawAmount && Number(rawWithdrawAmount) >= 100000 && (
+                    <div className="wr-modal__hint">
+                      = {Number(rawWithdrawAmount).toLocaleString("vi-VN")}đ
+                    </div>
+                  )}
+                </div>
+                <div className="wr-modal__field">
+                  <label className="wr-modal__label">Lý do rút tiền *</label>
+                  <textarea
+                    className="wr-modal__textarea"
+                    placeholder="Mô tả mục đích sử dụng số tiền (chi phí hoạt động, mua vật tư...)"
+                    value={withdrawForm.mo_ta}
+                    onChange={(e) =>
+                      setWithdrawForm((f) => ({
+                        ...f,
+                        mo_ta: e.target.value,
+                      }))
+                    }
+                    rows={3}
+                    maxLength={500}
+                  />
+                </div>
+              </div>
+              <div className="wr-modal__footer">
+                <button
+                  className="wr-modal__btn wr-modal__btn--ghost"
+                  onClick={() => setWithdrawModal(null)}
+                >
+                  Hủy
+                </button>
+                <button
+                  className="wr-modal__btn wr-modal__btn--primary"
+                  onClick={handleWithdrawSubmit}
+                  disabled={submittingWithdraw}
+                >
+                  {submittingWithdraw ? "Đang gửi..." : "Gửi yêu cầu"}
                 </button>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
+
+        {activeTab === "register" && !isOrganization && (
+          <div className="profile-tab-content">
+            <div className="profile-empty">
+              <div className="profile-empty__icon">🏢</div>
+              <p>
+                Trở thành <strong>Tổ chức từ thiện</strong> để tạo chiến dịch
+              </p>
+              <p className="profile-empty__hint">
+                Đăng ký để tạo và quản lý chiến dịch gây quỹ, tiếp cận hàng
+                nghìn nhà hảo tâm
+              </p>
+              <button
+                className="profile-empty__btn"
+                onClick={() => navigate("/dk-to-chuc")}
+              >
+                Đăng ký tổ chức
+              </button>
+            </div>
+          </div>
+        )}
 
         {showEditModal && (
           <EditProfileModal
@@ -1326,8 +1399,12 @@ function EditCampaignModal({ campaign, onClose, onSuccess }) {
 
 /* ===================== Modal: Hoạt động chi quỹ ===================== */
 function ExpenseActivityModal({ campaign, toChuc, onClose, onSuccess }) {
-  const { fetchWithdrawTransactions, fetchWithdrawWithExpenses, handleCreateExpense, loadingExpense } =
-    useCampaigns();
+  const {
+    fetchWithdrawTransactions,
+    fetchWithdrawWithExpenses,
+    handleCreateExpense,
+    loadingExpense,
+  } = useCampaigns();
 
   const [withdrawList, setWithdrawList] = useState([]);
   const [expenseMap, setExpenseMap] = useState({}); // giao_dich_id → { mo_ta, chi_tieu[] }
@@ -1385,15 +1462,20 @@ function ExpenseActivityModal({ campaign, toChuc, onClose, onSuccess }) {
     const existing = (map || expenseMap)[String(id)];
     if (existing?.chi_tieu?.length > 0) {
       setGhiChu(existing.mo_ta || "");
-      setItems(existing.chi_tieu.map((ct) => ({
-        ten: ct.ten_hoat_dong || "",
-        so_tien: String(ct.so_tien || ""),
-        id: ct.chi_tieu_id, // giữ id nếu cần update sau này
-      })));
+      setItems(
+        existing.chi_tieu.map((ct) => ({
+          ten: ct.ten_hoat_dong || "",
+          so_tien: String(ct.so_tien || ""),
+          id: ct.chi_tieu_id, // giữ id nếu cần update sau này
+        })),
+      );
     } else {
       // Chưa có chi tiêu → reset về 2 ô trống
       setGhiChu("");
-      setItems([{ ten: "", so_tien: "" }, { ten: "", so_tien: "" }]);
+      setItems([
+        { ten: "", so_tien: "" },
+        { ten: "", so_tien: "" },
+      ]);
     }
   };
 
@@ -1806,7 +1888,9 @@ function EditProfileModal({
                   {logoPreview ? (
                     <img src={logoPreview} alt="logo" />
                   ) : (
-                    <span>{(toChuc?.ten_to_chuc || "T")[0]?.toUpperCase()}</span>
+                    <span>
+                      {(toChuc?.ten_to_chuc || "T")[0]?.toUpperCase()}
+                    </span>
                   )}
                 </div>
                 <div className="ep-avatar-actions">
@@ -1835,7 +1919,14 @@ function EditProfileModal({
                     Xóa
                   </button>
                 </div>
-                <div style={{ flex: 1, fontSize: 12, color: "#888", marginLeft: 16 }}>
+                <div
+                  style={{
+                    flex: 1,
+                    fontSize: 12,
+                    color: "#888",
+                    marginLeft: 16,
+                  }}
+                >
                   Logo tổ chức (jpg/png, tối đa 2MB)
                 </div>
               </div>

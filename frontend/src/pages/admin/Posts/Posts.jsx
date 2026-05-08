@@ -162,7 +162,6 @@ export default function Posts() {
         <div className="adm-box__head">
           <span className="adm-box__title">
             <FiFileText size={15} /> Danh sách bài đăng
-            <span className="adm-box__badge">{postsSummary.total}</span>
           </span>
           <div className="adm-box__actions">
             <div className="pst__search">

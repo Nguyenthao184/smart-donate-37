@@ -73,7 +73,6 @@ export const getAdminPostReports = async (params = { limit: 100 }) => {
 export const updateAdminPostReport = (id, data) =>
   api.post(`/admin/post-reports/${id}`, data);
 
-
 // ===== CAMPAIGNS =====
 // params: { page, per_page, keyword, trang_thai, danh_muc_id }
 export const getAdminCampaigns = async (params = {}) => {
@@ -109,13 +108,19 @@ export const suspendPost = async (id, ly_do = "") => {
 };
 
 // Danh sách vi phạm 1 chiến dịch (cho modal)
-export const getCampaignViolations = async (id, params = { trang_thai: "CHO_XU_LY", limit: 100 }) => {
+export const getCampaignViolations = async (
+  id,
+  params = { trang_thai: "CHO_XU_LY", limit: 100 },
+) => {
   const res = await api.get(`/admin/campaigns/${id}/violations`, { params });
   return res.data;
 };
 
 // Danh sách vi phạm 1 bài đăng (cho modal)
-export const getPostViolations = async (id, params = { trang_thai: "CHO_XU_LY", limit: 100 }) => {
+export const getPostViolations = async (
+  id,
+  params = { trang_thai: "CHO_XU_LY", limit: 100 },
+) => {
   const res = await api.get(`/admin/posts/${id}/violations`, { params });
   return res.data;
 };
