@@ -124,7 +124,9 @@ export default function CreateCampaign() {
         message: "Tạo chiến dịch thành công! 🎉",
         description: "Chiến dịch đang chờ admin xét duyệt.",
       });
-      navigate("/chien-dich");
+      // ✅ Dispatch event để Profile tự refetch chiến dịch mới
+      window.dispatchEvent(new CustomEvent("profile:refresh-campaigns"));
+      navigate("/profile");
     } catch (err) {
       const errors = err?.response?.data?.errors;
       const message = err?.response?.data?.message;

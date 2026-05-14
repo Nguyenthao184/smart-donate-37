@@ -165,6 +165,22 @@ const useNotificationStore = create((set) => ({
         const d = row.data || {};
         const loai = d.loai || d.type;
 
+        // ✅ Dispatch global event để các page khác (Profile, ...) tự refetch data
+        if (loai === "approval") {
+          const targetType = d.target_type;
+          if (targetType === "organization") {
+            window.dispatchEvent(new CustomEvent("profile:refresh-org"));
+          } else if (targetType === "campaign") {
+            window.dispatchEvent(new CustomEvent("profile:refresh-campaigns"));
+          } else if (targetType === "user") {
+            window.dispatchEvent(new CustomEvent("profile:refresh-user"));
+          }
+        }
+        if (loai === "withdraw_request_status") {
+          window.dispatchEvent(new CustomEvent("profile:refresh-campaigns"));
+        }
+
+
         // ✅ Chỉ hiển thị TOAST cho những loại quan trọng (cảnh báo, xử lý lỗi)
         // ❌ Bỏ qua: approval, bai_dang_duoc_thich, bai_dang_duoc_binh_luan, reply_comment
         //           (những loại này chỉ hiển thị ở dropdown thôi)

@@ -32,6 +32,8 @@ export default function Posts() {
   const [submitting, setSubmitting]   = useState(false);
   const [violationsTarget, setViolationsTarget] = useState(null);
   const [suspendTarget, setSuspendTarget]       = useState(null);
+  const [violationPosts, setViolationPosts] = useState([]);
+  const [loadingViolationPosts, setLoadingViolationPosts] = useState(false);
 
   const {
     posts, postsMeta, postsParams, postsSummary, loadingPosts,
@@ -47,6 +49,7 @@ export default function Posts() {
   }, []);
 
   function openSuspendModal(p) {
+    setSelected(null);
     setSuspendTarget({ id: p.id, ten: p.tieu_de });
   }
 
@@ -84,16 +87,38 @@ export default function Posts() {
     if (filter === "nhan") loai_bai = "NHAN";
     if (filter !== "vi_pham") {
       fetchPosts({ page: 1, loai_bai });
-    } else {
-      // Filter vi_pham: fetch all rồi filter client-side
-      fetchPosts({ page: 1, loai_bai: "" });
     }
   }, [filter]);
 
-  // Filter client-side cho "vi_pham"
-  const visiblePosts = filter === "vi_pham" 
-    ? posts.filter(p => postViolationSet.has(p.id)) 
-    : posts;
+  // Khi filter vi_pham → fetch chi tiết từng bài đăng có vi phạm
+  useEffect(() => {
+    if (filter !== "vi_pham") return;
+    if (!postViolationSet || postViolationSet.size === 0) {
+      setViolationPosts([]);
+      return;
+    }
+    (async () => {
+      setLoadingViolationPosts(true);
+      try {
+        const ids = Array.from(postViolationSet);
+        const results = await Promise.all(
+          ids.map((id) => getAdminPostDetail(id).catch(() => null))
+        );
+        const list = results
+          .filter((r) => r && (r.data || r))
+          .map((r) => r.data || r);
+        setViolationPosts(list);
+      } catch (err) {
+        console.error("Lỗi fetch violation posts:", err);
+      } finally {
+        setLoadingViolationPosts(false);
+      }
+    })();
+  }, [filter, postViolationSet]);
+
+  // Hiển thị: nếu filter vi_pham → list từ violationPosts, ngược lại từ posts
+  const visiblePosts = filter === "vi_pham" ? violationPosts : posts;
+  const isLoadingList = filter === "vi_pham" ? loadingViolationPosts : loadingPosts;
 
   async function openDetail(p) {
     setSelected(p);
@@ -182,7 +207,7 @@ export default function Posts() {
         </div>
 
         <div className="adm-scroll">
-          {loadingPosts ? (
+          {isLoadingList ? (
             <div className="adm-empty"><div className="adm-empty__text">Đang tải...</div></div>
           ) : (
             <table className="adm-table">
@@ -251,11 +276,13 @@ export default function Posts() {
           )}
         </div>
 
-        <Pagination
+        {filter !== "vi_pham" && (
+          <Pagination
           meta={postsMeta}
           loading={loadingPosts}
-          onChange={(page) => fetchPosts({ page })}
-        />
+            onChange={(page) => fetchPosts({ page })}
+          />
+        )}
       </div>
 
       {selected && (() => {
